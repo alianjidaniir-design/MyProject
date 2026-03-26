@@ -1,2 +1,0 @@
-# MyProject
-university of project
