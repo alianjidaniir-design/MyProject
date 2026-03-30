@@ -7,7 +7,8 @@ import (
 )
 
 type UserRepository interface {
-	Create(ctx context.Context, req commonSchema.BaseRequest[userSchema.LoginRequest]) (res userSchema.LoginRequest, errStr string, code int, err error)
+	// متد create
+	Create(ctx context.Context, req commonSchema.BaseRequest[userSchema.LoginRequest]) (res userSchema.ResponseUser, errStr string, code int, err error)
 }
 
 var UserRepo UserRepository

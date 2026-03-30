@@ -2,6 +2,6 @@ package userSchema
 
 import UserdataModel "MyProject/models/user/dataModel"
 
-type responseUser struct {
+type ResponseUser struct {
 	User UserdataModel.User
 }
