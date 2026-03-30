@@ -1,8 +1,8 @@
 package commonSchema
 
 type BaseRequest[T any] struct {
-	Body T
-	Req  T
+	Body    T
+	Headers map[string]string
 }
 
 type ValidateExtraData struct {
