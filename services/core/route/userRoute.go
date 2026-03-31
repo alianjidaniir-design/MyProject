@@ -2,6 +2,7 @@ package route
 
 import (
 	. "MyProject/controllers/user"
+
 	"github.com/gofiber/fiber/v2"
 )
 
