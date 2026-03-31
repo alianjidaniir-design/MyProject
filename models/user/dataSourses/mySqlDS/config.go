@@ -26,13 +26,15 @@ type Config struct {
 func LoadConfig() (cfg Config, err error) {
 	cfg = Config{
 		DSN:                    normalizeDSN(strings.TrimSpace(os.Getenv("MYSQL_DSN"))),
-		StudentTableName:       strings.TrimSpace(os.Getenv("MYSQL_STUDENT_TABLE_NAME")),
+		StudentTableName:       strings.TrimSpace(os.Getenv("MYSQL_STUDENT_TABLE")),
 		MaxOpenConnections:     readEnvInt("MYSQL_MAX_OPEN_CONNECTIONS", defaultMaxOpenConnections),
 		MaxIdleConnections:     readEnvInt("MYSQL_MAX_IDLE_CONNECTIONS", defaultMaxIdleConnections),
 		ConnMaxLifeTimeSeconds: readEnvInt("MYSQL_CONN_MAX_LIFE_TIME_SECONDS", defaultConnMaxLifeTimeSeconds),
 	}
 	if cfg.StudentTableName == "" {
+		fmt.Println()
 		cfg.StudentTableName = defaultsStudentTableName
+
 	}
 
 	if err := ValidateTableName(cfg.StudentTableName); err != nil {
