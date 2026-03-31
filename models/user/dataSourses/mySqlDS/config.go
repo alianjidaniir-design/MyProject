@@ -34,7 +34,6 @@ func LoadConfig() (cfg Config, err error) {
 	if cfg.StudentTableName == "" {
 		fmt.Println()
 		cfg.StudentTableName = defaultsStudentTableName
-
 	}
 
 	if err := ValidateTableName(cfg.StudentTableName); err != nil {

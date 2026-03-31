@@ -6,11 +6,11 @@ import (
 	"regexp"
 )
 
-var safeTableNamePattern = regexp.MustCompile(`[^a-zA-Z0-9_]+$`)
+var safeTableNamePattern = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
 
 func ValidateTableName(tableName string) error {
 	if !safeTableNamePattern.MatchString(tableName) {
-		return fmt.Errorf("table name '%s' is invalid", tableName)
+		return fmt.Errorf("'%s' is invalid %s", tableName, tableName)
 	}
 	return nil
 }

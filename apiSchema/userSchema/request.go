@@ -5,3 +5,8 @@ type LoginRequest struct {
 	Name   string `msgpack:"name" validate:"required"`
 	Family string `msgpack:"family" validate:"required"`
 }
+
+type ListRequest struct {
+	Page    int `json:"page" msgpack:"page"`
+	PerPage int `json:"perPage" msgpack:"perPage"`
+}
