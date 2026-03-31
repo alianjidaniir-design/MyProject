@@ -3,7 +3,8 @@ package user
 import (
 	"MyProject/models/repositories"
 	userDataSourses "MyProject/models/user/dataSourses"
-	"MyProject/models/user/dataSourses/memoryDS"
+	mysqlDataSource "MyProject/models/user/dataSourses/mySqlDS"
+	"log"
 	"sync"
 )
 
@@ -19,15 +20,26 @@ var (
 
 func GetRepo() *Repository {
 	once.Do(func() {
-		repoIns = &Repository{
-			dbDS: memoryDS.NewTaskDBDS(1),
-		}
+		repoIns = &Repository{}
+		repoIns.initializeDataSources()
 	})
 	return repoIns
 }
 
 func init() {
 	repositories.UserRepo = GetRepo()
+}
+
+func (repo *Repository) initializeDataSources() {
+	mysqlDS, enabled, err := mysqlDataSource.NewUserDBDSFromEnv()
+	if err != nil {
+		repo.initErr = err
+		return
+	}
+	if enabled {
+		repo.dbDS = mysqlDS
+		log.Printf("mysqlDataSource.NewUserDBDSFromEnv err:%v")
+	}
 }
 
 func (repo *Repository) db() userDataSourses.UserDBDS {

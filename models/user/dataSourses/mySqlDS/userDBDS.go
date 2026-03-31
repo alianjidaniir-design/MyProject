@@ -4,6 +4,7 @@ import (
 	"MyProject/apiSchema/userSchema"
 	userDataModel "MyProject/models/user/dataModel"
 	"context"
+	"errors"
 	"fmt"
 )
 
@@ -17,6 +18,9 @@ func NewUserDBDSFromEnv() (*UserDBDS, bool, error) {
 	cfg, err := LoadConfig()
 	if err != nil {
 		return nil, false, err
+	}
+	if cfg.DSN == "" {
+		return nil, false, errors.New("dsn config file is empty")
 	}
 	tableSQL, err := studentTableName(cfg.StudentTableName)
 	if err != nil {
@@ -56,4 +60,8 @@ func (ds *UserDBDS) readTaskByID(ctx context.Context, userID int64) (userDataMod
 	}
 	return students, nil
 
+}
+
+func (ds *UserDBDS) TableName() string {
+	return ds.tablename
 }

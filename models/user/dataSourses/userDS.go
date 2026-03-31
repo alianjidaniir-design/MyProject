@@ -7,5 +7,5 @@ import (
 )
 
 type UserDBDS interface {
-	CreateUser(ctx context.Context, req userSchema.LoginRequest) (userDataModel.User, error)
+	CreateStudent(ctx context.Context, req userSchema.LoginRequest) (userDataModel.User, error)
 }
