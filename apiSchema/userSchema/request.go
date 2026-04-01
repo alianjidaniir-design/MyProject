@@ -1,5 +1,7 @@
 package userSchema
 
+import "MyProject/pkg/pagination"
+
 type LoginRequest struct {
 	Code   string `msgpack:"code" validate:"required , max = 10 "`
 	Name   string `msgpack:"name" validate:"required"`
@@ -7,6 +9,6 @@ type LoginRequest struct {
 }
 
 type ListRequest struct {
-	Page    int `json:"page" msgpack:"page"`
-	PerPage int `json:"perPage" msgpack:"perPage"`
+	Page    pagination.Page    `json:"page" msgpack:"page"`
+	PerPage pagination.PerPage `json:"perPage" msgpack:"perPage"`
 }
