@@ -38,7 +38,7 @@ func (repo *Repository) initializeDataSources() {
 	}
 	if enabled {
 		repo.dbDS = mysqlDS
-		log.Printf("mysqlDataSource.NewUserDBDSFromEnv err:%v")
+		log.Printf("mysqlDataSource.NewUserDBDSFromEnv err:%v", mysqlDS)
 	}
 }
 
