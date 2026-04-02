@@ -24,5 +24,6 @@ func (req *LoginRequest) Validate(validateExtraData commonSchema.ValidateExtraDa
 }
 
 func (req *ListRequest) Validate(validateExtraData commonSchema.ValidateExtraData) (string, int, error) {
+	_ = validateExtraData
 	return "", status.StatusOK, nil
 }
