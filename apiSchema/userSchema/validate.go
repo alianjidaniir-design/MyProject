@@ -22,3 +22,7 @@ func (req *LoginRequest) Validate(validateExtraData commonSchema.ValidateExtraDa
 	}
 	return "", status.StatusOK, nil
 }
+
+func (req *ListRequest) Validate(validateExtraData commonSchema.ValidateExtraData) (string, int, error) {
+	return "", status.StatusOK, nil
+}
