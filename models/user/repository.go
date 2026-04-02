@@ -2,6 +2,7 @@ package user
 
 import (
 	"MyProject/apiSchema/commonSchema"
+	"MyProject/apiSchema/userSchema"
 	"MyProject/models/repositories"
 	userDataSourses "MyProject/models/user/dataSourses"
 	mysqlDataSource "MyProject/models/user/dataSourses/mySqlDS"
@@ -15,7 +16,7 @@ type Repository struct {
 	initErr error
 }
 
-func (repo *Repository) List(ctx context.context.Context, req commonSchema.commonSchema.BaseRequest[userSchema.ListRequest])  (userSchema.ListUser, string, int, error) {
+func (repo *Repository) List(ctx context.Context, req commonSchema.BaseRequest[userSchema.ListRequest]) (userSchema.ListUser, string, int, error) {
 	//TODO implement me
 	panic("implement me")
 }

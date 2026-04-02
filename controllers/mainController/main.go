@@ -42,7 +42,7 @@ func ParseBody(ctx *fiber.Ctx, req any) (string, int, error) {
 	return "", status.StatusOK, nil
 }
 
-func ParseQuery(ctx *fiber.Ctx, req any, page int, perpage int) (string, int, error) {
+func ParseQuery(ctx *fiber.Ctx, req any) (string, int, error) {
 	if err := ctx.QueryParser(req); err != nil {
 		return "02", status.StatusBadRequest, err
 	}
@@ -50,9 +50,13 @@ func ParseQuery(ctx *fiber.Ctx, req any, page int, perpage int) (string, int, er
 	for k, v := range ctx.GetReqHeaders() {
 		headers[k] = v[0]
 	}
-	pages := pagination.Page{Page: page}
-	perpages := pagination.PerPage{PerPage: perpage}
-
+	validator, ok := req.(interface {
+		Validate(validateExtraData commonSchema.ValidateExtraData) (string, int, error)
+	})
+	if !ok {
+		return "", status.StatusBadRequest, nil
+	}
+	return validator.Validate(commonSchema.ValidateExtraData{Headers: headers})
 }
 
 func Error(ctx *fiber.Ctx, baseErrCode string, section string, errStr string, code int, err error) error {
