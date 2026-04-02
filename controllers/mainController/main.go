@@ -2,6 +2,7 @@ package mainController
 
 import (
 	"MyProject/apiSchema/commonSchema"
+	"MyProject/pkg/pagination"
 	"MyProject/statics/constants/status"
 	"context"
 	"errors"
@@ -41,7 +42,7 @@ func ParseBody(ctx *fiber.Ctx, req any) (string, int, error) {
 	return "", status.StatusOK, nil
 }
 
-func ParseQuery(ctx *fiber.Ctx, req any) (string, int, error) {
+func ParseQuery(ctx *fiber.Ctx, req any, page int, perpage int) (string, int, error) {
 	if err := ctx.QueryParser(req); err != nil {
 		return "02", status.StatusBadRequest, err
 	}
@@ -49,6 +50,8 @@ func ParseQuery(ctx *fiber.Ctx, req any) (string, int, error) {
 	for k, v := range ctx.GetReqHeaders() {
 		headers[k] = v[0]
 	}
+	pages := pagination.Page{Page: page}
+	perpages := pagination.PerPage{PerPage: perpage}
 
 }
 

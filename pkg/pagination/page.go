@@ -1,8 +1,7 @@
 package pagination
 
 type Page struct {
-	Page    int
-	PerPage int
+	Page int
 }
 
 type PerPage struct {
