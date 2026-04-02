@@ -41,6 +41,17 @@ func ParseBody(ctx *fiber.Ctx, req any) (string, int, error) {
 	return "", status.StatusOK, nil
 }
 
+func ParseQuery(ctx *fiber.Ctx, req any) (string, int, error) {
+	if err := ctx.QueryParser(req); err != nil {
+		return "02", status.StatusBadRequest, err
+	}
+	headers := map[string]string{}
+	for k, v := range ctx.GetReqHeaders() {
+		headers[k] = v[0]
+	}
+
+}
+
 func Error(ctx *fiber.Ctx, baseErrCode string, section string, errStr string, code int, err error) error {
 	return ctx.Status(code).JSON(Errorresponse{
 		Code:    fmt.Sprintf("%s%s%s", baseErrCode, section, errStr),

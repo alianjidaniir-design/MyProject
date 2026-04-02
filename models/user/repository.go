@@ -1,9 +1,11 @@
 package user
 
 import (
+	"MyProject/apiSchema/commonSchema"
 	"MyProject/models/repositories"
 	userDataSourses "MyProject/models/user/dataSourses"
 	mysqlDataSource "MyProject/models/user/dataSourses/mySqlDS"
+	"context"
 	"log"
 	"sync"
 )
@@ -11,6 +13,11 @@ import (
 type Repository struct {
 	dbDS    userDataSourses.UserDBDS
 	initErr error
+}
+
+func (repo *Repository) List(ctx context.context.Context, req commonSchema.commonSchema.BaseRequest[userSchema.ListRequest])  (userSchema.ListUser, string, int, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 var (
