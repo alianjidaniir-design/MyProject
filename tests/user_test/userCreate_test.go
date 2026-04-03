@@ -1,6 +1,7 @@
 package user_test
 
 import (
+	"MyProject/services/core/route"
 	"bytes"
 	"encoding/json"
 	"net/http"
@@ -11,7 +12,7 @@ import (
 
 func TestCreateUser(t *testing.T) {
 	app := fiber.New()
-	route.SetupRoute(app)
+	route.SetupRoutes(app)
 	payload := map[string]any{
 		"body": map[string]any{
 			"code":   "Saeed",
