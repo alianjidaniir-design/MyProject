@@ -15,9 +15,9 @@ func (repo *Repository) List(ctx context.Context, req commonSchema.BaseRequest[u
 	if repo.db() == nil {
 		return userSchema.ListUser{}, "11", status.StatusInternalServerError, errors.New("bad")
 	}
-	ListUsers, err := repo.db().ReadStudent(ctx, req.Body)
+	listus, err := repo.db().ReadStudent(ctx, req.Body)
 	if err != nil {
 		return userSchema.ListUser{}, "04", status.UnAvailableServiceError, err
 	}
-	return userSchema.ListUser{Users: []ListUsers}, "", status.StatusOK, nil
+	return userSchema.ListUser{Users: listus}, "", status.StatusOK, nil
 }

@@ -52,7 +52,7 @@ func (ds *UserDBDS) CreateStudent(ctx context.Context, req userSchema.LoginReque
 	return ds.readTaskByID(ctx, insertedID)
 }
 
-func (ds *UserDBDS) ReadStudent(ctx context.Context, req userSchema.LoginRequest) (userDataModel.User, error) {
+func (ds *UserDBDS) ReadStudent(ctx context.Context) (userDataModel.User, error) {
 	var student userDataModel.User
 	selectQuery := fmt.Sprintf("SELECT * FROM %s WHERE ", ds.tableSQL)
 	selectResult, err := ds.db.QueryContext(ctx, selectQuery)
