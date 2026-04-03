@@ -11,7 +11,7 @@ func main() {
 	app := fiber.New()
 	routes := route.SetupRoutes(app)
 	fmt.Println("very thanks Ali", routes)
-	if err := app.Listen(":8080"); err != nil {
+	if err := app.Listen(":3000"); err != nil {
 		fmt.Println(err)
 	}
 }

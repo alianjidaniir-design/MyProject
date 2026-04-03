@@ -3,12 +3,16 @@ package userSchema
 import "MyProject/pkg/pagination"
 
 type LoginRequest struct {
-	Code   string `msgpack:"code" validate:"required , max = 10 "`
-	Name   string `msgpack:"name" validate:"required"`
-	Family string `msgpack:"family" validate:"required"`
+	Code   string `json:"code"  validate:"required , max = 10"`
+	Name   string `json:"name" validate:"required"`
+	Family string `json:"family" validate:"required"`
 }
 
 type ListRequest struct {
-	Page    pagination.Page    `json:"page" msgpack:"page"`
-	PerPage pagination.PerPage `json:"perPage" msgpack:"perPage"`
+	Page    pagination.Page    `json:"page"`
+	PerPage pagination.PerPage `json:"perPage"`
+}
+
+type GetRequest struct {
+	ID int64 `json:"id" validate:"required"`
 }

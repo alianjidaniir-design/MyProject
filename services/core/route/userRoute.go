@@ -13,6 +13,6 @@ var userRoute = map[string]string{
 
 func SetupUserRoute(app *fiber.App) map[string]string {
 	app.Post(userRoute["userCreate"], Create)
-	app.Get(userRoute["userList"], List)
+	app.Post(userRoute["userList"], List)
 	return userRoute
 }
