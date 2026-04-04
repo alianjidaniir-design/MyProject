@@ -25,6 +25,7 @@ const (
 	ServerError   = "serverError"
 	Forbidden     = "forbidden"
 	UnAuthorized  = "unAuthorized"
+	InvalidCode   = "invalidCode"
 	InvalidName   = "invalidName"
 	InvalidFamily = "invalidFamily"
 )

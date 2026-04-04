@@ -1,8 +1,8 @@
 package commonSchema
 
 type BaseRequest[T any] struct {
-	Body    T                 `json:"body" msgpack:"body"`
-	Headers map[string]string `json:"headers,omitempty" msgpack:"headers"`
+	Body    T                 `json:"body"`
+	Headers map[string]string `json:"headers,omitempty"`
 }
 
 type ValidateExtraData struct {

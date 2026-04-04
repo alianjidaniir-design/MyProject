@@ -4,7 +4,6 @@ import (
 	"MyProject/apiSchema/userSchema"
 	userDataModel "MyProject/models/user/dataModel"
 	"context"
-	"errors"
 	"fmt"
 )
 
@@ -14,31 +13,6 @@ type UserDBDS struct {
 	db        DBExecture
 }
 
-func NewUserDBDSFromEnv() (*UserDBDS, bool, error) {
-	cfg, err := LoadConfig()
-	if err != nil {
-		return nil, false, err
-	}
-	if cfg.DSN == "" {
-		return nil, false, errors.New("dsn config file is empty")
-	}
-	tableSQL, err := studentTableName(cfg.StudentTableName)
-	if err != nil {
-		return nil, false, err
-	}
-	db, err := Open(cfg)
-	if err != nil {
-		return nil, false, err
-	}
-	if err := EnsureStudentTable(db, cfg.StudentTableName); err != nil {
-		return nil, false, err
-	}
-	return &UserDBDS{
-		tablename: cfg.StudentTableName,
-		tableSQL:  tableSQL,
-		db:        db,
-	}, true, nil
-}
 func (ds *UserDBDS) CreateStudent(ctx context.Context, req userSchema.LoginRequest) (userDataModel.User, error) {
 	insertQuery := fmt.Sprintf("INSERT INTO %s (code , name , family ) VALUES (?, ? , ?)", ds.tableSQL)
 	insertResult, err := ds.db.ExecContext(ctx, insertQuery, req.Code, req.Name, req.Family)

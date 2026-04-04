@@ -6,7 +6,7 @@ import (
 )
 
 type ResponseUser struct {
-	User UserdataModel.User
+	User UserdataModel.User `json:"user"`
 }
 
 type ListUser struct {

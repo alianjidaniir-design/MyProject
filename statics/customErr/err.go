@@ -14,6 +14,7 @@ var (
 	RequestOK     = errors.New(constants.RequestOK)
 	OK            = errors.New(constants.OK)
 	UnAuthorized  = errors.New(constants.UnAuthorized)
+	InvalidCode   = errors.New(constants.InvalidCode)
 	InvalidName   = errors.New(constants.InvalidName)
 	InvalidFamily = errors.New(constants.InvalidFamily)
 )

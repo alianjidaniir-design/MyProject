@@ -89,17 +89,17 @@ func fillHeaders(ctx *fiber.Ctx, req any) {
 func validateBody(req any) (string, int, error) {
 	refVal := reflect.ValueOf(req)
 	if refVal.Kind() != reflect.Ptr || refVal.Elem().Kind() != reflect.Struct {
-		return "", status.StatusBadRequest, errors.New("body must be a struct pointer")
+		return "20", status.StatusBadRequest, errors.New("body must be a struct pointer")
 	}
 	bodyfield := refVal.Elem().FieldByName("Body")
-	if !bodyfield.IsValid() || !bodyfield.CanAddr() || bodyfield.Kind() != reflect.Map {
-		return "", status.StatusBadRequest, errors.New("body must be a struct pointer")
+	if !bodyfield.IsValid() || !bodyfield.CanAddr() {
+		return "21", status.StatusBadRequest, errors.New("body must be a struct pointer")
 	}
 	validator, ok := bodyfield.Addr().Interface().(interface {
 		Validate(validateExtraData commonSchema.ValidateExtraData) (string, int, error)
 	})
 	if !ok {
-		return "", status.StatusBadRequest, errors.New("validator is not required")
+		return "22", status.StatusBadRequest, errors.New("validator is not required")
 	}
 	headers := map[string]string{}
 	headersfield := refVal.Elem().FieldByName("Headers")

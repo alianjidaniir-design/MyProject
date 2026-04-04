@@ -1,7 +1,6 @@
 package mySqlDS
 
 import (
-	"database/sql"
 	"fmt"
 	"regexp"
 )
@@ -13,27 +12,4 @@ func ValidateTableName(tableName string) error {
 		return fmt.Errorf("'%s' is invalid %s", tableName, tableName)
 	}
 	return nil
-}
-
-func studentTableName(tableName string) (string, error) {
-	if err := ValidateTableName(tableName); err != nil {
-		return "", nil
-	}
-	return fmt.Sprintf("`%s`", tableName), nil
-}
-
-func EnsureStudentTable(db *sql.DB, tableName string) error {
-	tableIdentifier, err := studentTableName(tableName)
-	if err != nil {
-		return err
-	}
-	query := fmt.Sprintf(`
-CREATE TABLE IF NOT EXISTS %s (
-    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    code VARCHAR(10) NOT NULL,
-    name VARCHAR(100) NOT NULL,
-    family VARCHAR(120) NOT NULL
-);`, tableIdentifier)
-	_, err = db.Exec(query)
-	return err
 }
