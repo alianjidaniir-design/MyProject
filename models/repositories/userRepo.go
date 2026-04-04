@@ -12,6 +12,10 @@ type UserRepository interface {
 	// List method list
 
 	List(ctx context.Context, req commonSchema.BaseRequest[userSchema.ListRequest]) (res userSchema.ListUser, errStr string, code int, err error)
+
+	// Get method
+
+	Get(ctx context.Context, req commonSchema.BaseRequest[userSchema.GetRequest]) (res userSchema.GetResponse, errStr string, code int, err error)
 }
 
 var UserRepo UserRepository
