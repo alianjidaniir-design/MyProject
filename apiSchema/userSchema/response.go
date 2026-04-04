@@ -14,3 +14,9 @@ type ListUser struct {
 	page    pagination.Page
 	PerPage pagination.PerPage
 }
+
+type GetResponse struct {
+	Code   string `json:"code"`
+	Name   string `json:"name"`
+	Family string `json:"family"`
+}
