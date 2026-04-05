@@ -3,6 +3,7 @@ package repositories
 import (
 	"MyProject/apiSchema/commonSchema"
 	"MyProject/apiSchema/userSchema"
+	"MyProject/models/user"
 	"context"
 )
 
@@ -15,7 +16,6 @@ type UserRepository interface {
 
 	// Get method
 
-	Get(ctx context.Context, req commonSchema.BaseRequest[userSchema.GetRequest]) (res userSchema.GetResponse, errStr string, code int, err error)
 }
 
-var UserRepo UserRepository
+var UserRepo UserRepository = user.GetRepoIns()
