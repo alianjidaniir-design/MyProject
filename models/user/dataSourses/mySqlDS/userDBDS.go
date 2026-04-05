@@ -31,7 +31,7 @@ func NewUsersDBDS(db *sql.DB, tableName string) (userDataSourses.UserDB, error) 
 
 func (ds *UserDBDS) CreateStudent(ctx context.Context, req userSchema.LoginRequest) (userDataModel.User, error) {
 	insertQuery := fmt.Sprintf("INSERT INTO %s (code , name , family ) VALUES (?, ? , ?)", ds.tableSQL)
-	insertResult, err := ds.db.ExecContext(ctx, insertQuery)
+	insertResult, err := ds.db.ExecContext(ctx, insertQuery, req.Code, req.Name, req.Family)
 	if err != nil {
 		return userDataModel.User{}, err
 	}

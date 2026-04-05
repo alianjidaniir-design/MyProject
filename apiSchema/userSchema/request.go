@@ -3,9 +3,9 @@ package userSchema
 import "MyProject/pkg/pagination"
 
 type LoginRequest struct {
-	Code   string `json:"code"  validate:"required , max = 10"`
-	Name   string `json:"name" validate:"required"`
-	Family string `json:"family" validate:"required"`
+	Code   string `json:"code"`
+	Name   string `json:"name"`
+	Family string `json:"family"`
 }
 
 type ListRequest struct {
@@ -14,5 +14,5 @@ type ListRequest struct {
 }
 
 type GetRequest struct {
-	ID int64 `json:"id" validate:"required"`
+	ID int64 `json:"id"`
 }

@@ -4,7 +4,6 @@ import (
 	"MyProject/apiSchema/commonSchema"
 	"MyProject/statics/constants/status"
 	"context"
-	"errors"
 	"fmt"
 	"reflect"
 
@@ -35,9 +34,7 @@ func ParseBody(ctx *fiber.Ctx, req any) (string, int, error) {
 		return "01", status.StatusBadRequest, err
 	}
 	fillHeaders(ctx, req)
-	if errStr, code, err := validateBody(req); err != nil {
-		return errStr, code, err
-	}
+
 	return "", status.StatusOK, nil
 }
 
@@ -83,31 +80,5 @@ func fillHeaders(ctx *fiber.Ctx, req any) {
 		header[key] = val[0]
 	}
 	headersfield.Set(reflect.ValueOf(header))
-
-}
-
-func validateBody(req any) (string, int, error) {
-	refVal := reflect.ValueOf(req)
-	if refVal.Kind() != reflect.Ptr || refVal.Elem().Kind() != reflect.Struct {
-		return "20", status.StatusBadRequest, errors.New("body must be a struct pointer")
-	}
-	bodyfield := refVal.Elem().FieldByName("Body")
-	if !bodyfield.IsValid() || !bodyfield.CanAddr() {
-		return "21", status.StatusBadRequest, errors.New("body must be a struct pointer")
-	}
-	validator, ok := bodyfield.Addr().Interface().(interface {
-		Validate(validateExtraData commonSchema.ValidateExtraData) (string, int, error)
-	})
-	if !ok {
-		return "22", status.StatusBadRequest, errors.New("validator is not required")
-	}
-	headers := map[string]string{}
-	headersfield := refVal.Elem().FieldByName("Headers")
-	if headersfield.IsValid() {
-		if value, castOK := headersfield.Addr().Interface().(map[string]string); castOK {
-			headers = value
-		}
-	}
-	return validator.Validate(commonSchema.ValidateExtraData{Headers: headers})
 
 }
