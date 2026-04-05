@@ -67,7 +67,7 @@ func (ds *UserDBDS) ReadStudent(ctx context.Context, req userSchema.ListRequest)
 func (ds *UserDBDS) readTaskByID(ctx context.Context, userID int64) (userDataModel.User, error) {
 	var students userDataModel.User
 	readQuery := fmt.Sprintf("SELECT id , code , name , family FROM %s WHERE id = ?", ds.tableSQL)
-	if err := ds.db.QueryRowContext(ctx, readQuery, userID).Scan(&students.ID, &students.Code, students.Name, students.Family); err != nil {
+	if err := ds.db.QueryRowContext(ctx, readQuery, userID).Scan(&students.ID, &students.Code, &students.Name, &students.Family); err != nil {
 		return userDataModel.User{}, err
 	}
 	return students, nil

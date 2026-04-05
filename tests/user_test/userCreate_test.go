@@ -15,9 +15,9 @@ func TestCreateUser(t *testing.T) {
 	route.SetupRoutes(app)
 	payload := map[string]any{
 		"body": map[string]any{
-			"code":   "Saeed",
-			"name":   "Saeed",
-			"family": "Saeed",
+			"code":   "seed",
+			"name":   "seed",
+			"family": "aseed",
 		},
 	}
 
@@ -35,7 +35,7 @@ func TestCreateUser(t *testing.T) {
 	if err != nil {
 		t.Fatalf("test request failed : %v", err)
 	}
-	if resp. != http.StatusOK {
+	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("test request failed with status code %d", resp.StatusCode)
 	}
 
