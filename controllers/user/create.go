@@ -12,6 +12,7 @@ import (
 
 func Create(ctx *fiber.Ctx) error {
 	spanCtx := mainController.InitAPI(ctx, "11")
+
 	defer mainController.FinishSpan(ctx)
 
 	req := commonSchema.BaseRequest[userSchema.LoginRequest]{}
