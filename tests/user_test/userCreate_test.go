@@ -35,7 +35,7 @@ func TestCreateUser(t *testing.T) {
 	if err != nil {
 		t.Fatalf("test request failed : %v", err)
 	}
-	if resp.StatusCode != http.StatusOK {
+	if resp. != http.StatusOK {
 		t.Fatalf("test request failed with status code %d", resp.StatusCode)
 	}
 
