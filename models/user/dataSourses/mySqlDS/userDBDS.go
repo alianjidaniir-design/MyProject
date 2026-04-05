@@ -3,14 +3,30 @@ package mySqlDS
 import (
 	"MyProject/apiSchema/userSchema"
 	userDataModel "MyProject/models/user/dataModel"
+	userDataSourses "MyProject/models/user/dataSourses"
 	"context"
+	"database/sql"
 	"fmt"
 )
 
 type UserDBDS struct {
-	tablename string
+	tableName string
 	tableSQL  string
-	db        DBExecture
+	db        *sql.DB
+}
+
+func NewUsersDBDS(db *sql.DB, tableName string) (userDataSourses.UserDB, error) {
+
+	if err := ValidateTableName(tableName); err != nil {
+		return nil, fmt.Errorf("invalid table name: %v", err)
+	}
+
+	userDBinstance := &UserDBDS{
+		tableName: tableName,
+		tableSQL:  tableName,
+		db:        db,
+	}
+	return userDBinstance, nil
 }
 
 func (ds *UserDBDS) CreateStudent(ctx context.Context, req userSchema.LoginRequest) (userDataModel.User, error) {
@@ -26,12 +42,23 @@ func (ds *UserDBDS) CreateStudent(ctx context.Context, req userSchema.LoginReque
 	return ds.readTaskByID(ctx, insertedID)
 }
 
-func (ds *UserDBDS) ReadStudent(ctx context.Context) (userDataModel.User, error) {
-	var student userDataModel.User
+func (ds *UserDBDS) ReadStudent(ctx context.Context, req userSchema.ListRequest) ([]userDataModel.User, error) {
+	var student []userDataModel.User
 	selectQuery := fmt.Sprintf("SELECT * FROM %s WHERE ", ds.tableSQL)
 	selectResult, err := ds.db.QueryContext(ctx, selectQuery)
 	if err != nil {
-		return userDataModel.User{}, err
+		return []userDataModel.User{}, err
+	}
+	defer selectResult.Close()
+	for selectResult.Next() {
+		var user userDataModel.User
+		if err := selectResult.Scan(&user.ID, &user.Code, &user.Name, &user.Family); err != nil {
+			return []userDataModel.User{}, err
+		}
+		student = append(student, user)
+	}
+	if err := selectResult.Err(); err != nil {
+		return []userDataModel.User{}, err
 	}
 	return student, selectResult.Scan()
 }
@@ -47,5 +74,5 @@ func (ds *UserDBDS) readTaskByID(ctx context.Context, userID int64) (userDataMod
 }
 
 func (ds *UserDBDS) TableName() string {
-	return ds.tablename
+	return ds.tableName
 }

@@ -14,7 +14,7 @@ import (
 )
 
 type Repository struct {
-	dbDS    userDataSourses.UserDBDS
+	dbDS    userDataSourses.UserDB
 	initErr error
 }
 
@@ -37,7 +37,16 @@ func initRepoIns() {
 		return
 	}
 
-	repoIns = &Repository{}
+	userDNInstance, err := mySqlDS.NewUsersDBDS(dbconn, cfg.StudentTableName)
+	if err != nil {
+		_ = dbconn.Close()
+		repoIns = &Repository{initErr: fmt.Errorf("failed to connect to DB: %v", err)}
+		log.Printf("Error opening DB connection: %v", err)
+		return
+	}
+
+	repoIns = &Repository{dbDS: userDNInstance}
+	log.Println("repository init success")
 }
 
 func GetRepoIns() *Repository {
@@ -49,7 +58,7 @@ func (repo *Repository) Create(ctx context.Context, req commonSchema.BaseRequest
 	if repo.initErr != nil {
 		return userSchema.ResponseUser{}, "13", status.StatusUnauthorized, repo.initErr
 	}
-	if repo.db() == nil {
+	if repo.dbDS == nil {
 		return userSchema.ResponseUser{}, "14", status.UnAvailableServiceError, errors.New("student datasourse not configured")
 	}
 
@@ -60,6 +69,6 @@ func (repo *Repository) Create(ctx context.Context, req commonSchema.BaseRequest
 	return userSchema.ResponseUser{User: createdUser}, "", status.StatusOK, nil
 }
 
-func (repo *Repository) db() userDataSourses.UserDBDS {
+func (repo *Repository) db() userDataSourses.UserDB {
 	return repo.dbDS
 }
