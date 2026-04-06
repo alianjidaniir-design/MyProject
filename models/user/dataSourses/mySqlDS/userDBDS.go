@@ -39,8 +39,9 @@ func NewUsersDBDS(db *sql.DB, tableName string) (userDataSourses.UserDB, error) 
 }
 
 func (ds *UserDBDS) CreateStudent(ctx context.Context, req userSchema.LoginRequest) (userDataModel.User, error) {
-	insertQuery := fmt.Sprintf("INSERT INTO %s (code , name , family ) VALUES (?, ? , ?)", ds.tableSQL)
-	insertResult, err := ds.db.ExecContext(ctx, insertQuery, req.Code, req.Name, req.Family)
+	now := time.Now().In(myLocation())
+	insertQuery := fmt.Sprintf("INSERT INTO %s (code , name , family , created_at , updated_at) VALUES (?, ? , ?,?,?)", ds.tableSQL)
+	insertResult, err := ds.db.ExecContext(ctx, insertQuery, req.Code, req.Name, req.Family, now, now)
 	if err != nil {
 		return userDataModel.User{}, err
 	}
@@ -90,6 +91,7 @@ func (ds *UserDBDS) readTaskByID(ctx context.Context, userID int64) (userDataMod
 	}
 
 	if updatedAt.Valid {
+		fmt.Println(updatedAt.Time)
 		students.UpdatedAt = updatedAt.Time.In(myLocation())
 	} else {
 		students.UpdatedAt = time.Time{}
