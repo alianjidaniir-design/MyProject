@@ -7,12 +7,21 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 )
 
 type UserDBDS struct {
 	tableName string
 	tableSQL  string
 	db        *sql.DB
+}
+
+func myLocation() *time.Location {
+	loc, err := time.LoadLocation("Asia/Tokyo")
+	if err != nil {
+		return time.FixedZone("Asia/Tehran", 3*3600+30*60)
+	}
+	return loc
 }
 
 func NewUsersDBDS(db *sql.DB, tableName string) (userDataSourses.UserDB, error) {
@@ -66,10 +75,18 @@ func (ds *UserDBDS) ReadStudent(ctx context.Context, req userSchema.ListRequest)
 
 func (ds *UserDBDS) readTaskByID(ctx context.Context, userID int64) (userDataModel.User, error) {
 	var students userDataModel.User
+	var createdAt time.Time
+	var updatedAt time.Time
+	var deletedAt time.Time
 	readQuery := fmt.Sprintf("SELECT id , code , name , family FROM %s WHERE id = ?", ds.tableSQL)
 	if err := ds.db.QueryRowContext(ctx, readQuery, userID).Scan(&students.ID, &students.Code, &students.Name, &students.Family); err != nil {
 		return userDataModel.User{}, err
 	}
+
+	students.CreatedAt = createdAt.In(myLocation())
+	students.UpdatedAt = updatedAt.In(myLocation())
+	students.DeletedAt = deletedAt.In(myLocation())
+
 	return students, nil
 
 }
