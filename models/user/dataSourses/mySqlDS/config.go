@@ -32,7 +32,6 @@ func LoadConfig() (cfg Config, err error) {
 		ConnMaxLifeTimeSeconds: readEnvInt("MYSQL_CONN_MAX_LIFE_TIME_SECONDS", defaultConnMaxLifeTimeSeconds),
 	}
 	if cfg.StudentTableName == "" {
-		fmt.Println()
 		cfg.StudentTableName = defaultsStudentTableName
 	}
 
