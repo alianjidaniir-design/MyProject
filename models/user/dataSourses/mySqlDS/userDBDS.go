@@ -17,7 +17,7 @@ type UserDBDS struct {
 }
 
 func myLocation() *time.Location {
-	loc, err := time.LoadLocation("Asia/Tokyo")
+	loc, err := time.LoadLocation("Asia/ُTehran")
 	if err != nil {
 		return time.FixedZone("Asia/Tehran", 3*3600+30*60)
 	}
@@ -75,17 +75,30 @@ func (ds *UserDBDS) ReadStudent(ctx context.Context, req userSchema.ListRequest)
 
 func (ds *UserDBDS) readTaskByID(ctx context.Context, userID int64) (userDataModel.User, error) {
 	var students userDataModel.User
-	var createdAt time.Time
-	var updatedAt time.Time
-	var deletedAt time.Time
-	readQuery := fmt.Sprintf("SELECT id , code , name , family FROM %s WHERE id = ?", ds.tableSQL)
-	if err := ds.db.QueryRowContext(ctx, readQuery, userID).Scan(&students.ID, &students.Code, &students.Name, &students.Family); err != nil {
+
+	readQuery := fmt.Sprintf("SELECT id , code , name , family , created_at , updated_at , deleted_at FROM %s WHERE id = ?", ds.tableSQL)
+	var createdAt, updatedAt, deletedAt sql.NullTime
+
+	if err := ds.db.QueryRowContext(ctx, readQuery, userID).Scan(&students.ID, &students.Code, &students.Name, &students.Family, &createdAt, &updatedAt, &deletedAt); err != nil {
 		return userDataModel.User{}, err
 	}
 
-	students.CreatedAt = createdAt.In(myLocation())
-	students.UpdatedAt = updatedAt.In(myLocation())
-	students.DeletedAt = deletedAt.In(myLocation())
+	if createdAt.Valid {
+		students.CreatedAt = createdAt.Time.In(myLocation())
+	} else {
+		students.CreatedAt = time.Time{}
+	}
+
+	if updatedAt.Valid {
+		students.UpdatedAt = updatedAt.Time.In(myLocation())
+	} else {
+		students.UpdatedAt = time.Time{}
+	}
+	if deletedAt.Valid {
+		students.DeletedAt = deletedAt.Time.In(myLocation())
+	} else {
+		students.DeletedAt = time.Time{}
+	}
 
 	return students, nil
 
