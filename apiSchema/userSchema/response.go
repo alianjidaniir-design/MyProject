@@ -14,7 +14,5 @@ type ListUser struct {
 }
 
 type GetResponse struct {
-	Code   string `json:"code"`
-	Name   string `json:"name"`
-	Family string `json:"family"`
+	User UserdataModel.User `json:"user"`
 }

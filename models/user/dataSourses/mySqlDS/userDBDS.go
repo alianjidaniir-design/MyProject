@@ -35,6 +35,10 @@ func NewUsersDBDS(db *sql.DB, tableName string) (userDataSourses.UserDB, error) 
 	return userDBinstance, nil
 }
 
+func (ds *UserDBDS) GetStudent(ctx context.Context, req userSchema.GetRequest) (userDataModel.User, error) {
+
+}
+
 func (ds *UserDBDS) CreateStudent(ctx context.Context, req userSchema.LoginRequest) (userDataModel.User, error) {
 	now := time.Now().In(myLocation())
 	insertQuery := fmt.Sprintf("INSERT INTO %s (code , name , family , created_at , updated_at) VALUES (?, ? , ?,?,?)", ds.tableSQL)
@@ -51,12 +55,13 @@ func (ds *UserDBDS) CreateStudent(ctx context.Context, req userSchema.LoginReque
 }
 
 func (ds *UserDBDS) ReadStudent(ctx context.Context, req userSchema.ListRequest) ([]userDataModel.User, int64, error) {
-	var student []userDataModel.User
+	var users []userDataModel.User // نام متغیر به جمع تغییر یافت
 	Page, PageSize, err := pagination.CheckPage(req.Page, req.PageSize)
 	if err != nil {
 		return nil, 0, err
 	}
-	offest := (Page - 1) * PageSize
+	// "offest" به "offset" اصلاح شد
+	offset := (Page - 1) * PageSize
 	limit := PageSize
 	var total int64
 	totalItem := fmt.Sprintf("SELECT COUNT(*) FROM %s", ds.tableSQL)
@@ -64,23 +69,54 @@ func (ds *UserDBDS) ReadStudent(ctx context.Context, req userSchema.ListRequest)
 	if err != nil {
 		return []userDataModel.User{}, 0, err
 	}
-	selectQuery := fmt.Sprintf("SELECT * FROM %s LIMIT ? OFFSET ?", ds.tableSQL)
-	selectResult, err := ds.db.QueryContext(ctx, selectQuery, limit, offest)
+
+	// ستون‌ها را صریحاً نام ببرید تا از مشکلات احتمالی ترتیب ستون‌ها جلوگیری شود.
+	// فرض می‌کنیم ترتیب ستون‌ها در دیتابیس با ترتیب مدل مطابقت دارد.
+	selectQuery := fmt.Sprintf("SELECT id, code, name, family, created_at, updated_at, deleted_at FROM %s LIMIT ? OFFSET ?", ds.tableSQL)
+	selectResult, err := ds.db.QueryContext(ctx, selectQuery, limit, offset)
 	if err != nil {
 		return []userDataModel.User{}, 0, err
 	}
 	defer selectResult.Close()
+
 	for selectResult.Next() {
 		var user userDataModel.User
-		if err = selectResult.Scan(&user.ID, &user.Code, &user.Name, &user.Family, &user.CreatedAt, &user.UpdatedAt, &user.DeletedAt); err != nil {
-			return []userDataModel.User{}, 0, err
+		// تعریف متغیرهای موقت از نوع sql.NullTime برای دریافت مقادیر NULL پذیر
+		var createdAtSQL, updatedAtSQL, deletedAtSQL sql.NullTime
+
+		// اسکن مقادیر از دیتابیس به متغیرهای موقت NullTime
+		if err = selectResult.Scan(&user.ID, &user.Code, &user.Name, &user.Family, &createdAtSQL, &updatedAtSQL, &deletedAtSQL); err != nil {
+			// اگر اینجا خطا رخ داد، ممکن است به دلیل عدم تطابق نوع یا نام ستون باشد
+			return []userDataModel.User{}, 0, fmt.Errorf("خطا در اسکن ردیف: %w", err)
 		}
-		student = append(student, user)
+
+		// تبدیل مقادیر NullTime به time.Time در مدل user
+		// اگر مقدار معتبر (NULL نباشد) بود، آن را به فیلد مربوطه اختصاص دهید.
+		// فرض می‌شود myLocation() تابع درستی برای دریافت منطقه زمانی است.
+		if createdAtSQL.Valid {
+			user.CreatedAt = createdAtSQL.Time.In(myLocation())
+		} else {
+			user.CreatedAt = time.Time{} // مقدار زمان صفر برای NULL
+		}
+
+		if updatedAtSQL.Valid {
+			user.UpdatedAt = updatedAtSQL.Time.In(myLocation())
+		} else {
+			user.UpdatedAt = time.Time{} // مقدار زمان صفر برای NULL
+		}
+
+		if deletedAtSQL.Valid {
+			user.DeletedAt = deletedAtSQL.Time.In(myLocation())
+		} else {
+			user.DeletedAt = time.Time{} // مقدار زمان صفر برای NULL
+		}
+
+		users = append(users, user) // اضافه کردن به slice 'users'
 	}
 	if err = selectResult.Err(); err != nil {
-		return []userDataModel.User{}, 0, err
+		return []userDataModel.User{}, 0, fmt.Errorf("خطا در پیمایش نتایج کوئری: %w", err)
 	}
-	return student, total, nil
+	return users, total, nil
 }
 
 func (ds *UserDBDS) readTaskByID(ctx context.Context, userID int64) (userDataModel.User, error) {
