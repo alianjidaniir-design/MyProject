@@ -1,18 +1,11 @@
 package pagination
 
-type Page struct {
-	Page     int
-	PageSize int
-}
-
-func (p *Page) Init() int {
-
-	if p.Page < 1 {
-		p.Page = 1
+func CheckPage(page, pageSize int) (int, int) {
+	if page < 1 {
+		page = 1
 	}
-	if p.PageSize < 1 || p.PageSize > 10 {
-		p.PageSize = 10
+	if pageSize < 1 || pageSize > 10 {
+		pageSize = 10
 	}
-	offest := (p.Page - 1) * p.PageSize
-	return offest
+	return page, pageSize
 }

@@ -10,14 +10,20 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func testListUser(t *testing.T) {
+func TestListUser(t *testing.T) {
 	app := fiber.New()
 	route.SetupRoutes(app)
 	createpayload := map[string]any{
 		"body": map[string]any{
-			"code":   "12345678",
+			"page":   "12345678",
 			"name":   "John",
 			"family": "razavi",
+		},
+	}
+	listepayload := map[string]any{
+		"body": map[string]any{
+			"page":     1,
+			"pageSize": 5,
 		},
 	}
 	createBody, err := json.Marshal(createpayload)
@@ -32,7 +38,11 @@ func testListUser(t *testing.T) {
 	if _, err := app.Test(creatrReq); err != nil {
 		t.Fatal("Error Test", err)
 	}
-	listreq, err := http.NewRequest("GET", "/user/list", nil)
+	listm, err := json.Marshal(listepayload)
+	if err != nil {
+		t.Fatal("Error Marshal", err)
+	}
+	listreq, err := http.NewRequest("POST", "/user/list", bytes.NewBuffer(listm))
 	if err != nil {
 		t.Fatal("Error List Request", err)
 	}

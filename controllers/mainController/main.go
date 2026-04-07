@@ -1,7 +1,6 @@
 package mainController
 
 import (
-	"MyProject/apiSchema/commonSchema"
 	"MyProject/statics/constants/status"
 	"context"
 	"fmt"
@@ -46,13 +45,8 @@ func ParseQuery(ctx *fiber.Ctx, req any) (string, int, error) {
 	for k, v := range ctx.GetReqHeaders() {
 		headers[k] = v[0]
 	}
-	validator, ok := req.(interface {
-		Validate(validateExtraData commonSchema.ValidateExtraData) (string, int, error)
-	})
-	if !ok {
-		return "", status.StatusBadRequest, nil
-	}
-	return validator.Validate(commonSchema.ValidateExtraData{Headers: headers})
+
+	return "", status.StatusOK, nil
 }
 
 func Error(ctx *fiber.Ctx, baseErrCode string, section string, errStr string, code int, err error) error {

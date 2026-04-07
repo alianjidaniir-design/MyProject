@@ -69,6 +69,20 @@ func (repo *Repository) Create(ctx context.Context, req commonSchema.BaseRequest
 	return userSchema.ResponseUser{User: createdUser}, "", status.StatusOK, nil
 }
 
+func (repo *Repository) List(ctx context.Context, req commonSchema.BaseRequest[userSchema.ListRequest]) (res userSchema.ListUser, errStr string, code int, err error) {
+	if repo.initErr != nil {
+		return userSchema.ListUser{}, "10", status.UnAvailableServiceError, repo.initErr
+	}
+	if repo.db() == nil {
+		return userSchema.ListUser{}, "11", status.StatusInternalServerError, errors.New("bad")
+	}
+	listus, total, err := repo.db().ReadStudent(ctx, req.Body)
+	if err != nil {
+		return userSchema.ListUser{}, "04", status.UnAvailableServiceError, err
+	}
+	return userSchema.ListUser{Users: listus, Total: total}, "", status.StatusOK, nil
+}
+
 func (repo *Repository) db() userDataSourses.UserDB {
 	return repo.dbDS
 }

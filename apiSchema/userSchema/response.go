@@ -2,7 +2,6 @@ package userSchema
 
 import (
 	UserdataModel "MyProject/models/user/dataModel"
-	"MyProject/pkg/pagination"
 )
 
 type ResponseUser struct {
@@ -10,9 +9,8 @@ type ResponseUser struct {
 }
 
 type ListUser struct {
-	Users   []UserdataModel.User
-	page    pagination.Page
-	PerPage pagination.PerPage
+	Users []UserdataModel.User
+	Total int64
 }
 
 type GetResponse struct {

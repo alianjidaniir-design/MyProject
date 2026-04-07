@@ -14,7 +14,7 @@ func List(ctx *fiber.Ctx) error {
 	spanCtx := mainController.InitAPI(ctx, "12")
 	defer mainController.FinishSpan(ctx)
 	req := commonSchema.BaseRequest[userSchema.ListRequest]{}
-	errStr, code, err := mainController.ParseQuery(ctx, req)
+	errStr, code, err := mainController.ParseBody(ctx, &req)
 	if err != nil {
 		return mainController.Error(ctx, controllerbaseErrCode.UserErrCode, "06", errStr, code, err)
 	}

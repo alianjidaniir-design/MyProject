@@ -4,6 +4,7 @@ import (
 	"MyProject/apiSchema/userSchema"
 	userDataModel "MyProject/models/user/dataModel"
 	userDataSourses "MyProject/models/user/dataSourses"
+	"MyProject/pkg/pagination"
 	"context"
 	"database/sql"
 	"fmt"
@@ -49,25 +50,33 @@ func (ds *UserDBDS) CreateStudent(ctx context.Context, req userSchema.LoginReque
 	return ds.readTaskByID(ctx, insertedID)
 }
 
-func (ds *UserDBDS) ReadStudent(ctx context.Context, req userSchema.ListRequest) ([]userDataModel.User, error) {
+func (ds *UserDBDS) ReadStudent(ctx context.Context, req userSchema.ListRequest) ([]userDataModel.User, int64, error) {
 	var student []userDataModel.User
-	selectQuery := fmt.Sprintf("SELECT * FROM %s WHERE ", ds.tableSQL)
-	selectResult, err := ds.db.QueryContext(ctx, selectQuery)
+	Page, PageSize := pagination.CheckPage(req.Page, req.PageSize)
+	offest := (Page - 1) * PageSize
+	limit := PageSize
+	var total int64
+	totalItem := fmt.Sprintf("SELECT COUNT(*) FROM %s", ds.tableSQL)
+	err := ds.db.QueryRowContext(ctx, totalItem).Scan(&total)
 	if err != nil {
-		return []userDataModel.User{}, err
+		return []userDataModel.User{}, 0, err
+	}
+	selectResult, err := ds.db.QueryContext(ctx, "SELECT * FROM %s LIMIT ? OFFSET ?", ds.tableSQL, limit, offest)
+	if err != nil {
+		return []userDataModel.User{}, 0, err
 	}
 	defer selectResult.Close()
 	for selectResult.Next() {
 		var user userDataModel.User
-		if err := selectResult.Scan(&user.ID, &user.Code, &user.Name, &user.Family); err != nil {
-			return []userDataModel.User{}, err
+		if err = selectResult.Scan(&user.ID, &user.Code, &user.Name, &user.Family); err != nil {
+			return []userDataModel.User{}, 0, err
 		}
 		student = append(student, user)
 	}
-	if err := selectResult.Err(); err != nil {
-		return []userDataModel.User{}, err
+	if err = selectResult.Err(); err != nil {
+		return []userDataModel.User{}, 0, err
 	}
-	return student, selectResult.Scan()
+	return student, total, nil
 }
 
 func (ds *UserDBDS) readTaskByID(ctx context.Context, userID int64) (userDataModel.User, error) {

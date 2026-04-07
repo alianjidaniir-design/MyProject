@@ -1,7 +1,5 @@
 package userSchema
 
-import "MyProject/pkg/pagination"
-
 type LoginRequest struct {
 	Code   string `json:"code"`
 	Name   string `json:"name"`
@@ -9,8 +7,8 @@ type LoginRequest struct {
 }
 
 type ListRequest struct {
-	Page    pagination.Page    `json:"page"`
-	PerPage pagination.PerPage `json:"perPage"`
+	Page     int `json:"page"`
+	PageSize int `json:"pageSize"`
 }
 
 type GetRequest struct {
