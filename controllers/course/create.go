@@ -1,8 +1,8 @@
-package user
+package course
 
 import (
 	"MyProject/apiSchema/commonSchema"
-	"MyProject/apiSchema/userSchema"
+	"MyProject/apiSchema/courseSchema"
 	"MyProject/controllers/mainController"
 	"MyProject/models/repositories"
 	"MyProject/statics/constants/controllerbaseErrCode"
@@ -12,17 +12,16 @@ import (
 
 func Create(ctx *fiber.Ctx) error {
 	spanCtx := mainController.InitAPI(ctx, "11")
-
 	defer mainController.FinishSpan(ctx)
-
-	req := commonSchema.BaseRequest[userSchema.LoginRequest]{}
+	req := commonSchema.BaseRequest[courseSchema.RequestCourse]{}
 	errStr, code, err := mainController.ParseBody(ctx, &req)
 	if err != nil {
-		return mainController.Error(ctx, controllerbaseErrCode.UserErrCode, "02", errStr, code, err)
+		return mainController.Error(ctx, controllerbaseErrCode.CourseErrCode, "01", errStr, code, err)
 	}
-	res, errStr, code, err := repositories.UserRepo.Create(spanCtx, req)
+	res, errStr, code, err := repositories.CourseRepo.Create(spanCtx, req)
 	if err != nil {
-		return mainController.Error(ctx, controllerbaseErrCode.UserErrCode, "03", errStr, code, err)
+		return mainController.Error(ctx, controllerbaseErrCode.CourseErrCode, "02", errStr, code, err)
 	}
 	return mainController.Response(ctx, res)
+
 }

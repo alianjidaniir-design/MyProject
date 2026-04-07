@@ -1,23 +1,18 @@
 package pagination
 
 type Page struct {
-	Page int
-}
-
-type PerPage struct {
-	PerPage int
+	Page     int
+	PageSize int
 }
 
 func (p *Page) Init() int {
+
 	if p.Page < 1 {
 		p.Page = 1
 	}
-	return p.Page
-}
-
-func (p *PerPage) Init2() int {
-	if p.PerPage < 1 || p.PerPage > 100 {
-		p.PerPage = 100
+	if p.PageSize < 1 || p.PageSize > 10 {
+		p.PageSize = 10
 	}
-	return p.PerPage
+	offest := (p.Page - 1) * p.PageSize
+	return offest
 }

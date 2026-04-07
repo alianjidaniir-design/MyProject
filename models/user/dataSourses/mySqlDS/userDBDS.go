@@ -26,10 +26,6 @@ func myLocation() *time.Location {
 
 func NewUsersDBDS(db *sql.DB, tableName string) (userDataSourses.UserDB, error) {
 
-	if err := ValidateTableName(tableName); err != nil {
-		return nil, fmt.Errorf("invalid table name: %v", err)
-	}
-
 	userDBinstance := &UserDBDS{
 		tableName: tableName,
 		tableSQL:  tableName,
@@ -104,8 +100,4 @@ func (ds *UserDBDS) readTaskByID(ctx context.Context, userID int64) (userDataMod
 
 	return students, nil
 
-}
-
-func (ds *UserDBDS) TableName() string {
-	return ds.tableName
 }

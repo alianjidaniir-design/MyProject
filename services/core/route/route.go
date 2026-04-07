@@ -5,6 +5,7 @@ import "github.com/gofiber/fiber/v2"
 func SetupRoutes(app *fiber.App) map[string]string {
 	return mergeMaps(
 		SetupUserRoute(app),
+		SetupCourseRoutes(app),
 	)
 }
 
