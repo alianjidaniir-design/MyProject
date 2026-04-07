@@ -52,23 +52,27 @@ func (ds *UserDBDS) CreateStudent(ctx context.Context, req userSchema.LoginReque
 
 func (ds *UserDBDS) ReadStudent(ctx context.Context, req userSchema.ListRequest) ([]userDataModel.User, int64, error) {
 	var student []userDataModel.User
-	Page, PageSize := pagination.CheckPage(req.Page, req.PageSize)
+	Page, PageSize, err := pagination.CheckPage(req.Page, req.PageSize)
+	if err != nil {
+		return nil, 0, err
+	}
 	offest := (Page - 1) * PageSize
 	limit := PageSize
 	var total int64
 	totalItem := fmt.Sprintf("SELECT COUNT(*) FROM %s", ds.tableSQL)
-	err := ds.db.QueryRowContext(ctx, totalItem).Scan(&total)
+	err = ds.db.QueryRowContext(ctx, totalItem).Scan(&total)
 	if err != nil {
 		return []userDataModel.User{}, 0, err
 	}
-	selectResult, err := ds.db.QueryContext(ctx, "SELECT * FROM %s LIMIT ? OFFSET ?", ds.tableSQL, limit, offest)
+	selectQuery := fmt.Sprintf("SELECT * FROM %s LIMIT ? OFFSET ?", ds.tableSQL)
+	selectResult, err := ds.db.QueryContext(ctx, selectQuery, limit, offest)
 	if err != nil {
 		return []userDataModel.User{}, 0, err
 	}
 	defer selectResult.Close()
 	for selectResult.Next() {
 		var user userDataModel.User
-		if err = selectResult.Scan(&user.ID, &user.Code, &user.Name, &user.Family); err != nil {
+		if err = selectResult.Scan(&user.ID, &user.Code, &user.Name, &user.Family, &user.CreatedAt, &user.UpdatedAt, &user.DeletedAt); err != nil {
 			return []userDataModel.User{}, 0, err
 		}
 		student = append(student, user)
