@@ -36,6 +36,32 @@ func NewUsersDBDS(db *sql.DB, tableName string) (userDataSourses.UserDB, error) 
 }
 
 func (ds *UserDBDS) GetStudent(ctx context.Context, req userSchema.GetRequest) (userDataModel.User, error) {
+	var students userDataModel.User
+	selectQuery := fmt.Sprintf("SELECT * FROM %s WHERE id = ? ", ds.tableName)
+	var createdAt, updatedAt, deletedAt sql.NullTime
+
+	if err := ds.db.QueryRowContext(ctx, selectQuery).Scan(&students.ID, &students.Code, &students.Name, &students.Family, &createdAt, &updatedAt, &deletedAt); err != nil {
+		return userDataModel.User{}, err
+	}
+
+	if createdAt.Valid {
+		students.CreatedAt = createdAt.Time.In(myLocation())
+	} else {
+		students.CreatedAt = time.Time{}
+	}
+
+	if updatedAt.Valid {
+		students.UpdatedAt = updatedAt.Time.In(myLocation())
+	} else {
+		students.UpdatedAt = time.Time{}
+	}
+	if deletedAt.Valid {
+		students.DeletedAt = deletedAt.Time.In(myLocation())
+	} else {
+		students.DeletedAt = time.Time{}
+	}
+
+	return students, nil
 
 }
 

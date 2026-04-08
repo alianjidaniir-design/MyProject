@@ -9,10 +9,12 @@ import (
 var userRoute = map[string]string{
 	"userCreate": "/user/create",
 	"userList":   "/user/list",
+	"userGet":    "/user/get",
 }
 
 func SetupUserRoute(app *fiber.App) map[string]string {
 	app.Post(userRoute["userCreate"], Create)
 	app.Post(userRoute["userList"], List)
+	app.Post(userRoute["userGet"], Get)
 	return userRoute
 }
