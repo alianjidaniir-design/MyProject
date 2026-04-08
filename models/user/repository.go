@@ -112,7 +112,7 @@ func (repo *Repository) Get(ctx context.Context, req commonSchema.BaseRequest[us
 	return userSchema.GetResponse{User: geting}, "", status.StatusOK, nil
 }
 
-func (repo *Repository) Delete2(ctx context.Context, req commonSchema.BaseRequest[userSchema.SoftDeleteRequest]) (res userSchema.SoftDeleteResponse, errStr string, code int, err error) {
+func (repo *Repository) SoftDelete(ctx context.Context, req commonSchema.BaseRequest[userSchema.SoftDeleteRequest]) (res userSchema.SoftDeleteResponse, errStr string, code int, err error) {
 	if repo.initErr != nil {
 		return userSchema.SoftDeleteResponse{}, "10", status.UnAvailableServiceError, repo.initErr
 	}

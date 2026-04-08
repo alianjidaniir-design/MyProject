@@ -77,32 +77,6 @@ func (ds *UserDBDS) DeleteStudent(ctx context.Context, req userSchema.DeleteRequ
 	if err != nil {
 		return userDataModel.User{}, err
 	}
-	selectQuery := fmt.Sprintf("SELECT * FROM %s WHERE id = ? ", ds.tableName)
-
-	var createdAtal, updatedAtal, deletedAtal sql.NullTime
-
-	if err = ds.db.QueryRowContext(ctx, selectQuery, req.ID).Scan(&students.ID, &students.Code, &students.Name, &students.Family, &createdAtal, &deletedAtal, &updatedAtal); err != nil {
-		return userDataModel.User{}, err
-	}
-
-	if createdAtal.Valid {
-		students.CreatedAt = createdAtal.Time.In(myLocation())
-	} else {
-		students.CreatedAt = time.Time{}
-	}
-
-	if updatedAtal.Valid {
-		students.UpdatedAt = updatedAtal.Time.In(myLocation())
-	} else {
-		fmt.Println(updatedAtal.Time.In(myLocation()))
-		students.UpdatedAt = time.Time{}
-	}
-	if deletedAtal.Valid {
-		fmt.Println(deletedAtal.Time.In(myLocation()))
-		students.DeletedAt = deletedAtal.Time.In(myLocation())
-	} else {
-		students.DeletedAt = time.Time{}
-	}
 
 	return students, nil
 }

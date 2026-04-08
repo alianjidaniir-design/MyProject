@@ -4,6 +4,7 @@ import (
 	"MyProject/apiSchema/courseSchema"
 	courseDataModle "MyProject/models/course/dataModels"
 	courseDataSources "MyProject/models/course/dataSources"
+	"MyProject/pkg/pagination"
 	"context"
 	"database/sql"
 	"fmt"
@@ -48,9 +49,58 @@ func (ds *CourseDBDS) CreateCourse(ctx context.Context, req courseSchema.Request
 
 }
 
+func (ds *CourseDBDS) ListCourse(ctx context.Context, req courseSchema.CoursesListRequest) ([]courseDataModle.Course, int64, error) {
+	var courses []courseDataModle.Course
+	page, pageSize, err := pagination.CheckPage(req.Page, req.PageSize)
+	if err != nil {
+		return courses, 0, err
+	}
+	offset := (page - 1) * pageSize
+	limit := pageSize
+	var total int64
+	totalItem := fmt.Sprintf("SELECT COUNT(*) FROM %s", ds.tableSQL)
+	err = ds.db.QueryRowContext(ctx, totalItem).Scan(&total)
+	if err != nil {
+		return courses, 0, err
+	}
+	selectQuery := fmt.Sprintf("SELECT id , course_code , title , capacity ,enrolled_at ,isActive ,  created_at, updated_at, deleted_at   FROM %s LIMIT ? OFFSET ?", ds.tableSQL)
+	rows, err := ds.db.QueryContext(ctx, selectQuery, limit, offset)
+	if err != nil {
+		return courses, 0, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var course courseDataModle.Course
+		var createdAt, updatedAt, deletedAt sql.NullTime
+		err = rows.Scan(&course.ID, &course.CourseCode, &course.Title, &course.Capacity, &course.EnrolledAt, &course.IsActive, &createdAt, &updatedAt, &deletedAt)
+		if err != nil {
+			return courses, 0, err
+		}
+		if createdAt.Valid {
+			course.CreatedAt = createdAt.Time.In(myLocation())
+		}
+		if updatedAt.Valid {
+			course.UpdatedAt = updatedAt.Time.In(myLocation())
+		}
+		if deletedAt.Valid {
+			course.DeletedAt = deletedAt.Time.In(myLocation())
+		}
+		courses = append(courses, course)
+
+	}
+
+	if rows.Err() != nil {
+		return courses, 0, err
+
+	}
+
+	return courses, total, nil
+
+}
+
 func (ds *CourseDBDS) readCouresByID(ctx context.Context, id int64) (courseDataModle.Course, error) {
 	var course courseDataModle.Course
-	readQuery := fmt.Sprintf("SELECT id , course_code , title , capacity ,enrolled_count ,isActive , created_at , updated_at , deleted_at FROM %s WHERE id = ?", ds.tableSQL)
+	readQuery := fmt.Sprintf("SELECT id , course_code , title , capacity ,enrolled_at ,isActive , created_at , updated_at , deleted_at FROM %s WHERE id = ?", ds.tableSQL)
 	var createdAt, updatedAt, deletedAt sql.NullTime
 	if err := ds.db.QueryRowContext(ctx, readQuery, id).Scan(&course.ID, &course.CourseCode, &course.Title, &course.Capacity, &course.EnrolledAt, &course.IsActive, &createdAt, &updatedAt, &deletedAt); err != nil {
 		return courseDataModle.Course{}, err

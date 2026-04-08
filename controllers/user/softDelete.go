@@ -18,7 +18,7 @@ func SoftDelete(ctx *fiber.Ctx) error {
 	if err != nil {
 		return mainController.Error(ctx, controllerbaseErrCode.UserErrCode, "02", errStr, code, err)
 	}
-	res, errStr, code, err := repositories.UserRepo.Delete2(spanCtx, req)
+	res, errStr, code, err := repositories.UserRepo.SoftDelete(spanCtx, req)
 	if err != nil {
 		return mainController.Error(ctx, controllerbaseErrCode.UserErrCode, "03", errStr, code, err)
 	}

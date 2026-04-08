@@ -62,6 +62,20 @@ func (repo *Repository) Create(ctx context.Context, req commonSchema.BaseRequest
 	return courseSchema.ResponseCourse{Course: createsd}, "0", status.StatusOK, nil
 }
 
+func (repo *Repository) List(ctx context.Context, req commonSchema.BaseRequest[courseSchema.CoursesListRequest]) (res courseSchema.CourseListResponse, errStr string, code int, err error) {
+	if repo.initErr != nil {
+		return courseSchema.CourseListResponse{}, "", 0, err
+	}
+	if repo.DBDS == nil {
+		return courseSchema.CourseListResponse{}, "11", status.StatusBadRequest, fmt.Errorf("DBDS is nil")
+	}
+	List, pagination, err := repo.db().ListCourse(ctx, req.Body)
+	if err != nil {
+		return courseSchema.CourseListResponse{}, "", status.StatusInternalServerError, err
+	}
+	return courseSchema.CourseListResponse{Courses: List, Total: pagination}, "0", status.StatusOK, nil
+}
+
 func (repo *Repository) db() courseDataSources.CourseDB {
 	return repo.DBDS
 }

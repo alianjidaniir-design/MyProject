@@ -8,4 +8,5 @@ import (
 
 type CourseDB interface {
 	CreateCourse(ctx context.Context, req courseSchema.RequestCourse) (courseDataModle.Course, error)
+	ListCourse(ctx context.Context, req courseSchema.CoursesListRequest) ([]courseDataModle.Course, int64, error)
 }

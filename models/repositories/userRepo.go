@@ -25,7 +25,7 @@ type UserRepository interface {
 
 	Delete(ctx context.Context, req commonSchema.BaseRequest[userSchema.DeleteRequest]) (res userSchema.DeleteResponse, errStr string, code int, err error)
 
-	Delete2(ctx context.Context, req commonSchema.BaseRequest[userSchema.SoftDeleteRequest]) (res userSchema.SoftDeleteResponse, errStr string, code int, err error)
+	SoftDelete(ctx context.Context, req commonSchema.BaseRequest[userSchema.SoftDeleteRequest]) (res userSchema.SoftDeleteResponse, errStr string, code int, err error)
 }
 
 var UserRepo UserRepository = user.GetRepoIns()
