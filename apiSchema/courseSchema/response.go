@@ -12,3 +12,7 @@ type CourseListResponse struct {
 	Courses []courseDataModle.Course `json:"courses"`
 	Total   int64                    `json:"total"`
 }
+
+type GetCoursesResponse struct {
+	Courses courseDataModle.Course `json:"courses"`
+}

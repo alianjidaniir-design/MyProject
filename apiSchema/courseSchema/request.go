@@ -11,3 +11,7 @@ type CoursesListRequest struct {
 	Page     int `json:"page"`
 	PageSize int `json:"page_size"`
 }
+
+type GetCoursesRequest struct {
+	ID string `json:"ID"`
+}

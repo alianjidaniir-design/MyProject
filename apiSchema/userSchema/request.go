@@ -1,7 +1,7 @@
 package userSchema
 
 type LoginRequest struct {
-	Code   string `json:"code"`
+	Code   string `json:"code" `
 	Name   string `json:"name"`
 	Family string `json:"family"`
 }

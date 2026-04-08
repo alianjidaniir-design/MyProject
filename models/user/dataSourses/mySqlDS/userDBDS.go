@@ -40,10 +40,12 @@ func (ds *UserDBDS) SoftDeleteStudent(ctx context.Context, req userSchema.SoftDe
 	var student userDataModel.User
 	now := time.Now().In(myLocation())
 	updateQuery := fmt.Sprintf("UPDATE %s SET deleted_at=? WHERE id = ?", ds.tableName)
+
 	_, err := ds.db.ExecContext(ctx, updateQuery, now, req.ID)
 	if err != nil {
 		return userDataModel.User{}, err
 	}
+
 	selectQuery := fmt.Sprintf("SELECT id, code, name, family, created_at, updated_at, deleted_at FROM %s WHERE id = ?", ds.tableName)
 
 	var createdAtal, updatedAtal, deletedAtal sql.NullTime
