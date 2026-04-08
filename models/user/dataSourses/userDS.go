@@ -10,4 +10,5 @@ type UserDB interface {
 	CreateStudent(ctx context.Context, req userSchema.LoginRequest) (userDataModel.User, error)
 	ReadStudent(ctx context.Context, req userSchema.ListRequest) ([]userDataModel.User, int64, error)
 	GetStudent(ctx context.Context, req userSchema.GetRequest) (userDataModel.User, error)
+	UpdateStudent(ctx context.Context, req userSchema.UpdateUserRequest) (userDataModel.User, error)
 }

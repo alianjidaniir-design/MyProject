@@ -14,3 +14,7 @@ type ListRequest struct {
 type GetRequest struct {
 	ID int64 `json:"ID"`
 }
+
+type UpdateUserRequest struct {
+	ID int64 `json:"ID"`
+}

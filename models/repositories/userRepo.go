@@ -16,6 +16,10 @@ type UserRepository interface {
 
 	// Get method
 	Get(ctx context.Context, req commonSchema.BaseRequest[userSchema.GetRequest]) (res userSchema.GetResponse, errStr string, code int, err error)
+
+	// Update method
+
+	Update(ctx context.Context, req commonSchema.BaseRequest[userSchema.UpdateUserRequest]) (res userSchema.UpdateResponse, errStr string, code int, err error)
 }
 
 var UserRepo UserRepository = user.GetRepoIns()

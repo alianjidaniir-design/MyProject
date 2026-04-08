@@ -83,6 +83,20 @@ func (repo *Repository) List(ctx context.Context, req commonSchema.BaseRequest[u
 	return userSchema.ListUser{Users: listus, Total: total}, "", status.StatusOK, nil
 }
 
+func (repo *Repository) Update(ctx context.Context, req commonSchema.BaseRequest[userSchema.UpdateUserRequest]) (res userSchema.UpdateResponse, errStr string, code int, err error) {
+	if repo.initErr != nil {
+		return userSchema.UpdateResponse{}, "14", status.UnAvailableServiceError, repo.initErr
+	}
+	if repo.db() == nil {
+		return userSchema.UpdateResponse{}, "15", status.StatusInternalServerError, errors.New("bad")
+	}
+	updatedUser, err := repo.db().UpdateStudent(ctx, req.Body)
+	if err != nil {
+		return userSchema.UpdateResponse{}, "16", status.UnAvailableServiceError, err
+	}
+	return userSchema.UpdateResponse{User: updatedUser}, "", status.StatusOK, nil
+}
+
 func (repo *Repository) Get(ctx context.Context, req commonSchema.BaseRequest[userSchema.GetRequest]) (res userSchema.GetResponse, errStr string, code int, err error) {
 	if repo.initErr != nil {
 		return userSchema.GetResponse{}, "10", status.UnAvailableServiceError, repo.initErr

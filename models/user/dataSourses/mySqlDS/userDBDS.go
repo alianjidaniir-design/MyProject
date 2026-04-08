@@ -7,6 +7,7 @@ import (
 	"MyProject/pkg/pagination"
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -38,25 +39,27 @@ func NewUsersDBDS(db *sql.DB, tableName string) (userDataSourses.UserDB, error) 
 func (ds *UserDBDS) GetStudent(ctx context.Context, req userSchema.GetRequest) (userDataModel.User, error) {
 	var students userDataModel.User
 	selectQuery := fmt.Sprintf("SELECT * FROM %s WHERE id = ? ", ds.tableName)
-	var createdAt, updatedAt, deletedAt sql.NullTime
+	var createdAtal, updatedAtal, deletedAtal sql.NullTime
 
-	if err := ds.db.QueryRowContext(ctx, selectQuery).Scan(&students.ID, &students.Code, &students.Name, &students.Family, &createdAt, &updatedAt, &deletedAt); err != nil {
+	if err := ds.db.QueryRowContext(ctx, selectQuery, req.ID).Scan(&students.ID, &students.Code, &students.Name, &students.Family, &createdAtal, &deletedAtal, &updatedAtal); err != nil {
 		return userDataModel.User{}, err
 	}
 
-	if createdAt.Valid {
-		students.CreatedAt = createdAt.Time.In(myLocation())
+	if createdAtal.Valid {
+		students.CreatedAt = createdAtal.Time.In(myLocation())
 	} else {
 		students.CreatedAt = time.Time{}
 	}
 
-	if updatedAt.Valid {
-		students.UpdatedAt = updatedAt.Time.In(myLocation())
+	if updatedAtal.Valid {
+		students.UpdatedAt = updatedAtal.Time.In(myLocation())
 	} else {
+		fmt.Println(updatedAtal.Time.In(myLocation()))
 		students.UpdatedAt = time.Time{}
 	}
-	if deletedAt.Valid {
-		students.DeletedAt = deletedAt.Time.In(myLocation())
+	if deletedAtal.Valid {
+		fmt.Println(deletedAtal.Time.In(myLocation()))
+		students.DeletedAt = deletedAtal.Time.In(myLocation())
 	} else {
 		students.DeletedAt = time.Time{}
 	}
@@ -143,6 +146,92 @@ func (ds *UserDBDS) ReadStudent(ctx context.Context, req userSchema.ListRequest)
 		return []userDataModel.User{}, 0, fmt.Errorf("خطا در پیمایش نتایج کوئری: %w", err)
 	}
 	return users, total, nil
+}
+
+func (ds *UserDBDS) RenameStudent(ctx context.Context, req userSchema.UpdateUserRequest) (userDataModel.User, error) {
+	var students userDataModel.User
+	stmt := fmt.Sprintf("UPDATE %s SET  name = ?, family = ?, updated_at = ? WHERE id = ? ", ds.tableName)
+	var updatedAt time.Time
+	sss, err := ds.db.PrepareContext(ctx, stmt)
+	if err != nil {
+		return userDataModel.User{}, err
+	}
+	defer sss.Close()
+
+	result, err := sss.ExecContext(ctx,
+		students.Name,
+		students.Family,
+		updatedAt,
+		req.ID,
+	)
+	if err != nil {
+		return userDataModel.User{}, err
+	}
+	// (optional) require for number of updated column
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return userDataModel.User{}, errors.New("error in number update")
+	}
+	if rows == 0 {
+		return userDataModel.User{}, fmt.Errorf("rows == 0")
+	}
+	updatedAt = updatedAt.In(myLocation())
+	return students, nil
+
+}
+
+func (ds *UserDBDS) UpdateStudent(ctx context.Context, req userSchema.UpdateUserRequest) (userDataModel.User, error) {
+	now := time.Now().In(myLocation())
+	var students userDataModel.User
+	stmt := fmt.Sprintf("UPDATE %s SET updated_at = ? WHERE id = ? ", ds.tableName)
+	sss, err := ds.db.PrepareContext(ctx, stmt)
+	if err != nil {
+		return userDataModel.User{}, err
+	}
+	defer sss.Close()
+
+	result, err := sss.ExecContext(ctx,
+		now,
+		req.ID,
+	)
+	if err != nil {
+		return userDataModel.User{}, err
+	}
+	// (optional) require for number of updated column
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return userDataModel.User{}, errors.New("error in number update")
+	}
+	if rows == 0 {
+		return userDataModel.User{}, fmt.Errorf("rows == 0")
+	}
+
+	readQuery := fmt.Sprintf("SELECT id , code , name , family , created_at , updated_at , deleted_at FROM %s WHERE id = ?", ds.tableSQL)
+	var createdAt, updatedAt, deletedAt sql.NullTime
+
+	if err := ds.db.QueryRowContext(ctx, readQuery, req.ID).Scan(&students.ID, &students.Code, &students.Name, &students.Family, &createdAt, &updatedAt, &deletedAt); err != nil {
+		return userDataModel.User{}, err
+	}
+
+	if createdAt.Valid {
+		students.CreatedAt = createdAt.Time.In(myLocation())
+	} else {
+		students.CreatedAt = time.Time{}
+	}
+
+	if updatedAt.Valid {
+		fmt.Println(updatedAt.Time)
+		students.UpdatedAt = updatedAt.Time.In(myLocation())
+	} else {
+		students.UpdatedAt = time.Time{}
+	}
+	if deletedAt.Valid {
+		students.DeletedAt = deletedAt.Time.In(myLocation())
+	} else {
+		students.DeletedAt = time.Time{}
+	}
+	return students, nil
+
 }
 
 func (ds *UserDBDS) readTaskByID(ctx context.Context, userID int64) (userDataModel.User, error) {

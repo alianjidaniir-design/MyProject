@@ -16,3 +16,7 @@ type ListUser struct {
 type GetResponse struct {
 	User UserdataModel.User `json:"user"`
 }
+
+type UpdateResponse struct {
+	User UserdataModel.User `json:"user"`
+}
