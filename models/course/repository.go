@@ -76,6 +76,20 @@ func (repo *Repository) List(ctx context.Context, req commonSchema.BaseRequest[c
 	return courseSchema.CourseListResponse{Courses: List, Total: pagination}, "0", status.StatusOK, nil
 }
 
+func (repo *Repository) Get(ctx context.Context, req commonSchema.BaseRequest[courseSchema.GetCoursesRequest]) (res courseSchema.GetCoursesResponse, errStr string, code int, err error) {
+	if repo.initErr != nil {
+		return courseSchema.GetCoursesResponse{}, "01", 0, err
+	}
+	if repo.DBDS == nil {
+		return courseSchema.GetCoursesResponse{}, "02", status.StatusBadRequest, fmt.Errorf("DBDS is nil")
+	}
+	get, err := repo.DBDS.GetCourse(ctx, req.Body)
+	if err != nil {
+		return courseSchema.GetCoursesResponse{}, "03", status.StatusInternalServerError, err
+	}
+	return courseSchema.GetCoursesResponse{Courses: get}, "0", status.StatusOK, nil
+}
+
 func (repo *Repository) db() courseDataSources.CourseDB {
 	return repo.DBDS
 }

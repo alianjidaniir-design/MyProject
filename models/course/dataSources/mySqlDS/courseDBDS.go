@@ -33,6 +33,30 @@ func NewCourseDBDS(tableName string, db *sql.DB) (courseDataSources.CourseDB, er
 	}
 	return ff, nil
 }
+func (ds *CourseDBDS) UpdateCourse(ctx context.Context, req courseSchema.UpdateCourseRequest) (courseDataModle.Course, error) {
+	var course courseDataModle.Course
+	updateQuery := fmt.Sprintf()
+}
+
+func (ds *CourseDBDS) GetCourse(ctx context.Context, req courseSchema.GetCoursesRequest) (courseDataModle.Course, error) {
+	var course courseDataModle.Course
+	readQuery := fmt.Sprintf("SELECT id , course_code , title , capacity ,enrolled_at ,isActive , created_at , updated_at , deleted_at FROM %s WHERE id = ?", ds.tableSQL)
+	var createdAt, updatedAt, deletedAt sql.NullTime
+	if err := ds.db.QueryRowContext(ctx, readQuery, req.ID).Scan(&course.ID, &course.CourseCode, &course.Title, &course.Capacity, &course.EnrolledAt, &course.IsActive, &createdAt, &updatedAt, &deletedAt); err != nil {
+		return courseDataModle.Course{}, err
+	}
+	if createdAt.Valid {
+		course.CreatedAt = createdAt.Time
+	}
+	if updatedAt.Valid {
+		course.UpdatedAt = updatedAt.Time
+	}
+	if deletedAt.Valid {
+		course.DeletedAt = deletedAt.Time
+	}
+	return course, nil
+
+}
 
 func (ds *CourseDBDS) CreateCourse(ctx context.Context, req courseSchema.RequestCourse) (courseDataModle.Course, error) {
 	now := time.Now().In(myLocation())

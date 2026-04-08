@@ -13,5 +13,9 @@ type CoursesListRequest struct {
 }
 
 type GetCoursesRequest struct {
-	ID string `json:"ID"`
+	ID int64 `json:"ID"`
+}
+
+type UpdateCourseRequest struct {
+	ID int64 `json:"ID"`
 }

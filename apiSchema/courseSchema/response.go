@@ -16,3 +16,7 @@ type CourseListResponse struct {
 type GetCoursesResponse struct {
 	Courses courseDataModle.Course `json:"courses"`
 }
+
+type UpdateCourseResponse struct {
+	Course courseDataModle.Course `json:"course"`
+}

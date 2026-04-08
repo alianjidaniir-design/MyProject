@@ -85,7 +85,7 @@ func (ds *UserDBDS) DeleteStudent(ctx context.Context, req userSchema.DeleteRequ
 
 func (ds *UserDBDS) GetStudent(ctx context.Context, req userSchema.GetRequest) (userDataModel.User, error) {
 	var students userDataModel.User
-	selectQuery := fmt.Sprintf("SELECT FROM %s WHERE id = ? ", ds.tableName)
+	selectQuery := fmt.Sprintf("SELECT * FROM %s WHERE id = ? ", ds.tableName)
 
 	var createdAtal, updatedAtal, deletedAtal sql.NullTime
 
