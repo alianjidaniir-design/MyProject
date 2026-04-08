@@ -112,6 +112,34 @@ func (repo *Repository) Get(ctx context.Context, req commonSchema.BaseRequest[us
 	return userSchema.GetResponse{User: geting}, "", status.StatusOK, nil
 }
 
+func (repo *Repository) Delete2(ctx context.Context, req commonSchema.BaseRequest[userSchema.SoftDeleteRequest]) (res userSchema.SoftDeleteResponse, errStr string, code int, err error) {
+	if repo.initErr != nil {
+		return userSchema.SoftDeleteResponse{}, "10", status.UnAvailableServiceError, repo.initErr
+	}
+	if repo.db() == nil {
+		return userSchema.SoftDeleteResponse{}, "11", status.StatusInternalServerError, errors.New("bad")
+	}
+	soft, err := repo.db().SoftDeleteStudent(ctx, req.Body)
+	if err != nil {
+		return userSchema.SoftDeleteResponse{}, "04", status.UnAvailableServiceError, err
+	}
+	return userSchema.SoftDeleteResponse{User: soft}, "", status.StatusOK, nil
+}
+
+func (repo *Repository) Delete(ctx context.Context, req commonSchema.BaseRequest[userSchema.DeleteRequest]) (res userSchema.DeleteResponse, errStr string, code int, err error) {
+	if repo.initErr != nil {
+		return userSchema.DeleteResponse{}, "10", status.UnAvailableServiceError, repo.initErr
+	}
+	if repo.db() == nil {
+		return userSchema.DeleteResponse{}, "11", status.StatusInternalServerError, errors.New("bad")
+	}
+	deletedUser, err := repo.db().DeleteStudent(ctx, req.Body)
+	if err != nil {
+		return userSchema.DeleteResponse{}, "04", status.UnAvailableServiceError, err
+	}
+	return userSchema.DeleteResponse{User: deletedUser}, "", status.StatusOK, nil
+}
+
 func (repo *Repository) db() userDataSourses.UserDB {
 	return repo.dbDS
 }

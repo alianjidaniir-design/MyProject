@@ -20,3 +20,11 @@ type GetResponse struct {
 type UpdateResponse struct {
 	User UserdataModel.User `json:"user"`
 }
+
+type DeleteResponse struct {
+	User UserdataModel.User `json:"user"`
+}
+
+type SoftDeleteResponse struct {
+	User UserdataModel.User `json:"user"`
+}

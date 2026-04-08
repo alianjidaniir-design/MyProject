@@ -18,3 +18,10 @@ type GetRequest struct {
 type UpdateUserRequest struct {
 	ID int64 `json:"ID"`
 }
+type DeleteRequest struct {
+	ID int64 `json:"ID"`
+}
+
+type SoftDeleteRequest struct {
+	ID int64 `json:"ID"`
+}

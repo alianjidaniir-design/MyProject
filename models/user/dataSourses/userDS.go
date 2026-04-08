@@ -11,4 +11,6 @@ type UserDB interface {
 	ReadStudent(ctx context.Context, req userSchema.ListRequest) ([]userDataModel.User, int64, error)
 	GetStudent(ctx context.Context, req userSchema.GetRequest) (userDataModel.User, error)
 	UpdateStudent(ctx context.Context, req userSchema.UpdateUserRequest) (userDataModel.User, error)
+	DeleteStudent(ctx context.Context, req userSchema.DeleteRequest) (userDataModel.User, error)
+	SoftDeleteStudent(ctx context.Context, req userSchema.SoftDeleteRequest) (userDataModel.User, error)
 }

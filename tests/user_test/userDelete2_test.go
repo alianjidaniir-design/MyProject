@@ -1,4 +1,4 @@
-package user_test
+package user
 
 import (
 	"MyProject/services/core/route"
@@ -10,12 +10,12 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func TestUpdateUser(t *testing.T) {
+func TestDelete2User(t *testing.T) {
 	app := fiber.New()
 	route.SetupRoutes(app)
 	payload := map[string]any{
 		"body": map[string]any{
-			"ID": 119,
+			"ID": 143,
 		},
 	}
 
@@ -24,7 +24,7 @@ func TestUpdateUser(t *testing.T) {
 		t.Fatalf("marshal paylpad failed : %v", err)
 	}
 
-	req, err := http.NewRequest("POST", "/user/update", bytes.NewBuffer(bodyBytes))
+	req, err := http.NewRequest("POST", "/user/delete2", bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		t.Fatalf("create request failed : %v", err)
 	}
