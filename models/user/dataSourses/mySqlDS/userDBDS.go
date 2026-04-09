@@ -257,7 +257,7 @@ func (ds *UserDBDS) UpdateStudent(ctx context.Context, req userSchema.UpdateUser
 	readQuery := fmt.Sprintf("SELECT id , code , name , family , created_at , updated_at , deleted_at FROM %s WHERE id = ?", ds.tableSQL)
 	var createdAt, updatedAt, deletedAt sql.NullTime
 
-	if err := ds.db.QueryRowContext(ctx, readQuery, req.ID).Scan(&students.ID, &students.Code, &students.Name, &students.Family, &createdAt, &updatedAt, &deletedAt); err != nil {
+	if err = ds.db.QueryRowContext(ctx, readQuery, req.ID).Scan(&students.ID, &students.Code, &students.Name, &students.Family, &createdAt, &updatedAt, &deletedAt); err != nil {
 		return userDataModel.User{}, err
 	}
 

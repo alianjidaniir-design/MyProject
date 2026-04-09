@@ -19,3 +19,7 @@ type GetCoursesRequest struct {
 type UpdateCourseRequest struct {
 	ID int64 `json:"ID"`
 }
+
+type HardDeleteCourseRequest struct {
+	ID int64 `json:"ID"`
+}

@@ -11,4 +11,5 @@ type CourseDB interface {
 	ListCourse(ctx context.Context, req courseSchema.CoursesListRequest) ([]courseDataModle.Course, int64, error)
 	GetCourse(ctx context.Context, req courseSchema.GetCoursesRequest) (courseDataModle.Course, error)
 	UpdateCourse(ctx context.Context, req courseSchema.UpdateCourseRequest) (courseDataModle.Course, error)
+	DeleteCourse(ctx context.Context, req courseSchema.HardDeleteCourseRequest) (courseDataModle.Course, error)
 }

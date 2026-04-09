@@ -35,7 +35,36 @@ func NewCourseDBDS(tableName string, db *sql.DB) (courseDataSources.CourseDB, er
 }
 func (ds *CourseDBDS) UpdateCourse(ctx context.Context, req courseSchema.UpdateCourseRequest) (courseDataModle.Course, error) {
 	var course courseDataModle.Course
-	updateQuery := fmt.Sprintf()
+	now := time.Now().In(myLocation())
+	updateQuery := fmt.Sprintf("UPDATE %s SET updated_at = ? WHERE id = ?", ds.tableSQL)
+	update, err := ds.db.PrepareContext(ctx, updateQuery)
+	if err != nil {
+		return course, err
+	}
+	defer update.Close()
+	result, err := update.ExecContext(ctx, now, req.ID)
+	if err != nil {
+		return course, err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil || rows == 0 {
+		return courseDataModle.Course{}, err
+	}
+	var createdAt, updatedAt, deletedAt sql.NullTime
+	readQuery := fmt.Sprintf("SELECT id , course_code , title , capacity ,enrolled_at ,isActive , created_at , updated_at , deleted_at FROM %s WHERE id = ?", ds.tableSQL)
+	if err = ds.db.QueryRowContext(ctx, readQuery, req.ID).Scan(&course.ID, &course.CourseCode, &course.Title, &course.Capacity, &course.EnrolledAt, &course.IsActive, &createdAt, &updatedAt, &deletedAt); err != nil {
+		return courseDataModle.Course{}, err
+	}
+	if createdAt.Valid {
+		course.CreatedAt = createdAt.Time
+	}
+	if updatedAt.Valid {
+		course.UpdatedAt = updatedAt.Time
+	}
+	if deletedAt.Valid {
+		course.DeletedAt = deletedAt.Time
+	}
+	return course, nil
 }
 
 func (ds *CourseDBDS) GetCourse(ctx context.Context, req courseSchema.GetCoursesRequest) (courseDataModle.Course, error) {
@@ -143,6 +172,16 @@ func (ds *CourseDBDS) readCouresByID(ctx context.Context, id int64) (courseDataM
 		course.DeletedAt = deletedAt.Time
 	} else {
 		course.DeletedAt = time.Time{}
+	}
+	return course, nil
+}
+
+func (ds *CourseDBDS) DeleteCourse(ctx context.Context, req courseSchema.HardDeleteCourseRequest) (courseDataModle.Course, error) {
+	var course courseDataModle.Course
+	deleteQuery := fmt.Sprintf("DELETE FROM %s WHERE id=?", ds.tableSQL)
+	_, err := ds.db.ExecContext(ctx, deleteQuery, req.ID)
+	if err != nil {
+		return course, err
 	}
 	return course, nil
 }

@@ -83,11 +83,39 @@ func (repo *Repository) Get(ctx context.Context, req commonSchema.BaseRequest[co
 	if repo.DBDS == nil {
 		return courseSchema.GetCoursesResponse{}, "02", status.StatusBadRequest, fmt.Errorf("DBDS is nil")
 	}
-	get, err := repo.DBDS.GetCourse(ctx, req.Body)
+	get, err := repo.db().GetCourse(ctx, req.Body)
 	if err != nil {
 		return courseSchema.GetCoursesResponse{}, "03", status.StatusInternalServerError, err
 	}
 	return courseSchema.GetCoursesResponse{Courses: get}, "0", status.StatusOK, nil
+}
+
+func (repo *Repository) Update(ctx context.Context, req commonSchema.BaseRequest[courseSchema.UpdateCourseRequest]) (res courseSchema.UpdateCourseResponse, errStr string, code int, err error) {
+	if repo.initErr != nil {
+		return courseSchema.UpdateCourseResponse{}, "01", 0, err
+	}
+	if repo.DBDS == nil {
+		return courseSchema.UpdateCourseResponse{}, "02", status.StatusBadRequest, fmt.Errorf("DBDS is nil")
+	}
+	updatesd, err := repo.db().UpdateCourse(ctx, req.Body)
+	if err != nil {
+		return courseSchema.UpdateCourseResponse{}, "03", status.StatusInternalServerError, err
+	}
+	return courseSchema.UpdateCourseResponse{Course: updatesd}, "0", status.StatusOK, nil
+}
+
+func (repo *Repository) Delete(ctx context.Context, req commonSchema.BaseRequest[courseSchema.HardDeleteCourseRequest]) (res courseSchema.HardDeleteCourseResponse, errStr string, code int, err error) {
+	if repo.initErr != nil {
+		return courseSchema.HardDeleteCourseResponse{}, "01", 0, err
+	}
+	if repo.DBDS == nil {
+		return courseSchema.HardDeleteCourseResponse{}, "02", status.StatusBadRequest, fmt.Errorf("DBDS is nil")
+	}
+	deleted, err := repo.db().DeleteCourse(ctx, req.Body)
+	if err != nil {
+		return courseSchema.HardDeleteCourseResponse{}, "03", status.StatusInternalServerError, err
+	}
+	return courseSchema.HardDeleteCourseResponse{Course: deleted}, "0", status.StatusOK, nil
 }
 
 func (repo *Repository) db() courseDataSources.CourseDB {
