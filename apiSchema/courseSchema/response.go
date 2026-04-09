@@ -28,3 +28,7 @@ type HardDeleteCourseResponse struct {
 type SoftDeleteCourseResponse struct {
 	Course courseDataModle.Course `json:"course"`
 }
+
+type DeactivateCourseResponse struct {
+	Massage string `json:"massage"`
+}
