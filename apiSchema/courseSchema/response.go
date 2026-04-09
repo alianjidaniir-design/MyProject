@@ -24,3 +24,7 @@ type UpdateCourseResponse struct {
 type HardDeleteCourseResponse struct {
 	Course courseDataModle.Course `json:"course"`
 }
+
+type SoftDeleteCourseResponse struct {
+	Course courseDataModle.Course `json:"course"`
+}

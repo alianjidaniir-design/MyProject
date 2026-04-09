@@ -185,3 +185,28 @@ func (ds *CourseDBDS) DeleteCourse(ctx context.Context, req courseSchema.HardDel
 	}
 	return course, nil
 }
+
+func (ds *CourseDBDS) SoftDelete(ctx context.Context, req courseSchema.SoftDeleteCourseRequest) (courseDataModle.Course, error) {
+	var course courseDataModle.Course
+	now := time.Now().In(myLocation())
+	update := fmt.Sprintf("UPDATE %s SET deleted_at=? WHERE id=?", ds.tableSQL)
+	_, err := ds.db.ExecContext(ctx, update, now, req.ID)
+	if err != nil {
+		return course, err
+	}
+	readQuery := fmt.Sprintf("SELECT id , course_code , title , capacity ,enrolled_at ,isActive , created_at , updated_at , deleted_at FROM %s WHERE id = ?", ds.tableSQL)
+	var createdAt, updatedAt, deletedAt sql.NullTime
+	if err = ds.db.QueryRowContext(ctx, readQuery, req.ID).Scan(&course.ID, &course.CourseCode, &course.Title, &course.Capacity, &course.EnrolledAt, &course.IsActive, &createdAt, &updatedAt, &deletedAt); err != nil {
+		return courseDataModle.Course{}, err
+	}
+	if createdAt.Valid {
+		course.CreatedAt = createdAt.Time
+	}
+	if updatedAt.Valid {
+		course.UpdatedAt = updatedAt.Time
+	}
+	if deletedAt.Valid {
+		course.DeletedAt = deletedAt.Time
+	}
+	return course, nil
+}

@@ -118,6 +118,21 @@ func (repo *Repository) Delete(ctx context.Context, req commonSchema.BaseRequest
 	return courseSchema.HardDeleteCourseResponse{Course: deleted}, "0", status.StatusOK, nil
 }
 
+func (repo *Repository) SoftDelete(ctx context.Context, req commonSchema.BaseRequest[courseSchema.SoftDeleteCourseRequest]) (res courseSchema.SoftDeleteCourseResponse, errStr string, code int, err error) {
+
+	if repo.initErr != nil {
+		return courseSchema.SoftDeleteCourseResponse{}, "01", status.UnAvailableServiceError, repo.initErr
+	}
+	if repo.DBDS == nil {
+		return courseSchema.SoftDeleteCourseResponse{}, "02", status.StatusBadRequest, fmt.Errorf("DBDS is nil")
+	}
+	deleted, err := repo.db().SoftDelete(ctx, req.Body)
+	if err != nil {
+		return courseSchema.SoftDeleteCourseResponse{}, "03", status.StatusInternalServerError, err
+	}
+	return courseSchema.SoftDeleteCourseResponse{Course: deleted}, "0", status.StatusOK, nil
+}
+
 func (repo *Repository) db() courseDataSources.CourseDB {
 	return repo.DBDS
 }

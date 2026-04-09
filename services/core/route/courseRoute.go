@@ -7,11 +7,12 @@ import (
 )
 
 var routeCourse = map[string]string{
-	"courseCreate": "course/create",
-	"courseList":   "course/list",
-	"courseDetail": "course/detail",
-	"courseUpdate": "course/update",
-	"courseDelete": "course/delete",
+	"courseCreate":     "course/create",
+	"courseList":       "course/list",
+	"courseDetail":     "course/detail",
+	"courseUpdate":     "course/update",
+	"courseDelete":     "course/delete",
+	"courseSoftDelete": "course/soft_delete",
 }
 
 func SetupCourseRoutes(app *fiber.App) map[string]string {
@@ -20,6 +21,7 @@ func SetupCourseRoutes(app *fiber.App) map[string]string {
 	app.Post(routeCourse["courseDetail"], Get)
 	app.Post(routeCourse["courseUpdate"], Update)
 	app.Post(routeCourse["courseDelete"], Delete)
+	app.Post(routeCourse["courseSoftDelete"], SoftDelete)
 
 	return routeCourse
 }

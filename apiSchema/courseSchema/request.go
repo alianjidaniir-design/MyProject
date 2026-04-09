@@ -23,3 +23,7 @@ type UpdateCourseRequest struct {
 type HardDeleteCourseRequest struct {
 	ID int64 `json:"ID"`
 }
+
+type SoftDeleteCourseRequest struct {
+	ID int64 `json:"ID"`
+}

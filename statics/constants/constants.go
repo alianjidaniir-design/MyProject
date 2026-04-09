@@ -1,7 +1,8 @@
 package constants
 
 const (
-	ServiceCore = "core"
+	StatusEnrolled = "enrolledd"
+	StatusCanceled = "canceled"
 )
 
 const (
