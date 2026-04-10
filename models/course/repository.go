@@ -133,6 +133,21 @@ func (repo *Repository) SoftDelete(ctx context.Context, req commonSchema.BaseReq
 	return courseSchema.SoftDeleteCourseResponse{Course: deleted}, "0", status.StatusOK, nil
 }
 
+func (repo *Repository) DeActive(ctx context.Context, req commonSchema.BaseRequest[courseSchema.DeactiveCourseRequest]) (res courseSchema.DeactivateCourseResponse, errStr string, code int, err error) {
+	if repo.initErr != nil {
+		return courseSchema.DeactivateCourseResponse{}, "01", status.UnAvailableServiceError, err
+	}
+	if repo.DBDS == nil {
+		return courseSchema.DeactivateCourseResponse{}, "02", status.StatusBadRequest, fmt.Errorf("DBDS is nil")
+	}
+	deactive, err := repo.db().DeactiveCourse(ctx, req.Body)
+	if err != nil {
+		return courseSchema.DeactivateCourseResponse{}, "03", status.StatusInternalServerError, err
+	}
+	return courseSchema.DeactivateCourseResponse{Massage: deactive}, "0", status.StatusOK, nil
+
+}
+
 func (repo *Repository) db() courseDataSources.CourseDB {
 	return repo.DBDS
 }

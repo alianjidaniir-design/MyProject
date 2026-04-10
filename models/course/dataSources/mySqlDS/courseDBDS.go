@@ -210,3 +210,25 @@ func (ds *CourseDBDS) SoftDelete(ctx context.Context, req courseSchema.SoftDelet
 	}
 	return course, nil
 }
+
+func (ds *CourseDBDS) DeactiveCourse(ctx context.Context, req courseSchema.DeactiveCourseRequest) (string, error) {
+	var course courseDataModle.Course
+	query := fmt.Sprintf("SELECT isActive FROM %s WHERE id=?", ds.tableSQL)
+	err := ds.db.QueryRowContext(ctx, query, req.ID).Scan(&course.IsActive)
+	if err != nil {
+		return "", err
+	}
+	if req.Deactivate == true {
+		if course.IsActive == false {
+			d := fmt.Sprintf("no active course")
+			return d, nil
+		}
+		update := fmt.Sprintf("UPDATE %s SET isActive=? WHERE id=?", ds.tableSQL)
+
+		_, err = ds.db.ExecContext(ctx, update, false, req.ID)
+		if err != nil {
+			return "", err
+		}
+	}
+	return "done successfully", nil
+}
