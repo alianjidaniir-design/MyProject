@@ -7,10 +7,11 @@ import (
 )
 
 var enrollRoute = map[string]string{
-	"enrollmentcreate":  "enrollment/create",
-	"enrollmentcancel":  "enrollment/cancel",
-	"enrollmentlist":    "enrollment/list",
-	"enrollmentcourses": "enrollment/courses",
+	"enrollmentcreate":   "enrollment/create",
+	"enrollmentcancel":   "enrollment/cancel",
+	"enrollmentlist":     "enrollment/list",
+	"enrollmentcourses":  "enrollment/courses",
+	"enrollmentstudents": "enrollment/students",
 }
 
 func SetupEnrollmentRoute(app *fiber.App) map[string]string {
@@ -18,6 +19,7 @@ func SetupEnrollmentRoute(app *fiber.App) map[string]string {
 	app.Post(enrollRoute["enrollmentcancel"], Cancel)
 	app.Post(enrollRoute["enrollmentlist"], List)
 	app.Post(enrollRoute["enrollmentcourses"], ListCourses)
+	app.Post(enrollRoute["enrollmentstudents"], ListStudents)
 
 	return enrollRoute
 }

@@ -18,3 +18,8 @@ type ListStudentCoursesRequest struct {
 	StudentID int64  `json:"student_id"`
 	Status    string `json:"status"`
 }
+
+type ListCourseStudentsRequest struct {
+	CourseID int64  `json:"course_id"`
+	Status   string `json:"status"`
+}

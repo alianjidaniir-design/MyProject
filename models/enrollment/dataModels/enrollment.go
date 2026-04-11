@@ -13,3 +13,13 @@ type Enrollment struct {
 	UpdatedAt  time.Time  `json:"updated_at"`            // Timestamp when the record was last updated
 	DeletedAt  *time.Time `json:"deleted_at,omitempty"`  // Timestamp for soft delete (can be null)
 }
+
+type Enroll struct {
+	CourseID int64  `json:"course_id"`
+	Status   string `json:"status"`
+}
+
+type Course struct {
+	StudentID int64  `json:"student_id"`
+	Status    string `json:"status"`
+}

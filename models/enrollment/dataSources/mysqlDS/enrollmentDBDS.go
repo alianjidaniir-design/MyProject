@@ -259,44 +259,78 @@ func (ds *EnrollmentDBDS) ListEnrollment(ctx context.Context, req enrollmentSche
 	return enroll, total, nil
 }
 
-func (ds *EnrollmentDBDS) ListStudentCourses(ctx context.Context, req enrollmentSchema.ListStudentCoursesRequest) (res []EnrollmentDataModel.Enrollment, err error) {
-	var enrollments []EnrollmentDataModel.Enrollment
-	enrolled := fmt.Sprintf("SELECT course_id , status FROM %s WHERE student_id = ?", ds.tableName)
-	rows, err := ds.db.QueryContext(ctx, enrolled, req.StudentID)
+func (ds *EnrollmentDBDS) ListStudentCourses(ctx context.Context, req enrollmentSchema.ListStudentCoursesRequest) (res []EnrollmentDataModel.Enroll, err error) {
+	var enrollments []EnrollmentDataModel.Enroll
+	enrolled := fmt.Sprintf("SELECT course_id  FROM %s WHERE student_id = ? AND status = ?", ds.tableName)
+	rows, err := ds.db.QueryContext(ctx, enrolled, req.StudentID, req.Status)
 	if err != nil {
-		return []EnrollmentDataModel.Enrollment{}, err
+		return []EnrollmentDataModel.Enroll{}, err
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var enrollment EnrollmentDataModel.Enrollment
+		var enrollment EnrollmentDataModel.Enroll
 		switch req.Status {
 		case constants.StatusEnrolled:
 			var enroll = constants.StatusEnrolled
-			err = rows.Scan(&enrollment.CourseID, &enroll)
+			enrollment.Status = enroll
+			err = rows.Scan(&enrollment.CourseID)
 			if err != nil {
-				return []EnrollmentDataModel.Enrollment{}, errors.New("error getting enrollment course")
+				return []EnrollmentDataModel.Enroll{}, errors.New("error getting enrollment course")
 			}
 		case constants.StatusCanceled:
 			var cancel = constants.StatusCanceled
-			err = rows.Scan(&enrollment.CourseID, &cancel)
+			enrollment.Status = cancel
+			err = rows.Scan(&enrollment.CourseID)
 			if err != nil {
-				return []EnrollmentDataModel.Enrollment{}, errors.New("error getting enrollment course")
-			}
-		case "":
-			all := fmt.Sprintf("SELECT course_id , status FROM %s WHERE student_id = ?", ds.tableName)
-			err = ds.db.QueryRowContext(ctx, all, req.StudentID).Scan(&enrollment.CourseID, &enrollment.Status)
-			if err != nil {
-				return []EnrollmentDataModel.Enrollment{}, errors.New("error getting enrollment course")
+				return []EnrollmentDataModel.Enroll{}, errors.New("error getting enrollment course")
 			}
 		default:
-			return []EnrollmentDataModel.Enrollment{}, errors.New("status not supported")
+			return []EnrollmentDataModel.Enroll{}, errors.New("status not supported")
 		}
+		enrollments = append(enrollments, enrollment)
 	}
 	if err = rows.Err(); err != nil {
-		return []EnrollmentDataModel.Enrollment{}, err
+		return []EnrollmentDataModel.Enroll{}, err
 	}
 	return enrollments, nil
 }
+
+func (ds *EnrollmentDBDS) ListCourseStudents(ctx context.Context, req enrollmentSchema.ListCourseStudentsRequest) (res []EnrollmentDataModel.Course, err error) {
+	var enrollments []EnrollmentDataModel.Course
+	enrolled := fmt.Sprintf("SELECT student_id  FROM %s WHERE course_id = ? AND status = ?", ds.tableName)
+	rows, err := ds.db.QueryContext(ctx, enrolled, req.CourseID, req.Status)
+	if err != nil {
+		return []EnrollmentDataModel.Course{}, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var enrollment EnrollmentDataModel.Course
+		switch req.Status {
+		case constants.StatusEnrolled:
+			var enroll = constants.StatusEnrolled
+			enrollment.Status = enroll
+			err = rows.Scan(&enrollment.StudentID)
+			if err != nil {
+				return []EnrollmentDataModel.Course{}, err
+			}
+		case constants.StatusCanceled:
+			var cancel = constants.StatusCanceled
+			enrollment.Status = cancel
+			err = rows.Scan(&enrollment.StudentID)
+			if err != nil {
+				return []EnrollmentDataModel.Course{}, err
+			}
+		default:
+			return []EnrollmentDataModel.Course{}, errors.New("status not supported")
+		}
+		enrollments = append(enrollments, enrollment)
+	}
+	if err = rows.Err(); err != nil {
+		return []EnrollmentDataModel.Course{}, err
+	}
+	return enrollments, nil
+}
+
 func (ds *EnrollmentDBDS) readQuery(ctx context.Context, ID int64) (EnrollmentDataModel.Enrollment, error) {
 	var enrollment EnrollmentDataModel.Enrollment
 	readQuery := fmt.Sprintf(`
