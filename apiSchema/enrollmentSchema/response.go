@@ -17,5 +17,5 @@ type ListEnrollmentResponse struct {
 }
 
 type ListStudentCoursesResponse struct {
-	Enrollments dataModels.Enrollment `json:"enrollments"`
+	Enrollments []dataModels.Enrollment `json:"enrollments"`
 }

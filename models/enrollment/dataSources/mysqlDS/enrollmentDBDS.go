@@ -259,37 +259,44 @@ func (ds *EnrollmentDBDS) ListEnrollment(ctx context.Context, req enrollmentSche
 	return enroll, total, nil
 }
 
-func (ds *EnrollmentDBDS) ListStudentCourses(ctx context.Context, req enrollmentSchema.ListStudentCoursesRequest) (res EnrollmentDataModel.Enrollment, err error) {
-	var enrollment EnrollmentDataModel.Enrollment
-	var courseID int64
-
-	switch req.Status {
-	case constants.StatusEnrolled:
-		var enroll = constants.StatusEnrolled
-		enrolled := fmt.Sprintf("SELECT course_id FROM %s WHERE status = ? AND student_id = ?", ds.tableName)
-		_, err = ds.db.QueryContext(ctx, enrolled, enroll, req.StudentID)
-		if err != nil {
-			return EnrollmentDataModel.Enrollment{}, errors.New("error getting enrollment course")
-		}
-	case constants.StatusCanceled:
-		var cancel = constants.StatusCanceled
-		canceled := fmt.Sprintf("SELECT course_id FROM %s WHERE status = ? AND student_id = ?", ds.tableName)
-		_, err = ds.db.QueryContext(ctx, canceled, cancel, req.StudentID)
-		if err != nil {
-			return EnrollmentDataModel.Enrollment{}, errors.New("error getting enrollment course")
-		}
-	case "":
-		all := fmt.Sprintf("SELECT course_id FROM %s WHERE student_id = ?", ds.tableName)
-		err = ds.db.QueryRowContext(ctx, all, req.StudentID).Scan(&courseID)
-		if err != nil {
-			return EnrollmentDataModel.Enrollment{}, errors.New("error getting enrollment course")
-		}
-	default:
-		return EnrollmentDataModel.Enrollment{}, errors.New("status not supported")
+func (ds *EnrollmentDBDS) ListStudentCourses(ctx context.Context, req enrollmentSchema.ListStudentCoursesRequest) (res []EnrollmentDataModel.Enrollment, err error) {
+	var enrollments []EnrollmentDataModel.Enrollment
+	enrolled := fmt.Sprintf("SELECT course_id , status FROM %s WHERE student_id = ?", ds.tableName)
+	rows, err := ds.db.QueryContext(ctx, enrolled, req.StudentID)
+	if err != nil {
+		return []EnrollmentDataModel.Enrollment{}, err
 	}
-	return enrollment, nil
+	defer rows.Close()
+	for rows.Next() {
+		var enrollment EnrollmentDataModel.Enrollment
+		switch req.Status {
+		case constants.StatusEnrolled:
+			var enroll = constants.StatusEnrolled
+			err = rows.Scan(&enrollment.CourseID, &enroll)
+			if err != nil {
+				return []EnrollmentDataModel.Enrollment{}, errors.New("error getting enrollment course")
+			}
+		case constants.StatusCanceled:
+			var cancel = constants.StatusCanceled
+			err = rows.Scan(&enrollment.CourseID, &cancel)
+			if err != nil {
+				return []EnrollmentDataModel.Enrollment{}, errors.New("error getting enrollment course")
+			}
+		case "":
+			all := fmt.Sprintf("SELECT course_id , status FROM %s WHERE student_id = ?", ds.tableName)
+			err = ds.db.QueryRowContext(ctx, all, req.StudentID).Scan(&enrollment.CourseID, &enrollment.Status)
+			if err != nil {
+				return []EnrollmentDataModel.Enrollment{}, errors.New("error getting enrollment course")
+			}
+		default:
+			return []EnrollmentDataModel.Enrollment{}, errors.New("status not supported")
+		}
+	}
+	if err = rows.Err(); err != nil {
+		return []EnrollmentDataModel.Enrollment{}, err
+	}
+	return enrollments, nil
 }
-
 func (ds *EnrollmentDBDS) readQuery(ctx context.Context, ID int64) (EnrollmentDataModel.Enrollment, error) {
 	var enrollment EnrollmentDataModel.Enrollment
 	readQuery := fmt.Sprintf(`

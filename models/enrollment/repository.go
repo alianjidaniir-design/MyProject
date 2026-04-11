@@ -8,6 +8,7 @@ import (
 	"MyProject/statics/constants/status"
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 )
 
@@ -96,6 +97,7 @@ func (repo *Repository) ListStudentCourse(ctx context.Context, req commonSchema.
 		return enrollmentSchema.ListStudentCoursesResponse{}, "02", status.StatusBadRequest, err
 	}
 	list, err := repo.db().ListStudentCourses(ctx, req.Body)
+	fmt.Println(list)
 	if err != nil {
 		return enrollmentSchema.ListStudentCoursesResponse{}, "03", status.StatusInternalServerError, err
 	}
