@@ -1,4 +1,4 @@
-package course
+package enrollment
 
 import (
 	"MyProject/apiSchema/commonSchema"

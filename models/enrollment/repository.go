@@ -88,6 +88,20 @@ func (repo *Repository) ListEnrollment(ctx context.Context, req commonSchema.Bas
 	return enrollmentSchema.ListEnrollmentResponse{Enrollments: list, TotalCount: total}, "", status.StatusOK, nil
 }
 
+func (repo *Repository) ListStudentCourse(ctx context.Context, req commonSchema.BaseRequest[enrollmentSchema.ListStudentCoursesRequest]) (res enrollmentSchema.ListStudentCoursesResponse, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return enrollmentSchema.ListStudentCoursesResponse{}, "01", status.StatusInternalServerError, err
+	}
+	if repo.DBDS == nil {
+		return enrollmentSchema.ListStudentCoursesResponse{}, "02", status.StatusBadRequest, err
+	}
+	list, err := repo.db().ListStudentCourses(ctx, req.Body)
+	if err != nil {
+		return enrollmentSchema.ListStudentCoursesResponse{}, "03", status.StatusInternalServerError, err
+	}
+	return enrollmentSchema.ListStudentCoursesResponse{Enrollments: list}, "", status.StatusOK, nil
+}
+
 func (repo *Repository) db() dataSources.EnrollmentDS {
 	return repo.DBDS
 }

@@ -10,18 +10,17 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func List(ctx *fiber.Ctx) error {
-	spanCtx := mainController.InitAPI(ctx, "11")
+func ListCourses(ctx *fiber.Ctx) error {
+	spanCtx := mainController.InitAPI(ctx, "20")
 	defer mainController.FinishSpan(ctx)
-	req := commonSchema.BaseRequest[enrollmentSchema.ListEnrollmentsRequest]{}
+	req := commonSchema.BaseRequest[enrollmentSchema.ListStudentCoursesRequest]{}
 	errStr, code, err := mainController.ParseBody(ctx, &req)
 	if err != nil {
 		return mainController.Error(ctx, controllerbaseErrCode.CourseErrCode, "01", errStr, code, err)
 	}
-	res, errStr, code, err := repositories.EnrollmentRepos.ListEnrollment(spanCtx, req)
+	res, errStr, code, err := repositories.EnrollmentRepos.ListStudentCourse(spanCtx, req)
 	if err != nil {
 		return mainController.Error(ctx, controllerbaseErrCode.CourseErrCode, "02", errStr, code, err)
 	}
 	return mainController.Response(ctx, res)
-
 }
