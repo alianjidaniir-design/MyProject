@@ -23,7 +23,7 @@ type Config struct {
 	MaxConnectionLifetime int
 }
 
-func LoadConfig() (Config, error) {
+func LoadConfiger() (Config, error) {
 	cfg := Config{
 		DSN:                   normalize(strings.TrimSpace(os.Getenv("MYSQL_DSN"))),
 		EnrollmentTableName:   strings.TrimSpace(os.Getenv("MYSQL_ENROLLMENT_TABLE")),
