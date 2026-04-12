@@ -23,7 +23,7 @@ var (
 )
 
 func instance() {
-	dsn, err := mysqlDS.LoadConfiger()
+	dsn, err := mysqlDS.LoadConfig()
 	if err != nil {
 		repo = &Repository{initRepo: errors.New("Problem in config")}
 		return
@@ -34,11 +34,11 @@ func instance() {
 		return
 	}
 
-	insta, err := mysqlDS.NewEnrollmentDBDS(dsn.EnrollmentTableName, db)
+	newEnr, err := mysqlDS.NewEnrollmentDBDS(dsn.EnrollmentTableName, db)
 	if err != nil {
 		repo = &Repository{initRepo: err}
 	}
-	repo = &Repository{DBDS: insta}
+	repo = &Repository{DBDS: newEnr}
 
 }
 

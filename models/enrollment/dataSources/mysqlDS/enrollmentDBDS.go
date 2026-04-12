@@ -26,12 +26,12 @@ func myLocation() *time.Location {
 	return location
 }
 
-func NewEnrollmentDBDS(tablename string, db *sql.DB) (dataSources.EnrollmentDS, error) {
+func NewEnrollmentDBDS(tableName string, db *sql.DB) (dataSources.EnrollmentDS, error) {
 	if db == nil {
 		return nil, errors.New("db is nil")
 	}
 	ff := &EnrollmentDBDS{
-		tableName: tablename,
+		tableName: tableName,
 		db:        db,
 	}
 
@@ -58,38 +58,38 @@ func (ds *EnrollmentDBDS) EnrollStudent(ctx context.Context, req enrollmentSchem
 			}
 		}
 	}()
-	var ExitStudent, ExirCourse bool
+	var ExitStudent, ExitCourse bool
 	queryCombinedLogic := `
     SELECT 
         CASE WHEN EXISTS(SELECT 1 FROM student WHERE id = ?) THEN TRUE ELSE FALSE END AS student_ok,
         CASE WHEN EXISTS(SELECT 1 FROM courses WHERE id = ? ) THEN TRUE ELSE FALSE END AS course_ok
 `
-	err = tx.QueryRowContext(ctx, queryCombinedLogic, req.StudentID, req.CourseID).Scan(&ExitStudent, &ExirCourse)
+	err = tx.QueryRowContext(ctx, queryCombinedLogic, req.StudentID, req.CourseID).Scan(&ExitStudent, &ExitCourse)
 	if err != nil {
 		return EnrollmentDataModel.Enrollment{}, err
 	} else if !ExitStudent {
 		return EnrollmentDataModel.Enrollment{}, errors.New("student does not exist")
-	} else if !ExirCourse {
+	} else if !ExitCourse {
 		return EnrollmentDataModel.Enrollment{}, errors.New("course does not exist")
 	}
-	var checkActiviate bool
+	var checkActivate bool
 	queryIsActive := `
         SELECT CASE WHEN isActive = true THEN 1 ELSE 0 END
         FROM courses
         WHERE id = ?
     `
-	err = tx.QueryRowContext(ctx, queryIsActive, req.CourseID).Scan(&checkActiviate)
+	err = tx.QueryRowContext(ctx, queryIsActive, req.CourseID).Scan(&checkActivate)
 	if err != nil {
 		return EnrollmentDataModel.Enrollment{}, err
-	} else if !checkActiviate {
+	} else if !checkActivate {
 		return EnrollmentDataModel.Enrollment{}, errors.New("this course is deActive")
 	}
 	var enrollmentOK bool
-	queryenroll := `
+	queryEnroll := `
 SELECT
 CASE WHEN EXISTS(SELECT 1 FROM enrollments WHERE student_id = ? AND course_id = ? AND canceled_at IS NULL) THEN TRUE ELSE FALSE END AS enrollment_ok
 `
-	err = tx.QueryRowContext(ctx, queryenroll, req.StudentID, req.CourseID).Scan(&enrollmentOK)
+	err = tx.QueryRowContext(ctx, queryEnroll, req.StudentID, req.CourseID).Scan(&enrollmentOK)
 	if err != nil {
 		return EnrollmentDataModel.Enrollment{}, err
 	}
@@ -97,25 +97,25 @@ CASE WHEN EXISTS(SELECT 1 FROM enrollments WHERE student_id = ? AND course_id = 
 		return EnrollmentDataModel.Enrollment{}, errors.New("student alReady enrolled ")
 	}
 
-	var checkingcapacity bool
-	checkcapacity := `
+	var checkIngCapacity bool
+	checkCapacity := `
 SELECT
-CASE WHEN EXISTS(SELECT 1 FROM courses WHERE id = ? AND capacity > enrolled_at) THEN 1 ELSE 0 END 
+CASE WHEN EXISTS(SELECT 1 FROM courses WHERE id = ? AND capacity > enrolled_count) THEN 1 ELSE 0 END 
 
 `
-	err = tx.QueryRowContext(ctx, checkcapacity, req.CourseID).Scan(&checkingcapacity)
+	err = tx.QueryRowContext(ctx, checkCapacity, req.CourseID).Scan(&checkIngCapacity)
 	if err != nil {
 
 		return EnrollmentDataModel.Enrollment{}, err
 	}
 
-	if !checkingcapacity {
+	if !checkIngCapacity {
 		return EnrollmentDataModel.Enrollment{}, errors.New("this class 's capacity is full")
 	}
 
-	sqlStatement := fmt.Sprintf("INSERT INTO %s (student_id, course_id,status, enrolledd_at, created_at, updated_at, deleted_at) VALUES (?,?, ?, ?, ?, ?, ?)", ds.tableName)
+	sqlStatement := fmt.Sprintf("INSERT INTO %s (student_id, course_id,status, enrolled_at, created_at, updated_at) VALUES (?,?, ?, ?, ?, ?)", ds.tableName)
 	var ff = constants.StatusEnrolled
-	add, err := tx.ExecContext(ctx, sqlStatement, req.StudentID, req.CourseID, ff, now, now, now, nil)
+	add, err := tx.ExecContext(ctx, sqlStatement, req.StudentID, req.CourseID, ff, now, now, now)
 	if err != nil {
 		fmt.Println(sqlStatement)
 
@@ -125,8 +125,8 @@ CASE WHEN EXISTS(SELECT 1 FROM courses WHERE id = ? AND capacity > enrolled_at) 
 	if err != nil {
 		return EnrollmentDataModel.Enrollment{}, err
 	}
-	updatenrolledCount := fmt.Sprintf("UPDATE courses SET enrolled_at = enrolled_at + 1 , updated_at = ? WHERE id = ?")
-	_, err = tx.ExecContext(ctx, updatenrolledCount, now, req.CourseID)
+	updateEnrolledCount := fmt.Sprintf("UPDATE courses SET enrolled_count = enrolled_count + 1 , updated_at = ? WHERE id = ?")
+	_, err = tx.ExecContext(ctx, updateEnrolledCount, now, req.CourseID)
 	if err != nil {
 		return EnrollmentDataModel.Enrollment{}, err
 	}
@@ -157,55 +157,55 @@ func (ds *EnrollmentDBDS) CancelEnrollment(ctx context.Context, req enrollmentSc
 		}
 	}()
 	var enrollmentOk bool
-	var enrollee = constants.StatusEnrolled
-	queryenroll := `
+	queryEnroll := `
 SELECT
-CASE WHEN EXISTS(SELECT 1 FROM enrollments WHERE id = ? AND status = ?) THEN 1 ELSE 0 END 
+CASE WHEN EXISTS(SELECT 1 FROM enrollments WHERE id = ? AND status = "enrolled") THEN 1 ELSE 0 END 
 `
-	err = ds.db.QueryRowContext(ctx, queryenroll, req.ID, enrollee).Scan(&enrollmentOk)
+	err = tx.QueryRowContext(ctx, queryEnroll, req.ID).Scan(&enrollmentOk)
 	if err != nil {
 		return EnrollmentDataModel.Enrollment{}, err, ""
 	}
-	if !enrollmentOk {
+	if enrollmentOk == false {
+		fmt.Println(enrollmentOk)
 		return EnrollmentDataModel.Enrollment{}, errors.New("student has not enrolled"), ""
 	}
-	var cancel = constants.StatusCanceled
-	update := fmt.Sprintf("UPDATE %s SET canceled_at = ? , status = ? WHERE id = ? ", ds.tableName)
-	_, err = ds.db.ExecContext(ctx, update, now, cancel, req.ID)
-	if err != nil {
-		return EnrollmentDataModel.Enrollment{}, err, ""
-	}
+
 	var courseID int64
-	query := fmt.Sprintf("SELECT course_id FROM enrollments WHERE id = ? FOR UPDATE ")
+	query := fmt.Sprintf("SELECT course_id FROM enrollments WHERE id = ? ")
 	err = tx.QueryRowContext(ctx, query, req.ID).Scan(&courseID)
 	if err != nil {
 		return EnrollmentDataModel.Enrollment{}, err, ""
 	}
-	if courseID == 0 {
-		tx.Rollback()
+	var cancel = constants.StatusCanceled
+	update := fmt.Sprintf("UPDATE %s SET canceled_at = ? , status = ? , updated_at = ? WHERE id = ? ", ds.tableName)
+	_, err = tx.ExecContext(ctx, update, now, cancel, now, req.ID)
+	if err != nil {
+		return EnrollmentDataModel.Enrollment{}, err, ""
 	}
-	decrement := fmt.Sprintf("UPDATE courses SET enrolled_at = enrolled_at - 1 , updated_at = ? WHERE id = ? ")
+
+	decrement := fmt.Sprintf("UPDATE courses SET enrolled_count = enrolled_count - 1 , updated_at = ? WHERE id = ? ")
 	_, err = tx.ExecContext(ctx, decrement, now, courseID)
 	if err != nil {
-		return EnrollmentDataModel.Enrollment{}, errors.New("error starting transaction"), ""
+		return EnrollmentDataModel.Enrollment{}, errors.New("error updating course enrollment count"), ""
 	}
 
 	err = tx.Commit()
 	if err != nil {
 		return EnrollmentDataModel.Enrollment{}, err, ""
 	}
+	commitTx = true
+
 	var enrollment EnrollmentDataModel.Enrollment
 	readQuery := fmt.Sprintf(`
-        SELECT id, student_id, course_id, status, enrolledd_at, canceled_at, created_at, updated_at, deleted_at
+        SELECT id, student_id, course_id, status, enrolled_at, canceled_at, created_at, updated_at
         FROM %s
-        WHERE id = ? AND status = ? `, ds.tableName)
-	var ff = constants.StatusCanceled
-	err = ds.db.QueryRowContext(ctx, readQuery, req.ID, ff).Scan(&enrollment.ID, &enrollment.StudentID, &enrollment.CourseID, &enrollment.Status, &enrollment.EnrolledAt, &enrollment.CanceledAt, &enrollment.CreatedAt, &enrollment.UpdatedAt, &enrollment.DeletedAt)
+        WHERE id = ? `, ds.tableName)
+	err = ds.db.QueryRowContext(ctx, readQuery, req.ID).Scan(&enrollment.ID, &enrollment.StudentID, &enrollment.CourseID, &enrollment.Status, &enrollment.EnrolledAt, &enrollment.CanceledAt, &enrollment.CreatedAt, &enrollment.UpdatedAt)
 	if err != nil {
 		return EnrollmentDataModel.Enrollment{}, err, ""
 	}
 
-	return enrollment, nil, "stundet candeles successfully"
+	return enrollment, nil, "student canceled successfully"
 
 }
 func (ds *EnrollmentDBDS) ListEnrollment(ctx context.Context, req enrollmentSchema.ListEnrollmentsRequest) (res []EnrollmentDataModel.Enrollment, code int64, err error) {
@@ -230,10 +230,10 @@ func (ds *EnrollmentDBDS) ListEnrollment(ctx context.Context, req enrollmentSche
 	defer rows.Close()
 	for rows.Next() {
 		var enrollment EnrollmentDataModel.Enrollment
-		var createdAt, updatedAt, deletedAt sql.NullTime
-		err = rows.Scan(&enrollment.ID, &enrollment.StudentID, &enrollment.CourseID, &enrollment.Status, &enrollment.EnrolledAt, &enrollment.CanceledAt, &createdAt, &updatedAt, &deletedAt)
+		var createdAt, updatedAt sql.NullTime
+		err = rows.Scan(&enrollment.ID, &enrollment.StudentID, &enrollment.CourseID, &enrollment.Status, &enrollment.EnrolledAt, &enrollment.CanceledAt, &createdAt, &updatedAt)
 		if err != nil {
-			return []EnrollmentDataModel.Enrollment{}, 400, errors.New("error scaning enrollment list")
+			return []EnrollmentDataModel.Enrollment{}, 400, errors.New("error scan enrollment list")
 		}
 		if createdAt.Valid {
 			enrollment.CreatedAt = createdAt.Time.In(myLocation())
@@ -245,11 +245,7 @@ func (ds *EnrollmentDBDS) ListEnrollment(ctx context.Context, req enrollmentSche
 		} else {
 			enrollment.UpdatedAt = time.Time{}
 		}
-		if deletedAt.Valid {
-			deletedAt.Time = deletedAt.Time.In(myLocation())
-		} else {
-			deletedAt.Time = time.Time{}
-		}
+
 		enroll = append(enroll, enrollment)
 
 	}
@@ -334,11 +330,11 @@ func (ds *EnrollmentDBDS) ListCourseStudents(ctx context.Context, req enrollment
 func (ds *EnrollmentDBDS) readQuery(ctx context.Context, ID int64) (EnrollmentDataModel.Enrollment, error) {
 	var enrollment EnrollmentDataModel.Enrollment
 	readQuery := fmt.Sprintf(`
-        SELECT id, student_id, course_id, status, enrolledd_at, canceled_at, created_at, updated_at, deleted_at
+        SELECT id, student_id, course_id, status, enrolled_at, canceled_at, created_at, updated_at
         FROM %s
         WHERE id = ? AND status = ? `, ds.tableName)
 	var ff = constants.StatusEnrolled
-	err := ds.db.QueryRowContext(ctx, readQuery, ID, ff).Scan(&enrollment.ID, &enrollment.StudentID, &enrollment.CourseID, &enrollment.Status, &enrollment.EnrolledAt, &enrollment.CanceledAt, &enrollment.CreatedAt, &enrollment.UpdatedAt, &enrollment.DeletedAt)
+	err := ds.db.QueryRowContext(ctx, readQuery, ID, ff).Scan(&enrollment.ID, &enrollment.StudentID, &enrollment.CourseID, &enrollment.Status, &enrollment.EnrolledAt, &enrollment.CanceledAt, &enrollment.CreatedAt, &enrollment.UpdatedAt)
 	if err != nil {
 		return EnrollmentDataModel.Enrollment{}, err
 	}

@@ -9,7 +9,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-type Errorresponse struct {
+type ErrorResponse struct {
 	Message string `json:"message"`
 	Code    string `json:"code"`
 }
@@ -50,7 +50,7 @@ func ParseQuery(ctx *fiber.Ctx, req any) (string, int, error) {
 }
 
 func Error(ctx *fiber.Ctx, baseErrCode string, section string, errStr string, code int, err error) error {
-	return ctx.Status(code).JSON(Errorresponse{
+	return ctx.Status(code).JSON(ErrorResponse{
 		Code:    fmt.Sprintf("%s%s%s", baseErrCode, section, errStr),
 		Message: err.Error(),
 	})
@@ -65,14 +65,14 @@ func fillHeaders(ctx *fiber.Ctx, req any) {
 	if refVal.Kind() != reflect.Ptr || refVal.Elem().Kind() != reflect.Struct {
 		return
 	}
-	headersfield := refVal.Elem().FieldByName("Headers")
-	if !headersfield.IsValid() || !headersfield.CanSet() || headersfield.Kind() != reflect.Map {
+	headersField := refVal.Elem().FieldByName("Headers")
+	if !headersField.IsValid() || !headersField.CanSet() || headersField.Kind() != reflect.Map {
 		return
 	}
 	header := map[string]string{}
 	for key, val := range ctx.GetReqHeaders() {
 		header[key] = val[0]
 	}
-	headersfield.Set(reflect.ValueOf(header))
+	headersField.Set(reflect.ValueOf(header))
 
 }

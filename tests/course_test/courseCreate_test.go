@@ -15,9 +15,9 @@ func TestCreateCourse(t *testing.T) {
 	route.SetupRoutes(app)
 	payload := map[string]any{
 		"body": map[string]any{
-			"code":   "sefed",
+			"code":   "saeed",
 			"name":   "seyed",
-			"family": "aseed",
+			"family": "asad",
 		},
 	}
 

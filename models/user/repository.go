@@ -30,16 +30,16 @@ func initRepoIns() {
 		repoIns = &Repository{initErr: fmt.Errorf("failed to load config: %v", err)}
 		return
 	}
-	dbconn, err := mySqlDS.Open(cfg)
+	DBConn, err := mySqlDS.Open(cfg)
 	if err != nil {
 		repoIns = &Repository{initErr: fmt.Errorf("failed to open config: %v", err)}
 		log.Printf("Error opening DB connection: %v", err)
 		return
 	}
 
-	userDNInstance, err := mySqlDS.NewUsersDBDS(dbconn, cfg.StudentTableName)
+	userDNInstance, err := mySqlDS.NewUsersDBDS(DBConn, cfg.StudentTableName)
 	if err != nil {
-		_ = dbconn.Close()
+		_ = DBConn.Close()
 		repoIns = &Repository{initErr: fmt.Errorf("failed to connect to DB: %v", err)}
 		log.Printf("Error opening DB connection: %v", err)
 		return
@@ -59,7 +59,7 @@ func (repo *Repository) Create(ctx context.Context, req commonSchema.BaseRequest
 		return userSchema.ResponseUser{}, "13", status.StatusUnauthorized, repo.initErr
 	}
 	if repo.dbDS == nil {
-		return userSchema.ResponseUser{}, "14", status.UnAvailableServiceError, errors.New("student datasourse not configured")
+		return userSchema.ResponseUser{}, "14", status.UnAvailableServiceError, errors.New("student dataSource not configured")
 	}
 
 	createdUser, err := repo.db().CreateStudent(ctx, req.Body)
@@ -76,11 +76,11 @@ func (repo *Repository) List(ctx context.Context, req commonSchema.BaseRequest[u
 	if repo.db() == nil {
 		return userSchema.ListUser{}, "11", status.StatusInternalServerError, errors.New("bad")
 	}
-	listus, total, err := repo.db().ReadStudent(ctx, req.Body)
+	lists, total, err := repo.db().ReadStudent(ctx, req.Body)
 	if err != nil {
 		return userSchema.ListUser{}, "04", status.UnAvailableServiceError, err
 	}
-	return userSchema.ListUser{Users: listus, Total: total}, "", status.StatusOK, nil
+	return userSchema.ListUser{Users: lists, Total: total}, "", status.StatusOK, nil
 }
 
 func (repo *Repository) Update(ctx context.Context, req commonSchema.BaseRequest[userSchema.UpdateUserRequest]) (res userSchema.UpdateResponse, errStr string, code int, err error) {
@@ -105,11 +105,11 @@ func (repo *Repository) Get(ctx context.Context, req commonSchema.BaseRequest[us
 		return userSchema.GetResponse{}, "11", status.StatusInternalServerError, errors.New("bad")
 	}
 
-	geting, err := repo.db().GetStudent(ctx, req.Body)
+	getIng, err := repo.db().GetStudent(ctx, req.Body)
 	if err != nil {
 		return userSchema.GetResponse{}, "04", status.UnAvailableServiceError, err
 	}
-	return userSchema.GetResponse{User: geting}, "", status.StatusOK, nil
+	return userSchema.GetResponse{User: getIng}, "", status.StatusOK, nil
 }
 
 func (repo *Repository) SoftDelete(ctx context.Context, req commonSchema.BaseRequest[userSchema.SoftDeleteRequest]) (res userSchema.SoftDeleteResponse, errStr string, code int, err error) {

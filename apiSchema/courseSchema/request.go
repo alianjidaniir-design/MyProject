@@ -28,7 +28,7 @@ type SoftDeleteCourseRequest struct {
 	ID int64 `json:"ID"`
 }
 
-type DeactiveCourseRequest struct {
+type DeActiveCourseRequest struct {
 	ID         int64 `json:"ID"`
 	Deactivate bool  `json:"deactivate"`
 }

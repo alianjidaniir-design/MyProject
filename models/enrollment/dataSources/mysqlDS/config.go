@@ -23,7 +23,7 @@ type Config struct {
 	MaxConnectionLifetime int
 }
 
-func LoadConfiger() (Config, error) {
+func LoadConfig() (Config, error) {
 	cfg := Config{
 		DSN:                   normalize(strings.TrimSpace(os.Getenv("MYSQL_DSN"))),
 		EnrollmentTableName:   strings.TrimSpace(os.Getenv("MYSQL_ENROLLMENT_TABLE")),
@@ -32,7 +32,7 @@ func LoadConfiger() (Config, error) {
 		MaxConnectionLifetime: readEnvInt("MYSQL_MAX_CONNECTION_LIFETIME", MaxConnectionLifetime),
 	}
 	if cfg.EnrollmentTableName == "" {
-		return cfg, fmt.Errorf("enrollmentTableName is empty")
+		 cfg.EnrollmentTableName = EnrollmentTableName
 	}
 	if err := ValidateTableName(cfg.EnrollmentTableName); err != nil {
 		return cfg, err

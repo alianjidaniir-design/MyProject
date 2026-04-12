@@ -13,40 +13,40 @@ import (
 func TestListUser(t *testing.T) {
 	app := fiber.New()
 	route.SetupRoutes(app)
-	createpayload := map[string]any{
+	createPayload := map[string]any{
 		"body": map[string]any{
 			"page":   "12345678",
 			"name":   "John",
-			"family": "razavi",
+			"family": "raze",
 		},
 	}
-	listepayload := map[string]any{
+	listPayload := map[string]any{
 		"body": map[string]any{
 			"page":     1,
 			"pageSize": 5,
 		},
 	}
-	createBody, err := json.Marshal(createpayload)
+	createBody, err := json.Marshal(createPayload)
 	if err != nil {
 		t.Fatal("Error Marshal", err)
 	}
-	creatrReq, err := http.NewRequest("POST", "/user/create", bytes.NewBuffer(createBody))
+	createReq, err := http.NewRequest("POST", "/user/create", bytes.NewBuffer(createBody))
 	if err != nil {
 		t.Fatal("Error Create Request", err)
 	}
-	creatrReq.Header.Set("Content-Type", "application/json")
-	if _, err := app.Test(creatrReq); err != nil {
+	createReq.Header.Set("Content-Type", "application/json")
+	if _, err := app.Test(createReq); err != nil {
 		t.Fatal("Error Test", err)
 	}
-	listm, err := json.Marshal(listepayload)
+	list, err := json.Marshal(listPayload)
 	if err != nil {
 		t.Fatal("Error Marshal", err)
 	}
-	listreq, err := http.NewRequest("POST", "/user/list", bytes.NewBuffer(listm))
+	listReq, err := http.NewRequest("POST", "/user/list", bytes.NewBuffer(list))
 	if err != nil {
 		t.Fatal("Error List Request", err)
 	}
-	listRes, err := app.Test(listreq)
+	listRes, err := app.Test(listReq)
 	if err != nil {
 		t.Fatal("Error List Response", err)
 	}

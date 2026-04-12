@@ -28,13 +28,13 @@ func instance() {
 		repo = &Repository{initErr: fmt.Errorf("LoadConfig() error", err)}
 		return
 	}
-	dbconn, err := mySqlDS.Open(load)
+	DBConn, err := mySqlDS.Open(load)
 	if err != nil {
-		repo = &Repository{initErr: fmt.Errorf("Open() error", err)}
+		repo = &Repository{initErr: fmt.Errorf("open() error", err)}
 		return
 	}
 
-	instance, err := mySqlDS.NewCourseDBDS(load.CourseTableName, dbconn)
+	instance, err := mySqlDS.NewCourseDBDS(load.CourseTableName, DBConn)
 	if err != nil {
 		repo = &Repository{initErr: fmt.Errorf("NewCourseDBDS() error", err)}
 	}
@@ -55,11 +55,11 @@ func (repo *Repository) Create(ctx context.Context, req commonSchema.BaseRequest
 	if repo.DBDS == nil {
 		return courseSchema.ResponseCourse{}, "11", status.StatusBadRequest, fmt.Errorf("DBDS is nil")
 	}
-	createsd, err := repo.db().CreateCourse(ctx, req.Body)
+	createSd, err := repo.db().CreateCourse(ctx, req.Body)
 	if err != nil {
 		return courseSchema.ResponseCourse{}, "12", status.StatusInternalServerError, err
 	}
-	return courseSchema.ResponseCourse{Course: createsd}, "0", status.StatusOK, nil
+	return courseSchema.ResponseCourse{Course: createSd}, "0", status.StatusOK, nil
 }
 
 func (repo *Repository) List(ctx context.Context, req commonSchema.BaseRequest[courseSchema.CoursesListRequest]) (res courseSchema.CourseListResponse, errStr string, code int, err error) {
@@ -97,11 +97,11 @@ func (repo *Repository) Update(ctx context.Context, req commonSchema.BaseRequest
 	if repo.DBDS == nil {
 		return courseSchema.UpdateCourseResponse{}, "02", status.StatusBadRequest, fmt.Errorf("DBDS is nil")
 	}
-	updatesd, err := repo.db().UpdateCourse(ctx, req.Body)
+	updateSd, err := repo.db().UpdateCourse(ctx, req.Body)
 	if err != nil {
 		return courseSchema.UpdateCourseResponse{}, "03", status.StatusInternalServerError, err
 	}
-	return courseSchema.UpdateCourseResponse{Course: updatesd}, "0", status.StatusOK, nil
+	return courseSchema.UpdateCourseResponse{Course: updateSd}, "0", status.StatusOK, nil
 }
 
 func (repo *Repository) Delete(ctx context.Context, req commonSchema.BaseRequest[courseSchema.HardDeleteCourseRequest]) (res courseSchema.HardDeleteCourseResponse, errStr string, code int, err error) {
@@ -133,18 +133,18 @@ func (repo *Repository) SoftDelete(ctx context.Context, req commonSchema.BaseReq
 	return courseSchema.SoftDeleteCourseResponse{Course: deleted}, "0", status.StatusOK, nil
 }
 
-func (repo *Repository) DeActive(ctx context.Context, req commonSchema.BaseRequest[courseSchema.DeactiveCourseRequest]) (res courseSchema.DeactivateCourseResponse, errStr string, code int, err error) {
+func (repo *Repository) DeActive(ctx context.Context, req commonSchema.BaseRequest[courseSchema.DeActiveCourseRequest]) (res courseSchema.DeactivateCourseResponse, errStr string, code int, err error) {
 	if repo.initErr != nil {
 		return courseSchema.DeactivateCourseResponse{}, "01", status.UnAvailableServiceError, err
 	}
 	if repo.DBDS == nil {
 		return courseSchema.DeactivateCourseResponse{}, "02", status.StatusBadRequest, fmt.Errorf("DBDS is nil")
 	}
-	deactive, err := repo.db().DeactiveCourse(ctx, req.Body)
+	deActive, err := repo.db().DeActiveCourse(ctx, req.Body)
 	if err != nil {
 		return courseSchema.DeactivateCourseResponse{}, "03", status.StatusInternalServerError, err
 	}
-	return courseSchema.DeactivateCourseResponse{Massage: deactive}, "0", status.StatusOK, nil
+	return courseSchema.DeactivateCourseResponse{Massage: deActive}, "0", status.StatusOK, nil
 
 }
 

@@ -15,9 +15,9 @@ func TestCreateUser(t *testing.T) {
 	route.SetupRoutes(app)
 	payload := map[string]any{
 		"body": map[string]any{
-			"code":   "sefed",
+			"code":   "313",
 			"name":   "seyed",
-			"family": "aseed",
+			"family": "saeed",
 		},
 	}
 

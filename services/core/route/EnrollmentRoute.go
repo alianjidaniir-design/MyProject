@@ -7,19 +7,19 @@ import (
 )
 
 var enrollRoute = map[string]string{
-	"enrollmentcreate":   "enrollment/create",
-	"enrollmentcancel":   "enrollment/cancel",
-	"enrollmentlist":     "enrollment/list",
-	"enrollmentcourses":  "enrollment/courses",
-	"enrollmentstudents": "enrollment/students",
+	"enrollmentCreate":   "enrollment/create",
+	"enrollmentCancel":   "enrollment/cancel",
+	"enrollmentList":     "enrollment/list",
+	"enrollmentCourses":  "enrollment/courses",
+	"enrollmentStudents": "enrollment/students",
 }
 
 func SetupEnrollmentRoute(app *fiber.App) map[string]string {
-	app.Post(enrollRoute["enrollmentcreate"], Create)
-	app.Post(enrollRoute["enrollmentcancel"], Cancel)
-	app.Post(enrollRoute["enrollmentlist"], List)
-	app.Post(enrollRoute["enrollmentcourses"], ListCourses)
-	app.Post(enrollRoute["enrollmentstudents"], ListStudents)
+	app.Post(enrollRoute["enrollmentCreate"], Create)
+	app.Post(enrollRoute["enrollmentCancel"], Cancel)
+	app.Post(enrollRoute["enrollmentList"], List)
+	app.Post(enrollRoute["enrollmentCourses"], ListCourses)
+	app.Post(enrollRoute["enrollmentStudents"], ListStudents)
 
 	return enrollRoute
 }

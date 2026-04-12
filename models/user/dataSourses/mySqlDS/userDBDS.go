@@ -28,12 +28,12 @@ func myLocation() *time.Location {
 
 func NewUsersDBDS(db *sql.DB, tableName string) (userDataSourses.UserDB, error) {
 
-	userDBinstance := &UserDBDS{
+	userDBInstance := &UserDBDS{
 		tableName: tableName,
 		tableSQL:  tableName,
 		db:        db,
 	}
-	return userDBinstance, nil
+	return userDBInstance, nil
 }
 
 func (ds *UserDBDS) SoftDeleteStudent(ctx context.Context, req userSchema.SoftDeleteRequest) (userDataModel.User, error) {
@@ -48,24 +48,24 @@ func (ds *UserDBDS) SoftDeleteStudent(ctx context.Context, req userSchema.SoftDe
 
 	selectQuery := fmt.Sprintf("SELECT id, code, name, family, created_at, updated_at, deleted_at FROM %s WHERE id = ?", ds.tableName)
 
-	var createdAtal, updatedAtal, deletedAtal sql.NullTime
+	var createdAtAl, updatedAtAl, deletedAtAl sql.NullTime
 
 	err = ds.db.QueryRowContext(ctx, selectQuery, req.ID).Scan(
 		&student.ID, &student.Code, &student.Name, &student.Family,
-		&createdAtal, &updatedAtal, &deletedAtal,
+		&createdAtAl, &updatedAtAl, &deletedAtAl,
 	)
 	if err != nil {
 		return userDataModel.User{}, fmt.Errorf("failed to fetch deleted user: %w", err)
 	}
 
-	if createdAtal.Valid {
-		student.CreatedAt = createdAtal.Time.In(myLocation())
+	if createdAtAl.Valid {
+		student.CreatedAt = createdAtAl.Time.In(myLocation())
 	}
-	if updatedAtal.Valid {
-		student.UpdatedAt = updatedAtal.Time.In(myLocation())
+	if updatedAtAl.Valid {
+		student.UpdatedAt = updatedAtAl.Time.In(myLocation())
 	}
-	if deletedAtal.Valid {
-		student.DeletedAt = deletedAtal.Time.In(myLocation())
+	if deletedAtAl.Valid {
+		student.DeletedAt = deletedAtAl.Time.In(myLocation())
 	}
 
 	return student, nil
@@ -74,8 +74,8 @@ func (ds *UserDBDS) SoftDeleteStudent(ctx context.Context, req userSchema.SoftDe
 func (ds *UserDBDS) DeleteStudent(ctx context.Context, req userSchema.DeleteRequest) (userDataModel.User, error) {
 
 	var students userDataModel.User
-	deletequery := fmt.Sprintf("DELETE FROM %s WHERE id = ?", ds.tableName)
-	_, err := ds.db.ExecContext(ctx, deletequery, req.ID)
+	deleteQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ?", ds.tableName)
+	_, err := ds.db.ExecContext(ctx, deleteQuery, req.ID)
 	if err != nil {
 		return userDataModel.User{}, err
 	}
@@ -87,27 +87,27 @@ func (ds *UserDBDS) GetStudent(ctx context.Context, req userSchema.GetRequest) (
 	var students userDataModel.User
 	selectQuery := fmt.Sprintf("SELECT * FROM %s WHERE id = ? ", ds.tableName)
 
-	var createdAtal, updatedAtal, deletedAtal sql.NullTime
+	var createdAtAl, updatedAtAl, deletedAtAl sql.NullTime
 
-	if err := ds.db.QueryRowContext(ctx, selectQuery, req.ID).Scan(&students.ID, &students.Code, &students.Name, &students.Family, &createdAtal, &deletedAtal, &updatedAtal); err != nil {
+	if err := ds.db.QueryRowContext(ctx, selectQuery, req.ID).Scan(&students.ID, &students.Code, &students.Name, &students.Family, &createdAtAl, &deletedAtAl, &updatedAtAl); err != nil {
 		return userDataModel.User{}, err
 	}
 
-	if createdAtal.Valid {
-		students.CreatedAt = createdAtal.Time.In(myLocation())
+	if createdAtAl.Valid {
+		students.CreatedAt = createdAtAl.Time.In(myLocation())
 	} else {
 		students.CreatedAt = time.Time{}
 	}
 
-	if updatedAtal.Valid {
-		students.UpdatedAt = updatedAtal.Time.In(myLocation())
+	if updatedAtAl.Valid {
+		students.UpdatedAt = updatedAtAl.Time.In(myLocation())
 	} else {
-		fmt.Println(updatedAtal.Time.In(myLocation()))
+		fmt.Println(updatedAtAl.Time.In(myLocation()))
 		students.UpdatedAt = time.Time{}
 	}
-	if deletedAtal.Valid {
-		fmt.Println(deletedAtal.Time.In(myLocation()))
-		students.DeletedAt = deletedAtal.Time.In(myLocation())
+	if deletedAtAl.Valid {
+		fmt.Println(deletedAtAl.Time.In(myLocation()))
+		students.DeletedAt = deletedAtAl.Time.In(myLocation())
 	} else {
 		students.DeletedAt = time.Time{}
 	}

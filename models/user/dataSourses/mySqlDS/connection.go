@@ -2,13 +2,11 @@ package mySqlDS
 
 import (
 	"database/sql"
-	"errors"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
-var erremptyDSN = errors.New("dsn is empty")
 
 func Open(cfg Config) (*sql.DB, error) {
 	db, err := sql.Open("mysql", cfg.DSN)

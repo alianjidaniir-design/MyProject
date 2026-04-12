@@ -14,7 +14,7 @@ type CourseRepository interface {
 	Update(ctx context.Context, req commonSchema.BaseRequest[courseSchema.UpdateCourseRequest]) (res courseSchema.UpdateCourseResponse, errStr string, code int, err error)
 	Delete(ctx context.Context, req commonSchema.BaseRequest[courseSchema.HardDeleteCourseRequest]) (res courseSchema.HardDeleteCourseResponse, errStr string, code int, err error)
 	SoftDelete(ctx context.Context, req commonSchema.BaseRequest[courseSchema.SoftDeleteCourseRequest]) (res courseSchema.SoftDeleteCourseResponse, errStr string, code int, err error)
-	DeActive(ctx context.Context, req commonSchema.BaseRequest[courseSchema.DeactiveCourseRequest]) (res courseSchema.DeactivateCourseResponse, errStr string, code int, err error)
+	DeActive(ctx context.Context, req commonSchema.BaseRequest[courseSchema.DeActiveCourseRequest]) (res courseSchema.DeactivateCourseResponse, errStr string, code int, err error)
 }
 
 var CourseRepo CourseRepository = course.GetRepoIns()

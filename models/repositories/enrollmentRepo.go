@@ -7,7 +7,7 @@ import (
 	"context"
 )
 
-type enrollmentReposity interface {
+type enrollmentRepository interface {
 	// Create method
 	Create(ctx context.Context, req commonSchema.BaseRequest[enrollmentSchema.EnrollmentRequest]) (res enrollmentSchema.EnrollmentResponse, errStr string, code int, err error)
 	Cancel(ctx context.Context, req commonSchema.BaseRequest[enrollmentSchema.CancelEnrollmentRequest]) (res enrollmentSchema.DeactivateEnrollmentResponse, errStr string, code int, err error)
@@ -16,4 +16,4 @@ type enrollmentReposity interface {
 	ListCourseStudent(ctx context.Context, req commonSchema.BaseRequest[enrollmentSchema.ListCourseStudentsRequest]) (res enrollmentSchema.ListCourseStudentsResponse, errStr string, code int, err error)
 }
 
-var EnrollmentRepos enrollmentReposity = enrollment.GetRepo()
+var EnrollmentRepos enrollmentRepository = enrollment.GetRepo()
