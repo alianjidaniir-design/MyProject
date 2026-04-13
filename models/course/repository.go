@@ -37,6 +37,7 @@ func instance() {
 	instance, err := mySqlDS.NewCourseDBDS(load.CourseTableName, DBConn)
 	if err != nil {
 		repo = &Repository{initErr: fmt.Errorf("NewCourseDBDS() error", err)}
+		return
 	}
 	repo = &Repository{DBDS: instance}
 	log.Printf("Successfully instantiated CourseRepo")

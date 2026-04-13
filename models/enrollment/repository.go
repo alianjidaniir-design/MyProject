@@ -37,7 +37,9 @@ func instance() {
 	newEnr, err := mysqlDS.NewEnrollmentDBDS(dsn.EnrollmentTableName, db)
 	if err != nil {
 		repo = &Repository{initRepo: err}
+		return
 	}
+
 	repo = &Repository{DBDS: newEnr}
 
 }
