@@ -142,6 +142,35 @@ CASE WHEN EXISTS (SELECT 1 FROM teachers WHERE id=?) THEN 1 ELSE 0 END
 	return response, nil
 }
 
+func (ds *TeacherDBDS) SoftDeleteTeachers(ctx context.Context, req teacherSchema.SelectTeacherSchema) (res dataModels.Teacher, err error) {
+	var teacher dataModels.Teacher
+	var check bool
+	search := `
+SELECT
+CASE WHEN EXISTS (SELECT 1 FROM teachers WHERE ID = ?) THEN 1 ELSE 0 END
+`
+	err = ds.db.QueryRowContext(ctx, search, req.ID).Scan(&check)
+	fmt.Println(check)
+
+	if err != nil {
+		return dataModels.Teacher{}, err
+	}
+	if !check {
+		return dataModels.Teacher{}, errors.New("Teacher not found")
+	}
+	var deletedAt sql.NullTime
+	now := time.Now().In(myLocation())
+	updateQuery := fmt.Sprintf("UPDATE %s SET deleted_at=? WHERE id=?", ds.tableName)
+	_, err = ds.db.ExecContext(ctx, updateQuery, now, req.ID)
+	if err != nil {
+		return dataModels.Teacher{}, err
+	}
+	if deletedAt.Valid {
+		teacher.DeletedAt = deletedAt.Time
+	}
+	return ds.readQuery(ctx, req.ID)
+}
+
 func (ds *TeacherDBDS) readQuery(ctx context.Context, ID int64) (dataModels.Teacher, error) {
 	var teacher dataModels.Teacher
 	read := fmt.Sprintf("SELECT ID , name , last_name , email , phone , work_experience , created_at , updated_at , deleted_at  FROM %s WHERE ID=?", ds.tableName)
@@ -156,6 +185,9 @@ func (ds *TeacherDBDS) readQuery(ctx context.Context, ID int64) (dataModels.Teac
 	}
 	if updatedAt.Valid {
 		teacher.UpdatedAt = updatedAt.Time
+	}
+	if deletedAt.Valid {
+		teacher.DeletedAt = deletedAt.Time
 	}
 
 	return teacher, nil

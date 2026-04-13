@@ -105,6 +105,20 @@ func (repo *Repository) HardDelete(ctx context.Context, req commonSchema.BaseReq
 
 }
 
+func (repo *Repository) SoftDelete(ctx context.Context, req commonSchema.BaseRequest[teacherSchema.SelectTeacherSchema]) (res teacherSchema.SoftDeleteTeacherSchema, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return teacherSchema.SoftDeleteTeacherSchema{}, "01", status.UnAvailableServiceError, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return teacherSchema.SoftDeleteTeacherSchema{}, "02", status.StatusBadRequest, err
+	}
+	softDelete, err := repo.db().SoftDeleteTeachers(ctx, req.Body)
+	if err != nil {
+		return teacherSchema.SoftDeleteTeacherSchema{}, "03", status.StatusUnauthorized, err
+	}
+	return teacherSchema.SoftDeleteTeacherSchema{Teacher: softDelete, Massage: "teacher deleted successfully"}, "04", 0, nil
+}
+
 func (repo *Repository) db() dataSources.TeacherDS {
 	return repo.DBDS
 }

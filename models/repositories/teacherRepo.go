@@ -13,6 +13,7 @@ type TeacherRepository interface {
 	List(ctx context.Context, req commonSchema.BaseRequest[teacherSchema.PaginationSchema]) (res teacherSchema.ListSchema, errStr string, code int, err error)
 	Get(ctx context.Context, req commonSchema.BaseRequest[teacherSchema.GetTeacherSchema]) (res teacherSchema.DetailTeacherSchema, errStr string, code int, err error)
 	HardDelete(ctx context.Context, req commonSchema.BaseRequest[teacherSchema.SelectTeacherSchema]) (res teacherSchema.HardDeleteTeacherSchema, errStr string, code int, err error)
+	SoftDelete(ctx context.Context, req commonSchema.BaseRequest[teacherSchema.SelectTeacherSchema]) (res teacherSchema.SoftDeleteTeacherSchema, errStr string, code int, err error)
 }
 
 var TeacherRepo TeacherRepository = teachers.GetRepo()

@@ -11,4 +11,5 @@ type TeacherDS interface {
 	ListTeachers(ctx context.Context, req teacherSchema.PaginationSchema) (res []dataModels.Teacher, total int64, err error)
 	GetTeacherById(ctx context.Context, req teacherSchema.GetTeacherSchema) (res dataModels.Teacher, err error)
 	HardDeleteTeachers(ctx context.Context, req teacherSchema.SelectTeacherSchema) (res string, err error)
+	SoftDeleteTeachers(ctx context.Context, req teacherSchema.SelectTeacherSchema) (res dataModels.Teacher, err error)
 }
