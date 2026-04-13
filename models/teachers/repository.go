@@ -7,6 +7,7 @@ import (
 	mysqlDataSource "MyProject/models/teachers/dataSources/mysqlDS"
 	"MyProject/statics/constants/status"
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"sync"
@@ -58,6 +59,20 @@ func (repo *Repository) Create(ctx context.Context, req commonSchema.BaseRequest
 		return teacherSchema.TeacherSchema{}, "02", status.UnAvailableServiceError, err
 	}
 	return teacherSchema.TeacherSchema{Teacher: create}, "04", status.StatusOK, err
+}
+
+func (repo *Repository) List(ctx context.Context, req commonSchema.BaseRequest[teacherSchema.PaginationSchema]) (res teacherSchema.ListSchema, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return teacherSchema.ListSchema{}, "01", 0, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return teacherSchema.ListSchema{}, "02", status.StatusUnauthorized, errors.New("wrong db connection")
+	}
+	list, total, err := repo.db().ListTeachers(ctx, req.Body)
+	if err != nil {
+		return teacherSchema.ListSchema{}, "03", status.UnAvailableServiceError, err
+	}
+	return teacherSchema.ListSchema{Teachers: list, Total: total}, "04", 0, nil
 }
 
 func (repo *Repository) db() dataSources.TeacherDS {

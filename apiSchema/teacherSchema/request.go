@@ -7,3 +7,8 @@ type InformationSchema struct {
 	Phone       string `json:"phone"`
 	Description string `json:"description"`
 }
+
+type PaginationSchema struct {
+	Page     int `json:"page"`
+	PageSize int `json:"page_size"`
+}

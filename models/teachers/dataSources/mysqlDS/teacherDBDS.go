@@ -2,6 +2,7 @@ package mysqlDS
 
 import (
 	"MyProject/apiSchema/teacherSchema"
+	"MyProject/pkg/pagination"
 	"fmt"
 
 	"MyProject/models/teachers/dataModels"
@@ -69,6 +70,50 @@ func (ds *TeacherDBDS) CreateTeacher(ctx context.Context, req teacherSchema.Info
 		return teacher, err
 	}
 	return ds.readQuery(ctx, insertID)
+
+}
+
+func (ds *TeacherDBDS) ListTeachers(ctx context.Context, req teacherSchema.PaginationSchema) (res []dataModels.Teacher, total int64, err error) {
+	var teachers []dataModels.Teacher
+	page, pageSize, err := pagination.CheckPage(req.Page, req.PageSize)
+	if err != nil {
+		return []dataModels.Teacher{}, 0, errors.New("there is an error checking the page and page size")
+	}
+	offset := (page - 1) * pageSize
+	limit := pageSize
+	var totalAll int64
+	totaling := fmt.Sprintf("SELECT COUNT(*) FROM %s ", ds.tableName)
+	err = ds.db.QueryRowContext(ctx, totaling).Scan(&totalAll)
+	if err != nil {
+		return []dataModels.Teacher{}, 0, errors.New("there is an error in total the page and page size")
+	}
+	selectQuery := fmt.Sprintf("SELECT ID , name , last_name , email , phone , work_experience , created_at , updated_at , deleted_at FROM %s LIMIT ? OFFSET ? ", ds.tableName)
+	rows, err := ds.db.QueryContext(ctx, selectQuery, limit, offset)
+	if err != nil {
+		return []dataModels.Teacher{}, 0, errors.New("there is an error in pagination")
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var teacher dataModels.Teacher
+		var createdAt, updatedAt, deletedAt sql.NullTime
+		err = rows.Scan(&teacher.ID, &teacher.Name, &teacher.LastName, &teacher.Email, &teacher.Phone, &teacher.WorkExperience, &createdAt, &updatedAt, &deletedAt)
+		if err != nil {
+			return []dataModels.Teacher{}, 0, errors.New("there is an error for scanning the rows")
+		}
+		if createdAt.Valid {
+			teacher.CreatedAt = createdAt.Time
+		}
+		if updatedAt.Valid {
+			teacher.UpdatedAt = updatedAt.Time
+		}
+		teachers = append(teachers, teacher)
+
+	}
+	err = rows.Err()
+	if err != nil {
+		return []dataModels.Teacher{}, 0, err
+	}
+	return teachers, totalAll, nil
 
 }
 
