@@ -2,7 +2,7 @@ package teacher
 
 import (
 	"MyProject/apiSchema/commonSchema"
-	"MyProject/apiSchema/courseSchema"
+	"MyProject/apiSchema/teacherSchema"
 	"MyProject/controllers/mainController"
 	"MyProject/models/repositories"
 	"MyProject/statics/constants/controllerbaseErrCode"
@@ -13,12 +13,12 @@ import (
 func Delete(ctx *fiber.Ctx) error {
 	spanCtx := mainController.InitAPI(ctx, "20")
 	defer mainController.FinishSpan(ctx)
-	req := commonSchema.BaseRequest[courseSchema.HardDeleteCourseRequest]{}
+	req := commonSchema.BaseRequest[teacherSchema.SelectTeacherSchema]{}
 	errStr, code, err := mainController.ParseBody(ctx, &req)
 	if err != nil {
 		return mainController.Error(ctx, controllerbaseErrCode.CourseErrCode, "01", errStr, code, err)
 	}
-	res, errStr, code, err := repositories.CourseRepo.Delete(spanCtx, req)
+	res, errStr, code, err := repositories.TeacherRepo.HardDelete(spanCtx, req)
 	if err != nil {
 		return mainController.Error(ctx, controllerbaseErrCode.CourseErrCode, "02", errStr, code, err)
 	}

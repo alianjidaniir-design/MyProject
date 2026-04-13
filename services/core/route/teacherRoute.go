@@ -9,10 +9,15 @@ import (
 var teacherRoute = map[string]string{
 	"TeacherCreate": "teacher/create",
 	"TeacherList":   "teacher/list",
+	"TeacherDetail": "teacher/detail",
+	"TeacherDelete": "teacher/delete",
 }
 
 func SetupTeacherRoute(app *fiber.App) map[string]string {
 	app.Post(teacherRoute["TeacherCreate"], Create)
 	app.Post(teacherRoute["TeacherList"], List)
+	app.Post(teacherRoute["TeacherDetail"], Get)
+	app.Post(teacherRoute["TeacherDelete"], Delete)
+
 	return teacherRoute
 }

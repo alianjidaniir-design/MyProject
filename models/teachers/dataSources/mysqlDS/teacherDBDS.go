@@ -116,6 +116,31 @@ func (ds *TeacherDBDS) ListTeachers(ctx context.Context, req teacherSchema.Pagin
 	return teachers, totalAll, nil
 
 }
+func (ds *TeacherDBDS) GetTeacherById(ctx context.Context, req teacherSchema.GetTeacherSchema) (res dataModels.Teacher, err error) {
+	return ds.readQuery(ctx, req.ID)
+}
+
+func (ds *TeacherDBDS) HardDeleteTeachers(ctx context.Context, req teacherSchema.SelectTeacherSchema) (res string, err error) {
+	var check bool
+	search := `
+SELECT
+CASE WHEN EXISTS (SELECT 1 FROM teachers WHERE id=?) THEN 1 ELSE 0 END
+`
+	err = ds.db.QueryRowContext(ctx, search, req.ID).Scan(&check)
+	if err != nil {
+		return "", err
+	}
+	if !check {
+		return "Teacher not found", nil
+	}
+	deleteQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ? ", ds.tableName)
+	_, err = ds.db.ExecContext(ctx, deleteQuery, req.ID)
+	if err != nil {
+		return res, err
+	}
+	response := "deleted done successfully"
+	return response, nil
+}
 
 func (ds *TeacherDBDS) readQuery(ctx context.Context, ID int64) (dataModels.Teacher, error) {
 	var teacher dataModels.Teacher

@@ -12,3 +12,11 @@ type PaginationSchema struct {
 	Page     int `json:"page"`
 	PageSize int `json:"page_size"`
 }
+
+type GetTeacherSchema struct {
+	ID int64 `json:"id"`
+}
+
+type SelectTeacherSchema struct {
+	ID int64 `json:"id"`
+}

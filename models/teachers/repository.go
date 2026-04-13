@@ -75,6 +75,36 @@ func (repo *Repository) List(ctx context.Context, req commonSchema.BaseRequest[t
 	return teacherSchema.ListSchema{Teachers: list, Total: total}, "04", 0, nil
 }
 
+func (repo *Repository) Get(ctx context.Context, req commonSchema.BaseRequest[teacherSchema.GetTeacherSchema]) (res teacherSchema.DetailTeacherSchema, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return teacherSchema.DetailTeacherSchema{}, "01", 0, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return teacherSchema.DetailTeacherSchema{}, "02", 0, errors.New("wrong db connection")
+	}
+	get, err := repo.db().GetTeacherById(ctx, req.Body)
+	if err != nil {
+		return teacherSchema.DetailTeacherSchema{}, "03", status.StatusUnauthorized, err
+	}
+	return teacherSchema.DetailTeacherSchema{Teacher: get}, "", status.StatusOK, nil
+
+}
+
+func (repo *Repository) HardDelete(ctx context.Context, req commonSchema.BaseRequest[teacherSchema.SelectTeacherSchema]) (res teacherSchema.HardDeleteTeacherSchema, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return teacherSchema.HardDeleteTeacherSchema{}, "01", status.StatusUnauthorized, errors.New("wrong db connection")
+	}
+	if repo.DBDS == nil {
+		return teacherSchema.HardDeleteTeacherSchema{}, "02", status.StatusBadRequest, errors.New("wrong db connection")
+	}
+	deleted, err := repo.db().HardDeleteTeachers(ctx, req.Body)
+	if err != nil {
+		return teacherSchema.HardDeleteTeacherSchema{}, "03", status.StatusUnauthorized, err
+	}
+	return teacherSchema.HardDeleteTeacherSchema{Massage: deleted}, "", status.StatusOK, nil
+
+}
+
 func (repo *Repository) db() dataSources.TeacherDS {
 	return repo.DBDS
 }
