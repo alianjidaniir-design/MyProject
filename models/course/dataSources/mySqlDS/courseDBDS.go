@@ -70,10 +70,14 @@ func (ds *CourseDBDS) GetCourse(ctx context.Context, req courseSchema.GetCourses
 
 func (ds *CourseDBDS) CreateCourse(ctx context.Context, req courseSchema.RequestCourse) (courseDataModle.Course, error) {
 	now := time.Now().In(myLocation())
-	insertQuery := fmt.Sprintf("INSERT INTO %s (course_code, title, teacher_id ,credit , capacity , isActive , created_at , updated_at) VALUES (?, ?, ?,?,?, ? , ? , ?)", ds.tableSQL)
+
+	insertQuery := fmt.Sprintf("INSERT INTO %s (course_code, title, teacher_id ,credit , capacity , isActive , created_at , updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", ds.tableSQL)
+	fmt.Println(req.TeacherID, req.CourseCode)
 	insertResult, err := ds.db.ExecContext(ctx, insertQuery, req.CourseCode, req.Title, req.TeacherID, req.Credit, req.Capacity, req.IsActive, now, now)
+	fmt.Println(req.TeacherID, req.CourseCode)
+	fmt.Println(req.Title, req)
 	if err != nil {
-		return courseDataModle.Course{}, err
+		return courseDataModle.Course{}, fmt.Errorf("there are a problem in top query", err)
 	}
 	insertID, err := insertResult.LastInsertId()
 	if err != nil {
@@ -134,7 +138,7 @@ func (ds *CourseDBDS) ListCourse(ctx context.Context, req courseSchema.CoursesLi
 
 func (ds *CourseDBDS) readCourseByID(ctx context.Context, id int64) (courseDataModle.Course, error) {
 	var course courseDataModle.Course
-	readQuery := fmt.Sprintf("SELECT id , course_code , title , teacher_id , credits , capacity ,enrolled_count ,isActive , created_at , updated_at , deleted_at FROM %s WHERE id = ?", ds.tableSQL)
+	readQuery := fmt.Sprintf("SELECT id , course_code , title , teacher_id , credit , capacity ,enrolled_count ,isActive , created_at , updated_at , deleted_at FROM %s WHERE id = ?", ds.tableSQL)
 	var createdAt, updatedAt, deletedAt sql.NullTime
 	if err := ds.db.QueryRowContext(ctx, readQuery, id).Scan(&course.ID, &course.CourseCode, &course.Title, &course.TeacherID, &course.Credits, &course.Capacity, &course.EnrolledCount, &course.IsActive, &createdAt, &updatedAt, &deletedAt); err != nil {
 		return courseDataModle.Course{}, err

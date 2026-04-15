@@ -1,4 +1,4 @@
-package user_test
+package course_test
 
 import (
 	"MyProject/services/core/route"
@@ -15,9 +15,12 @@ func TestCreateCourse(t *testing.T) {
 	route.SetupRoutes(app)
 	payload := map[string]any{
 		"body": map[string]any{
-			"code":   "saeed",
-			"name":   "seyed",
-			"family": "asad",
+			"course_code": "saeed",
+			"title":       "seyed",
+			"teacher_id":  19,
+			"credit":      3,
+			"capacity":    40,
+			"isActive":    true,
 		},
 	}
 
@@ -26,7 +29,7 @@ func TestCreateCourse(t *testing.T) {
 		t.Fatalf("marshal paylpad failed : %v", err)
 	}
 
-	req, err := http.NewRequest("POST", "/user/create", bytes.NewBuffer(bodyBytes))
+	req, err := http.NewRequest("POST", "/course/create", bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		t.Fatalf("create request failed : %v", err)
 	}

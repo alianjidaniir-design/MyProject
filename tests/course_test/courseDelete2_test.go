@@ -1,4 +1,4 @@
-package user
+package course_test
 
 import (
 	"MyProject/services/core/route"
