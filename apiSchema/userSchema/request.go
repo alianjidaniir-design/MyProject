@@ -4,6 +4,8 @@ type LoginRequest struct {
 	Code   string `json:"code" `
 	Name   string `json:"name"`
 	Family string `json:"family"`
+	Phone  string `json:"phone"`
+	Major  string `json:"major"`
 }
 
 type ListRequest struct {

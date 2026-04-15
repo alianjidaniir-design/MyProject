@@ -23,3 +23,7 @@ type SoftDeleteTeacherSchema struct {
 	Teacher dataModels.Teacher `json:"teacher"`
 	Massage string             `json:"massage"`
 }
+
+type UpdateTeacherSchema struct {
+	Teacher dataModels.Teacher `json:"teacher"`
+}

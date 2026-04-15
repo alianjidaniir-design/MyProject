@@ -118,6 +118,19 @@ func (repo *Repository) SoftDelete(ctx context.Context, req commonSchema.BaseReq
 	}
 	return teacherSchema.SoftDeleteTeacherSchema{Teacher: softDelete, Massage: "teacher deleted successfully"}, "04", 0, nil
 }
+func (repo *Repository) Update(ctx context.Context, req commonSchema.BaseRequest[teacherSchema.SelectTeacherSchema]) (res teacherSchema.UpdateTeacherSchema, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return teacherSchema.UpdateTeacherSchema{}, "01", status.UnAvailableServiceError, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return teacherSchema.UpdateTeacherSchema{}, "02", status.StatusBadRequest, errors.New("wrong db connection")
+	}
+	updated, err := repo.db().UpdateTeachers(ctx, req.Body)
+	if err != nil {
+		return teacherSchema.UpdateTeacherSchema{}, "03", status.StatusUnauthorized, err
+	}
+	return teacherSchema.UpdateTeacherSchema{Teacher: updated}, "", status.StatusOK, nil
+}
 
 func (repo *Repository) db() dataSources.TeacherDS {
 	return repo.DBDS

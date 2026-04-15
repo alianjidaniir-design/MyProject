@@ -37,45 +37,29 @@ func NewUsersDBDS(db *sql.DB, tableName string) (userDataSourses.UserDB, error) 
 }
 
 func (ds *UserDBDS) SoftDeleteStudent(ctx context.Context, req userSchema.SoftDeleteRequest) (userDataModel.User, error) {
-	var student userDataModel.User
 	now := time.Now().In(myLocation())
-	updateQuery := fmt.Sprintf("UPDATE %s SET deleted_at=? WHERE id = ?", ds.tableName)
+	err := ds.chackUser(ctx, req.ID)
+	if err != nil {
+		return userDataModel.User{}, errors.New(err.Error())
+	}
+	updateQuery := fmt.Sprintf("UPDATE %s SET updated_at=? , deleted_at=? WHERE id = ?", ds.tableName)
 
-	_, err := ds.db.ExecContext(ctx, updateQuery, now, req.ID)
+	_, err = ds.db.ExecContext(ctx, updateQuery, now, now, req.ID)
 	if err != nil {
 		return userDataModel.User{}, err
 	}
 
-	selectQuery := fmt.Sprintf("SELECT id, code, name, family, created_at, updated_at, deleted_at FROM %s WHERE id = ?", ds.tableName)
-
-	var createdAtAl, updatedAtAl, deletedAtAl sql.NullTime
-
-	err = ds.db.QueryRowContext(ctx, selectQuery, req.ID).Scan(
-		&student.ID, &student.Code, &student.Name, &student.Family,
-		&createdAtAl, &updatedAtAl, &deletedAtAl,
-	)
-	if err != nil {
-		return userDataModel.User{}, fmt.Errorf("failed to fetch deleted user: %w", err)
-	}
-
-	if createdAtAl.Valid {
-		student.CreatedAt = createdAtAl.Time.In(myLocation())
-	}
-	if updatedAtAl.Valid {
-		student.UpdatedAt = updatedAtAl.Time.In(myLocation())
-	}
-	if deletedAtAl.Valid {
-		student.DeletedAt = deletedAtAl.Time.In(myLocation())
-	}
-
-	return student, nil
+	return ds.readTaskByID(ctx, req.ID)
 }
 
 func (ds *UserDBDS) DeleteStudent(ctx context.Context, req userSchema.DeleteRequest) (userDataModel.User, error) {
-
+	err := ds.chackUser(ctx, req.ID)
+	if err != nil {
+		return userDataModel.User{}, errors.New("Found Not student")
+	}
 	var students userDataModel.User
 	deleteQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ?", ds.tableName)
-	_, err := ds.db.ExecContext(ctx, deleteQuery, req.ID)
+	_, err = ds.db.ExecContext(ctx, deleteQuery, req.ID)
 	if err != nil {
 		return userDataModel.User{}, err
 	}
@@ -84,42 +68,17 @@ func (ds *UserDBDS) DeleteStudent(ctx context.Context, req userSchema.DeleteRequ
 }
 
 func (ds *UserDBDS) GetStudent(ctx context.Context, req userSchema.GetRequest) (userDataModel.User, error) {
-	var students userDataModel.User
-	selectQuery := fmt.Sprintf("SELECT * FROM %s WHERE id = ? ", ds.tableName)
-
-	var createdAtAl, updatedAtAl, deletedAtAl sql.NullTime
-
-	if err := ds.db.QueryRowContext(ctx, selectQuery, req.ID).Scan(&students.ID, &students.Code, &students.Name, &students.Family, &createdAtAl, &deletedAtAl, &updatedAtAl); err != nil {
-		return userDataModel.User{}, err
+	err := ds.chackUser(ctx, req.ID)
+	if err != nil {
+		return userDataModel.User{}, errors.New("Found Not student")
 	}
-
-	if createdAtAl.Valid {
-		students.CreatedAt = createdAtAl.Time.In(myLocation())
-	} else {
-		students.CreatedAt = time.Time{}
-	}
-
-	if updatedAtAl.Valid {
-		students.UpdatedAt = updatedAtAl.Time.In(myLocation())
-	} else {
-		fmt.Println(updatedAtAl.Time.In(myLocation()))
-		students.UpdatedAt = time.Time{}
-	}
-	if deletedAtAl.Valid {
-		fmt.Println(deletedAtAl.Time.In(myLocation()))
-		students.DeletedAt = deletedAtAl.Time.In(myLocation())
-	} else {
-		students.DeletedAt = time.Time{}
-	}
-
-	return students, nil
-
+	return ds.readTaskByID(ctx, req.ID)
 }
 
 func (ds *UserDBDS) CreateStudent(ctx context.Context, req userSchema.LoginRequest) (userDataModel.User, error) {
 	now := time.Now().In(myLocation())
-	insertQuery := fmt.Sprintf("INSERT INTO %s (code , name , family , created_at , updated_at) VALUES (?, ? , ?,?,?)", ds.tableSQL)
-	insertResult, err := ds.db.ExecContext(ctx, insertQuery, req.Code, req.Name, req.Family, now, now)
+	insertQuery := fmt.Sprintf("INSERT INTO %s (code , name , family, phone , major , created_at , updated_at , deleted_at) VALUES (?,?,?,?,?,?,?,?)", ds.tableSQL)
+	insertResult, err := ds.db.ExecContext(ctx, insertQuery, req.Code, req.Name, req.Family, req.Phone, req.Major, now, now, nil)
 	if err != nil {
 		return userDataModel.User{}, err
 	}
@@ -149,7 +108,7 @@ func (ds *UserDBDS) ReadStudent(ctx context.Context, req userSchema.ListRequest)
 
 	// ستون‌ها را صریحاً نام ببرید تا از مشکلات احتمالی ترتیب ستون‌ها جلوگیری شود.
 	// فرض می‌کنیم ترتیب ستون‌ها در دیتابیس با ترتیب مدل مطابقت دارد.
-	selectQuery := fmt.Sprintf("SELECT id, code, name, family, created_at, updated_at, deleted_at FROM %s LIMIT ? OFFSET ?", ds.tableSQL)
+	selectQuery := fmt.Sprintf("SELECT id, code, name, family,phone,major, created_at, updated_at, deleted_at FROM %s LIMIT ? OFFSET ?", ds.tableSQL)
 	selectResult, err := ds.db.QueryContext(ctx, selectQuery, limit, offset)
 	if err != nil {
 		return []userDataModel.User{}, 0, err
@@ -162,7 +121,7 @@ func (ds *UserDBDS) ReadStudent(ctx context.Context, req userSchema.ListRequest)
 		var createdAtSQL, updatedAtSQL, deletedAtSQL sql.NullTime
 
 		// اسکن مقادیر از دیتابیس به متغیرهای موقت NullTime
-		if err = selectResult.Scan(&user.ID, &user.Code, &user.Name, &user.Family, &createdAtSQL, &updatedAtSQL, &deletedAtSQL); err != nil {
+		if err = selectResult.Scan(&user.ID, &user.Code, &user.Name, &user.Family, &user.Phone, &user.Major, &createdAtSQL, &updatedAtSQL, &deletedAtSQL); err != nil {
 			// اگر اینجا خطا رخ داد، ممکن است به دلیل عدم تطابق نوع یا نام ستون باشد
 			return []userDataModel.User{}, 0, fmt.Errorf("خطا در اسکن ردیف: %w", err)
 		}
@@ -230,7 +189,10 @@ func (ds *UserDBDS) RenameStudent(ctx context.Context, req userSchema.UpdateUser
 
 func (ds *UserDBDS) UpdateStudent(ctx context.Context, req userSchema.UpdateUserRequest) (userDataModel.User, error) {
 	now := time.Now().In(myLocation())
-	var students userDataModel.User
+	err := ds.chackUser(ctx, req.ID)
+	if err != nil {
+		return userDataModel.User{}, errors.New("Found Not student")
+	}
 	stmt := fmt.Sprintf("UPDATE %s SET updated_at = ? WHERE id = ? ", ds.tableName)
 	sss, err := ds.db.PrepareContext(ctx, stmt)
 	if err != nil {
@@ -254,41 +216,17 @@ func (ds *UserDBDS) UpdateStudent(ctx context.Context, req userSchema.UpdateUser
 		return userDataModel.User{}, fmt.Errorf("rows == 0")
 	}
 
-	readQuery := fmt.Sprintf("SELECT id , code , name , family , created_at , updated_at , deleted_at FROM %s WHERE id = ?", ds.tableSQL)
-	var createdAt, updatedAt, deletedAt sql.NullTime
-
-	if err = ds.db.QueryRowContext(ctx, readQuery, req.ID).Scan(&students.ID, &students.Code, &students.Name, &students.Family, &createdAt, &updatedAt, &deletedAt); err != nil {
-		return userDataModel.User{}, err
-	}
-
-	if createdAt.Valid {
-		students.CreatedAt = createdAt.Time.In(myLocation())
-	} else {
-		students.CreatedAt = time.Time{}
-	}
-
-	if updatedAt.Valid {
-		fmt.Println(updatedAt.Time)
-		students.UpdatedAt = updatedAt.Time.In(myLocation())
-	} else {
-		students.UpdatedAt = time.Time{}
-	}
-	if deletedAt.Valid {
-		students.DeletedAt = deletedAt.Time.In(myLocation())
-	} else {
-		students.DeletedAt = time.Time{}
-	}
-	return students, nil
+	return ds.readTaskByID(ctx, req.ID)
 
 }
 
 func (ds *UserDBDS) readTaskByID(ctx context.Context, userID int64) (userDataModel.User, error) {
 	var students userDataModel.User
 
-	readQuery := fmt.Sprintf("SELECT id , code , name , family , created_at , updated_at , deleted_at FROM %s WHERE id = ?", ds.tableSQL)
+	readQuery := fmt.Sprintf("SELECT id , code , name , family,phone,major , created_at , updated_at , deleted_at FROM %s WHERE id = ?", ds.tableSQL)
 	var createdAt, updatedAt, deletedAt sql.NullTime
 
-	if err := ds.db.QueryRowContext(ctx, readQuery, userID).Scan(&students.ID, &students.Code, &students.Name, &students.Family, &createdAt, &updatedAt, &deletedAt); err != nil {
+	if err := ds.db.QueryRowContext(ctx, readQuery, userID).Scan(&students.ID, &students.Code, &students.Name, &students.Family, &students.Phone, &students.Major, &createdAt, &updatedAt, &deletedAt); err != nil {
 		return userDataModel.User{}, err
 	}
 
@@ -312,4 +250,20 @@ func (ds *UserDBDS) readTaskByID(ctx context.Context, userID int64) (userDataMod
 
 	return students, nil
 
+}
+func (ds *UserDBDS) chackUser(ctx context.Context, ID int64) error {
+	var check bool
+	search := `
+SELECT
+CASE WHEN EXISTS (SELECT 1 FROM student WHERE ID = ?) THEN 1 ELSE 0 END
+`
+	err := ds.db.QueryRowContext(ctx, search, ID).Scan(&check)
+
+	if err != nil {
+		return err
+	}
+	if !check {
+		return errors.New("Student not found")
+	}
+	return nil
 }

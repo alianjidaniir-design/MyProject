@@ -12,6 +12,7 @@ var teacherRoute = map[string]string{
 	"TeacherDetail":     "teacher/detail",
 	"TeacherDelete":     "teacher/delete",
 	"TeacherSoftDelete": "teacher/soft_delete",
+	"TeacherUpdate":     "teacher/update",
 }
 
 func SetupTeacherRoute(app *fiber.App) map[string]string {
@@ -20,6 +21,7 @@ func SetupTeacherRoute(app *fiber.App) map[string]string {
 	app.Post(teacherRoute["TeacherDetail"], Get)
 	app.Post(teacherRoute["TeacherDelete"], Delete)
 	app.Post(teacherRoute["TeacherSoftDelete"], SoftDelete)
+	app.Post(teacherRoute["TeacherUpdate"], Update)
 
 	return teacherRoute
 }

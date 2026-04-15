@@ -121,17 +121,9 @@ func (ds *TeacherDBDS) GetTeacherById(ctx context.Context, req teacherSchema.Get
 }
 
 func (ds *TeacherDBDS) HardDeleteTeachers(ctx context.Context, req teacherSchema.SelectTeacherSchema) (res string, err error) {
-	var check bool
-	search := `
-SELECT
-CASE WHEN EXISTS (SELECT 1 FROM teachers WHERE id=?) THEN 1 ELSE 0 END
-`
-	err = ds.db.QueryRowContext(ctx, search, req.ID).Scan(&check)
+	err = ds.chackTeacher(ctx, req.ID)
 	if err != nil {
 		return "", err
-	}
-	if !check {
-		return "Teacher not found", nil
 	}
 	deleteQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ? ", ds.tableName)
 	_, err = ds.db.ExecContext(ctx, deleteQuery, req.ID)
@@ -143,32 +135,49 @@ CASE WHEN EXISTS (SELECT 1 FROM teachers WHERE id=?) THEN 1 ELSE 0 END
 }
 
 func (ds *TeacherDBDS) SoftDeleteTeachers(ctx context.Context, req teacherSchema.SelectTeacherSchema) (res dataModels.Teacher, err error) {
-	var teacher dataModels.Teacher
+	err = ds.chackTeacher(ctx, req.ID)
+	if err != nil {
+		return dataModels.Teacher{}, err
+	}
+	now := time.Now().In(myLocation())
+	updateQuery := fmt.Sprintf("UPDATE %s SET deleted_at=? , updated_at = ? WHERE id=?", ds.tableName)
+	_, err = ds.db.ExecContext(ctx, updateQuery, now, now, req.ID)
+	if err != nil {
+		return dataModels.Teacher{}, err
+	}
+
+	return ds.readQuery(ctx, req.ID)
+}
+func (ds *TeacherDBDS) UpdateTeachers(ctx context.Context, req teacherSchema.SelectTeacherSchema) (res dataModels.Teacher, err error) {
+	now := time.Now().In(myLocation())
+	err = ds.chackTeacher(ctx, req.ID)
+	if err != nil {
+		return dataModels.Teacher{}, err
+	}
+	update := fmt.Sprintf("UPDATE %s SET updated_at = ? WHERE id = ?", ds.tableName)
+	_, err = ds.db.ExecContext(ctx, update, now, req.ID)
+	if err != nil {
+		return dataModels.Teacher{}, err
+	}
+	return ds.readQuery(ctx, req.ID)
+
+}
+
+func (ds *TeacherDBDS) chackTeacher(ctx context.Context, ID int64) error {
 	var check bool
 	search := `
 SELECT
 CASE WHEN EXISTS (SELECT 1 FROM teachers WHERE ID = ?) THEN 1 ELSE 0 END
 `
-	err = ds.db.QueryRowContext(ctx, search, req.ID).Scan(&check)
-	fmt.Println(check)
+	err := ds.db.QueryRowContext(ctx, search, ID).Scan(&check)
 
 	if err != nil {
-		return dataModels.Teacher{}, err
+		return err
 	}
 	if !check {
-		return dataModels.Teacher{}, errors.New("Teacher not found")
+		return errors.New("Teacher not found")
 	}
-	var deletedAt sql.NullTime
-	now := time.Now().In(myLocation())
-	updateQuery := fmt.Sprintf("UPDATE %s SET deleted_at=? WHERE id=?", ds.tableName)
-	_, err = ds.db.ExecContext(ctx, updateQuery, now, req.ID)
-	if err != nil {
-		return dataModels.Teacher{}, err
-	}
-	if deletedAt.Valid {
-		teacher.DeletedAt = deletedAt.Time
-	}
-	return ds.readQuery(ctx, req.ID)
+	return nil
 }
 
 func (ds *TeacherDBDS) readQuery(ctx context.Context, ID int64) (dataModels.Teacher, error) {
