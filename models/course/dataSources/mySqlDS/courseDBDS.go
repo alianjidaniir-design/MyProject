@@ -13,9 +13,8 @@ import (
 )
 
 type CourseDBDS struct {
-	tableName string
-	tableSQL  string
-	db        *sql.DB
+	tableSQL string
+	db       *sql.DB
 }
 
 func myLocation() *time.Location {
@@ -28,11 +27,29 @@ func myLocation() *time.Location {
 
 func NewCourseDBDS(tableName string, db *sql.DB) (courseDataSources.CourseDB, error) {
 	ff := &CourseDBDS{
-		tableName: tableName,
-		tableSQL:  tableName,
-		db:        db,
+		tableSQL: tableName,
+		db:       db,
 	}
 	return ff, nil
+}
+func (ds *CourseDBDS) CreateCourse(ctx context.Context, req courseSchema.RequestCourse) (courseDataModle.Course, error) {
+	now := time.Now().In(myLocation())
+
+	fmt.Println(req.TeacherID)
+	insertQuery := fmt.Sprintf("INSERT INTO %s (course_code, title, teacher_id ,credit , capacity , isActive , created_at , updated_at ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", ds.tableSQL)
+	fmt.Println(req.TeacherID, req.CourseCode)
+	insertResult, err := ds.db.ExecContext(ctx, insertQuery, req.CourseCode, req.Title, req.TeacherID, req.Credit, req.Capacity, req.IsActive, now, now)
+	fmt.Println(req.TeacherID, req.CourseCode)
+	fmt.Println(req.Title, req)
+	if err != nil {
+		return courseDataModle.Course{}, fmt.Errorf("there are a problem in top query", err)
+	}
+	insertID, err := insertResult.LastInsertId()
+	if err != nil {
+		return courseDataModle.Course{}, err
+	}
+	return ds.readCourseByID(ctx, insertID)
+
 }
 func (ds *CourseDBDS) UpdateCourse(ctx context.Context, req courseSchema.UpdateCourseRequest) (courseDataModle.Course, error) {
 	var course courseDataModle.Course
@@ -65,25 +82,6 @@ func (ds *CourseDBDS) GetCourse(ctx context.Context, req courseSchema.GetCourses
 		return courseDataModle.Course{}, errors.New("Course not found")
 	}
 	return ds.readCourseByID(ctx, req.ID)
-
-}
-
-func (ds *CourseDBDS) CreateCourse(ctx context.Context, req courseSchema.RequestCourse) (courseDataModle.Course, error) {
-	now := time.Now().In(myLocation())
-
-	insertQuery := fmt.Sprintf("INSERT INTO %s (course_code, title, teacher_id ,credit , capacity , isActive , created_at , updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", ds.tableSQL)
-	fmt.Println(req.TeacherID, req.CourseCode)
-	insertResult, err := ds.db.ExecContext(ctx, insertQuery, req.CourseCode, req.Title, req.TeacherID, req.Credit, req.Capacity, req.IsActive, now, now)
-	fmt.Println(req.TeacherID, req.CourseCode)
-	fmt.Println(req.Title, req)
-	if err != nil {
-		return courseDataModle.Course{}, fmt.Errorf("there are a problem in top query", err)
-	}
-	insertID, err := insertResult.LastInsertId()
-	if err != nil {
-		return courseDataModle.Course{}, err
-	}
-	return ds.readCourseByID(ctx, insertID)
 
 }
 
