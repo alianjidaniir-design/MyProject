@@ -33,14 +33,25 @@ func NewCourseDBDS(tableName string, db *sql.DB) (courseDataSources.CourseDB, er
 	return ff, nil
 }
 func (ds *CourseDBDS) CreateCourse(ctx context.Context, req courseSchema.RequestCourse) (courseDataModle.Course, error) {
-	now := time.Now().In(myLocation())
-
 	fmt.Println(req.TeacherID)
+	now := time.Now().In(myLocation())
+	var check bool
+	search := `
+SELECT
+CASE WHEN EXISTS (SELECT 1 FROM teachers WHERE ID = ?) THEN 1 ELSE 0 END
+`
+	err := ds.db.QueryRowContext(ctx, search, req.TeacherID).Scan(&check)
+
+	if err != nil {
+		return courseDataModle.Course{}, err
+	}
+	if !check {
+		return courseDataModle.Course{}, errors.New("Course not found")
+	}
+
 	insertQuery := fmt.Sprintf("INSERT INTO %s (course_code, title, teacher_id ,credit , capacity , isActive , created_at , updated_at ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", ds.tableSQL)
-	fmt.Println(req.TeacherID, req.CourseCode)
 	insertResult, err := ds.db.ExecContext(ctx, insertQuery, req.CourseCode, req.Title, req.TeacherID, req.Credit, req.Capacity, req.IsActive, now, now)
-	fmt.Println(req.TeacherID, req.CourseCode)
-	fmt.Println(req.Title, req)
+
 	if err != nil {
 		return courseDataModle.Course{}, fmt.Errorf("there are a problem in top query", err)
 	}
@@ -56,7 +67,7 @@ func (ds *CourseDBDS) UpdateCourse(ctx context.Context, req courseSchema.UpdateC
 	now := time.Now().In(myLocation())
 	err := ds.chackCourse(ctx, req.ID)
 	if err != nil {
-		return courseDataModle.Course{}, errors.New("Course Update Error")
+		return courseDataModle.Course{}, errors.New("there is not course")
 	}
 	updateQuery := fmt.Sprintf("UPDATE %s SET updated_at = ? WHERE id = ?", ds.tableSQL)
 	update, err := ds.db.PrepareContext(ctx, updateQuery)
@@ -99,7 +110,7 @@ func (ds *CourseDBDS) ListCourse(ctx context.Context, req courseSchema.CoursesLi
 	if err != nil {
 		return courses, 0, err
 	}
-	selectQuery := fmt.Sprintf("SELECT id , course_code , title , teacher_id , credits , capacity ,enrolled_count ,isActive ,  created_at, updated_at, deleted_at   FROM %s LIMIT ? OFFSET ?", ds.tableSQL)
+	selectQuery := fmt.Sprintf("SELECT id , course_code , title , teacher_id , credit , capacity ,enrolled_count ,isActive ,  created_at, updated_at, deleted_at   FROM %s LIMIT ? OFFSET ?", ds.tableSQL)
 	rows, err := ds.db.QueryContext(ctx, selectQuery, limit, offset)
 	if err != nil {
 		return []courseDataModle.Course{}, 0, err
