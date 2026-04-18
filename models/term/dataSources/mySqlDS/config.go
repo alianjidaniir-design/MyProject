@@ -17,7 +17,7 @@ const (
 
 type Config struct {
 	DSN                   string
-	DepartmentTableName   string
+	TermTableName         string
 	MaxOpenConnections    int
 	MaxIdleConnections    int
 	MaxConnectionLifetime int
@@ -26,16 +26,16 @@ type Config struct {
 func LoadConfig() (Config, error) {
 	cfg := Config{
 		DSN:                   normalize(strings.TrimSpace(os.Getenv("MYSQL_DSN"))),
-		DepartmentTableName:   strings.TrimSpace(os.Getenv("MYSQL_Term_TABLE")),
+		TermTableName:         strings.TrimSpace(os.Getenv("MYSQL_Term_TABLE")),
 		MaxOpenConnections:    readEnvInt("MYSQL_MAX_OPEN_CONNECTIONS", MaxOpenConnections),
 		MaxIdleConnections:    readEnvInt("MYSQL_MAX_IDLE_CONNECTIONS", MaxIdleConnections),
 		MaxConnectionLifetime: readEnvInt("MYSQL_MAX_CONNECTION_LIFETIME", MaxConnectionLifetime),
 	}
-	if cfg.DepartmentTableName == "" {
-		cfg.DepartmentTableName = defaultTableName
+	if cfg.TermTableName == "" {
+		cfg.TermTableName = defaultTableName
 	}
 
-	if err := validateTableName(cfg.DepartmentTableName); err != nil {
+	if err := validateTableName(cfg.TermTableName); err != nil {
 		return Config{}, err
 	}
 	return cfg, nil

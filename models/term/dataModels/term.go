@@ -1,6 +1,7 @@
 package dataModels
 
 type Term struct {
-	Term int `json:"term"`
-	Year int `json:"year"`
+	ID   int64 `json:"ID"`
+	Term int   `json:"term"`
+	Year int   `json:"year"`
 }

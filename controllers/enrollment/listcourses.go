@@ -20,7 +20,7 @@ func ListCourses(ctx *fiber.Ctx) error {
 	}
 	res, errStr, code, err := repositories.EnrollmentRepos.ListStudentCourse(spanCtx, req)
 	if err != nil {
-		return mainController.Error(ctx, controllerbaseErrCode.CourseErrCode, "02", errStr, code, err)
+		return mainController.Error(ctx, controllerbaseErrCode.EnrollErrCode, "02", errStr, code, err)
 	}
 	return mainController.Response(ctx, res)
 }

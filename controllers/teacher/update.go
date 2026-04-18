@@ -16,11 +16,11 @@ func Update(ctx *fiber.Ctx) error {
 	req := commonSchema.BaseRequest[teacherSchema.SelectTeacherSchema]{}
 	errStr, code, err := mainController.ParseBody(ctx, &req)
 	if err != nil {
-		return mainController.Error(ctx, controllerbaseErrCode.CourseErrCode, "01", errStr, code, err)
+		return mainController.Error(ctx, controllerbaseErrCode.TeacherErrCode, "01", errStr, code, err)
 	}
 	res, errStr, code, err := repositories.TeacherRepo.Update(spanCtx, req)
 	if err != nil {
-		return mainController.Error(ctx, controllerbaseErrCode.CourseErrCode, "02", errStr, code, err)
+		return mainController.Error(ctx, controllerbaseErrCode.TeacherErrCode, "02", errStr, code, err)
 	}
 	return mainController.Response(ctx, res)
 }
