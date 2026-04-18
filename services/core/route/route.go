@@ -8,6 +8,7 @@ func SetupRoutes(app *fiber.App) map[string]string {
 		SetupCourseRoutes(app),
 		SetupEnrollmentRoute(app),
 		SetupTeacherRoute(app),
+		SetupDepartmentRoutes(app),
 	)
 }
 
