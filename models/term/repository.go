@@ -59,6 +59,20 @@ func (repo *Repository) Create(ctx context.Context, req commonSchema.BaseRequest
 
 }
 
+func (repo *Repository) List(ctx context.Context, req commonSchema.BaseRequest[termSchema.ListTerm]) (res termSchema.ListTerms, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return termSchema.ListTerms{}, "01", status.UnAvailableServiceError, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return termSchema.ListTerms{}, "02", status.StatusBadRequest, err
+	}
+	list, totalPages, err := repo.db().ListTerms(ctx, req.Body)
+	if err != nil {
+		return termSchema.ListTerms{}, "03", status.UnAvailableServiceError, err
+	}
+	return termSchema.ListTerms{Term: list, Total: totalPages}, "", status.StatusOK, nil
+}
+
 func (repo *Repository) db() dataSources.TermDS {
 	return repo.DBDS
 }

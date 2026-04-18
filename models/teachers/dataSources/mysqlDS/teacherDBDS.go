@@ -87,7 +87,7 @@ func (ds *TeacherDBDS) ListTeachers(ctx context.Context, req teacherSchema.Pagin
 	if err != nil {
 		return []dataModels.Teacher{}, 0, errors.New("there is an error in total the page and page size")
 	}
-	selectQuery := fmt.Sprintf("SELECT ID , name , last_name , email , phone , work_experience , created_at , updated_at , deleted_at FROM %s LIMIT ? OFFSET ? ", ds.tableName)
+	selectQuery := fmt.Sprintf("SELECT ID , name , last_name , email , phone , work_experience , created_at , updated_at , deleted_at FROM %s  LIMIT ? OFFSET ? ", ds.tableName)
 	rows, err := ds.db.QueryContext(ctx, selectQuery, limit, offset)
 	if err != nil {
 		return []dataModels.Teacher{}, 0, errors.New("there is an error in pagination")

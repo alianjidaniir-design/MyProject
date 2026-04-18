@@ -7,9 +7,11 @@ import (
 
 var termRoute = map[string]string{
 	"termCreate": "term/create",
+	"termList":   "term/list",
 }
 
 func SetupTermRoute(app *fiber.App) map[string]string {
 	app.Post(termRoute["termCreate"], Create)
+	app.Post(termRoute["termList"], List)
 	return termRoute
 }

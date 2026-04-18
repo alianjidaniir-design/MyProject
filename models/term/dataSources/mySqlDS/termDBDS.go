@@ -4,6 +4,7 @@ import (
 	"MyProject/apiSchema/termSchema"
 	termDataModel "MyProject/models/term/dataModels"
 	"MyProject/models/term/dataSources"
+	"MyProject/pkg/pagination"
 	"context"
 	"database/sql"
 	"errors"
@@ -33,6 +34,9 @@ func NewTermDBDS(tableName string, db *sql.DB) (dataSources.TermDS, error) {
 }
 
 func (ds *TermDBDS) CreateTerm(ctx context.Context, req termSchema.CreateTerm) (res termDataModel.Term, err error) {
+	if req.Term < 1 || req.Term > 8 {
+		return termDataModel.Term{}, errors.New("term is invalid . that should be between 1 and 8")
+	}
 	insertQuery := fmt.Sprintf("INSERT INTO %s (term , year) VALUES (?,?)", ds.tableSQL)
 	result, err := ds.db.Exec(insertQuery, req.Term, req.Year)
 	if err != nil {
@@ -43,6 +47,40 @@ func (ds *TermDBDS) CreateTerm(ctx context.Context, req termSchema.CreateTerm) (
 		return termDataModel.Term{}, errors.New("error getting last id from database")
 	}
 	return ds.readTermByID(ctx, lastId)
+}
+func (ds *TermDBDS) ListTerms(ctx context.Context, req termSchema.ListTerm) (res []termDataModel.Term, total int, err error) {
+	var terms []termDataModel.Term
+	page, pageSize, err := pagination.CheckPage(req.PageIndex, req.PageSize)
+	if err != nil {
+		return []termDataModel.Term{}, 0, err
+	}
+	offset := (page - 1) * pageSize
+	limit := pageSize
+	var totalAll int
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s", ds.tableSQL)
+	err = ds.db.QueryRowContext(ctx, countQuery).Scan(&totalAll)
+	if err != nil {
+		return []termDataModel.Term{}, 0, err
+	}
+	selectQuery := fmt.Sprintf("SELECT ID, term , year FROM %s ORDER BY ID LIMIT ? OFFSET ?", ds.tableSQL)
+	rows, err := ds.db.QueryContext(ctx, selectQuery, limit, offset)
+	if err != nil {
+		return []termDataModel.Term{}, 0, errors.New("pagination error")
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var term termDataModel.Term
+		err = rows.Scan(&term.ID, &term.Term, &term.Year)
+		if err != nil {
+			return []termDataModel.Term{}, 0, errors.New("Scaning with error")
+		}
+		terms = append(terms, term)
+	}
+	if err = rows.Err(); err != nil {
+		return []termDataModel.Term{}, 0, err
+	}
+	return terms, totalAll, err
+
 }
 
 func (ds *TermDBDS) readTermByID(ctx context.Context, termID int64) (termDataModel.Term, error) {

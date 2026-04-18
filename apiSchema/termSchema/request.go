@@ -6,7 +6,7 @@ type CreateTerm struct {
 }
 type ListTerm struct {
 	PageIndex int `json:"page_index"`
-	PageSize  int `json:"pageSize"`
+	PageSize  int `json:"page_size"`
 }
 
 type DeleteTerm struct {
