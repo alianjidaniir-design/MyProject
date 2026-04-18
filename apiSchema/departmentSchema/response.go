@@ -13,6 +13,6 @@ type ListDepartmentResp struct {
 	Total      int                     `json:"total"`
 }
 
-type UpdateDepartmentResp struct {
-	Department dataModels.Department `json:"department"`
+type DeleteDepartmentResp struct {
+	Message string `json:"message"`
 }
