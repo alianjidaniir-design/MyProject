@@ -33,24 +33,23 @@ func NewCourseDBDS(tableName string, db *sql.DB) (courseDataSources.CourseDB, er
 	return ff, nil
 }
 func (ds *CourseDBDS) CreateCourse(ctx context.Context, req courseSchema.RequestCourse) (courseDataModle.Course, error) {
-	fmt.Println(req.TeacherID)
 	now := time.Now().In(myLocation())
 	var check bool
 	search := `
 SELECT
-CASE WHEN EXISTS (SELECT 1 FROM teachers WHERE ID = ?) THEN 1 ELSE 0 END
+CASE WHEN EXISTS (SELECT 1 FROM departments WHERE ID = ?) THEN 1 ELSE 0 END
 `
-	err := ds.db.QueryRowContext(ctx, search, req.TeacherID).Scan(&check)
+	err := ds.db.QueryRowContext(ctx, search, req.DepartmentID).Scan(&check)
 
 	if err != nil {
 		return courseDataModle.Course{}, err
 	}
 	if !check {
-		return courseDataModle.Course{}, errors.New("Course not found")
+		return courseDataModle.Course{}, errors.New("Department not found")
 	}
 
-	insertQuery := fmt.Sprintf("INSERT INTO %s (course_code, title, teacher_id ,credit , capacity , isActive , created_at , updated_at ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", ds.tableSQL)
-	insertResult, err := ds.db.ExecContext(ctx, insertQuery, req.CourseCode, req.Title, req.TeacherID, req.Credit, req.Capacity, req.IsActive, now, now)
+	insertQuery := fmt.Sprintf("INSERT INTO %s (course_number, title, unit ,department_id , description , created_at , updated_at ) VALUES (?, ?, ?, ?, ?, ?, ?)", ds.tableSQL)
+	insertResult, err := ds.db.ExecContext(ctx, insertQuery, req.CourseNumber, req.Title, req.Unit, req.DepartmentID, req.Description, now, now)
 
 	if err != nil {
 		return courseDataModle.Course{}, fmt.Errorf("there are a problem in top query", err)
@@ -146,9 +145,9 @@ func (ds *CourseDBDS) ListCourse(ctx context.Context, req courseSchema.CoursesLi
 
 func (ds *CourseDBDS) readCourseByID(ctx context.Context, id int64) (courseDataModle.Course, error) {
 	var course courseDataModle.Course
-	readQuery := fmt.Sprintf("SELECT id , course_code , title , teacher_id , credit , capacity ,enrolled_count ,isActive , created_at , updated_at , deleted_at FROM %s WHERE id = ?", ds.tableSQL)
+	readQuery := fmt.Sprintf("SELECT id , course_number , title , unit , department_id , description, created_at , updated_at , deleted_at FROM %s WHERE id = ?", ds.tableSQL)
 	var createdAt, updatedAt, deletedAt sql.NullTime
-	if err := ds.db.QueryRowContext(ctx, readQuery, id).Scan(&course.ID, &course.Title, &createdAt, &updatedAt, &deletedAt); err != nil {
+	if err := ds.db.QueryRowContext(ctx, readQuery, id).Scan(&course.ID, &course.CourseNumber, &course.Title, &course.Unit, &course.DepartmentID, &course.Description, &createdAt, &updatedAt, &deletedAt); err != nil {
 		return courseDataModle.Course{}, err
 	}
 	if createdAt.Valid {

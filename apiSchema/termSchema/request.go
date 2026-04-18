@@ -10,5 +10,5 @@ type ListTerm struct {
 }
 
 type DeleteTerm struct {
-	ID int `json:"id"`
+	ID int64 `json:"id"`
 }

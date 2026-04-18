@@ -1,12 +1,11 @@
 package courseSchema
 
 type RequestCourse struct {
-	CourseCode string `json:"course_code"`
-	Title      string `json:"title"`
-	TeacherID  int64  `json:"teacher_id"`
-	Credit     int    `json:"credit"`
-	Capacity   int    `json:"capacity"`
-	IsActive   bool   `json:"isActive"`
+	CourseNumber string `json:"course_number"`
+	Title        string `json:"title"`
+	Unit         int    `json:"unit"`
+	DepartmentID int64  `json:"department_id"`
+	Description  string `json:"description"`
 }
 
 type CoursesListRequest struct {

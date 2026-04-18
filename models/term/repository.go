@@ -73,6 +73,20 @@ func (repo *Repository) List(ctx context.Context, req commonSchema.BaseRequest[t
 	return termSchema.ListTerms{Term: list, Total: totalPages}, "", status.StatusOK, nil
 }
 
+func (repo *Repository) Delete(ctx context.Context, req commonSchema.BaseRequest[termSchema.DeleteTerm]) (res termSchema.DeletedTerm, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return termSchema.DeletedTerm{}, "01", status.UnAvailableServiceError, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return termSchema.DeletedTerm{}, "02", status.StatusBadRequest, err
+	}
+	_, err = repo.db().DeleteTerms(ctx, req.Body)
+	if err != nil {
+		return termSchema.DeletedTerm{}, "03", status.UnAvailableServiceError, err
+	}
+	return termSchema.DeletedTerm{Message: "user deleted successfully"}, "", status.StatusOK, nil
+}
+
 func (repo *Repository) db() dataSources.TermDS {
 	return repo.DBDS
 }

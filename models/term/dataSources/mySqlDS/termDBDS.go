@@ -48,6 +48,20 @@ func (ds *TermDBDS) CreateTerm(ctx context.Context, req termSchema.CreateTerm) (
 	}
 	return ds.readTermByID(ctx, lastId)
 }
+
+func (ds *TermDBDS) DeleteTerms(ctx context.Context, req termSchema.DeleteTerm) (res termDataModel.Term, err error) {
+	err = ds.chackUser(ctx, req.ID)
+	if err != nil {
+		return termDataModel.Term{}, err
+	}
+	deleteQuery := fmt.Sprintf("DELETE FROM %s WHERE id=? ", ds.tableSQL)
+	_, err = ds.db.ExecContext(ctx, deleteQuery, req.ID)
+	if err != nil {
+		return termDataModel.Term{}, errors.New(err.Error())
+	}
+	return termDataModel.Term{}, nil
+}
+
 func (ds *TermDBDS) ListTerms(ctx context.Context, req termSchema.ListTerm) (res []termDataModel.Term, total int, err error) {
 	var terms []termDataModel.Term
 	page, pageSize, err := pagination.CheckPage(req.PageIndex, req.PageSize)
