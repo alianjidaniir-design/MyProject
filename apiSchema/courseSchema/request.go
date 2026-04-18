@@ -13,6 +13,12 @@ type CoursesListRequest struct {
 	PageSize int `json:"page_size"`
 }
 
+type DepartmentListRequest struct {
+	DepartmentID int64 `json:"department_id"`
+	Page         int `json:"page"`
+	PageSize     int `json:"page_size"`
+}
+
 type GetCoursesRequest struct {
 	ID int64 `json:"ID"`
 }

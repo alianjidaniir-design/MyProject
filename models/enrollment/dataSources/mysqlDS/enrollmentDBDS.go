@@ -296,33 +296,19 @@ func (ds *EnrollmentDBDS) ListCourseStudents(ctx context.Context, req enrollment
 	enrolled := fmt.Sprintf("SELECT student_id  FROM %s WHERE course_id = ? AND status = ?", ds.tableName)
 	rows, err := ds.db.QueryContext(ctx, enrolled, req.CourseID, req.Status)
 	if err != nil {
-		return []EnrollmentDataModel.Course{}, err
+		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var enrollment EnrollmentDataModel.Course
-		switch req.Status {
-		case constants.StatusEnrolled:
-			var enroll = constants.StatusEnrolled
-			enrollment.Status = enroll
-			err = rows.Scan(&enrollment.StudentID)
-			if err != nil {
-				return []EnrollmentDataModel.Course{}, err
-			}
-		case constants.StatusCanceled:
-			var cancel = constants.StatusCanceled
-			enrollment.Status = cancel
-			err = rows.Scan(&enrollment.StudentID)
-			if err != nil {
-				return []EnrollmentDataModel.Course{}, err
-			}
-		default:
-			return []EnrollmentDataModel.Course{}, errors.New("status not supported")
+		if err = rows.Scan(&enrollment.StudentID); err != nil {
+			return nil, err
 		}
+		enrollment.Status = req.Status
 		enrollments = append(enrollments, enrollment)
 	}
 	if err = rows.Err(); err != nil {
-		return []EnrollmentDataModel.Course{}, err
+		return nil, err
 	}
 	return enrollments, nil
 }
@@ -335,7 +321,7 @@ func (ds *EnrollmentDBDS) readQuery(ctx context.Context, ID int64) (EnrollmentDa
         WHERE id = ? AND status = ? `, ds.tableName)
 	var ff = constants.StatusEnrolled
 	err := ds.db.QueryRowContext(ctx, readQuery, ID, ff).Scan(&enrollment.ID, &enrollment.StudentID, &enrollment.CourseID, &enrollment.Status, &enrollment.EnrolledAt, &enrollment.CanceledAt, &enrollment.CreatedAt, &enrollment.UpdatedAt)
-	if err != nil {
+	if err != nil || errors.Is(err, sql.ErrNoRows) {
 		return EnrollmentDataModel.Enrollment{}, err
 	}
 

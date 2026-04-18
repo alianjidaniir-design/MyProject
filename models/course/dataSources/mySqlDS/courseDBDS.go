@@ -109,7 +109,7 @@ func (ds *CourseDBDS) ListCourse(ctx context.Context, req courseSchema.CoursesLi
 	if err != nil {
 		return courses, 0, err
 	}
-	selectQuery := fmt.Sprintf("SELECT id , course_code , title , teacher_id , credit , capacity ,enrolled_count ,isActive ,  created_at, updated_at, deleted_at   FROM %s LIMIT ? OFFSET ?", ds.tableSQL)
+	selectQuery := fmt.Sprintf("SELECT id , course_number , title , unit , department_id , description ,  created_at, updated_at, deleted_at FROM %s LIMIT ? OFFSET ?", ds.tableSQL)
 	rows, err := ds.db.QueryContext(ctx, selectQuery, limit, offset)
 	if err != nil {
 		return []courseDataModle.Course{}, 0, err
@@ -118,6 +118,7 @@ func (ds *CourseDBDS) ListCourse(ctx context.Context, req courseSchema.CoursesLi
 	for rows.Next() {
 		var course courseDataModle.Course
 		var createdAt, updatedAt, deletedAt sql.NullTime
+		err = rows.Scan(&course.ID, &course.CourseNumber, &course.Title, &course.Unit, &course.DepartmentID, &course.Description, &createdAt, &updatedAt, &deletedAt)
 		if err != nil {
 			return []courseDataModle.Course{}, 0, err
 		}
@@ -141,6 +142,52 @@ func (ds *CourseDBDS) ListCourse(ctx context.Context, req courseSchema.CoursesLi
 
 	return courses, total, nil
 
+}
+
+func (ds *CourseDBDS) ListDepartmentsCourse(ctx context.Context, req courseSchema.DepartmentListRequest) ([]courseDataModle.Course, int64, error) {
+	var courses []courseDataModle.Course
+	page, pageSize, err := pagination.CheckPage(req.Page, req.PageSize)
+	if err != nil {
+		return nil, 0, errors.New("there is a error in checkPage")
+	}
+	offset := (page - 1) * pageSize
+	limit := pageSize
+	var totalPage int64
+	totalItem := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE department_id = ?", ds.tableSQL)
+	err = ds.db.QueryRowContext(ctx, totalItem, req.DepartmentID).Scan(&totalPage)
+	if err != nil {
+		return nil, 0, fmt.Errorf("there is a error in Query ", err)
+	}
+	if totalPage == 0 {
+		return nil, 0, errors.New("there is no department or this is a a problem in counter")
+	}
+	selectQuery := fmt.Sprintf("SELECT * FROM %s WHERE department_id = ? LIMIT ? OFFSET ?", ds.tableSQL)
+	rows, err := ds.db.QueryContext(ctx, selectQuery, req.DepartmentID, limit, offset)
+	if err != nil {
+		return nil, 0, errors.New("the pagination query failed")
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var course courseDataModle.Course
+		var createdAt, updatedAt, deletedAt sql.NullTime
+		if err = rows.Scan(&course.ID, &course.CourseNumber, &course.Title, &course.Unit, &course.DepartmentID, &course.Description, &createdAt, &updatedAt, &deletedAt); err != nil {
+			return nil, 0, err
+		}
+		if createdAt.Valid {
+			course.CreatedAt = createdAt.Time.In(myLocation())
+		}
+		if updatedAt.Valid {
+			course.UpdatedAt = updatedAt.Time.In(myLocation())
+		}
+		if deletedAt.Valid {
+			course.DeletedAt = deletedAt.Time.In(myLocation())
+		}
+		courses = append(courses, course)
+	}
+	if rows.Err() != nil {
+		return nil, 0, err
+	}
+	return courses, totalPage, nil
 }
 
 func (ds *CourseDBDS) readCourseByID(ctx context.Context, id int64) (courseDataModle.Course, error) {
