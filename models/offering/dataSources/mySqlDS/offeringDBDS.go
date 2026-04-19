@@ -156,6 +156,23 @@ func (ds *OfferingDBDS) GetOffering(ctx context.Context, req offeringSchema.GetR
 	}
 	return ds.readOfferingByID(ctx, req.Row)
 }
+func (ds *OfferingDBDS) DeActiveOffering(ctx context.Context, req offeringSchema.GetRowOfferingRequest) (res dataModels.Offering, err error) {
+	var check bool
+	serach := `
+SELECT
+CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND isActive = true ) THEN 1 ELSE 0 END
+`
+	err = ds.db.QueryRowContext(ctx, serach, req.Row).Scan(&check)
+	if err != nil {
+		return dataModels.Offering{}, err
+	}
+	if !check {
+		return dataModels.Offering{}, errors.New("active Offering does not exist")
+	}
+	deActiveQuery:=fmt.Sprintf("UPDATE `%s` SET isActive = 0 WHERE row = ?", ds.tableName)
+
+
+}
 
 func (ds *OfferingDBDS) readOfferingByID(ctx context.Context, row int64) (res dataModels.Offering, err error) {
 	var offering dataModels.Offering

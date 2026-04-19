@@ -14,3 +14,8 @@ type ListOfferingResponse struct {
 type DetailOfferingResponse struct {
 	Specification dataModels.Offering
 }
+
+type DeactivateOfferingResponse struct {
+	Specification dataModels.Offering
+	Massage       string `json:"massage"`
+}
