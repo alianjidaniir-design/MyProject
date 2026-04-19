@@ -73,6 +73,20 @@ func (repo *Repository) List(ctx context.Context, req commonSchema.BaseRequest[o
 	return offeringSchema.ListOfferingResponse{Offerings: list, TotalCount: total}, "", status.StatusOK, nil
 }
 
+func (repo *Repository) Get(ctx context.Context, req commonSchema.BaseRequest[offeringSchema.GetRowOfferingRequest]) (res offeringSchema.DetailOfferingResponse, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return offeringSchema.DetailOfferingResponse{}, "01", status.StatusUnauthorized, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return offeringSchema.DetailOfferingResponse{}, "02", status.StatusBadRequest, err
+	}
+	get, err := repo.db().GetOffering(ctx, req.Body)
+	if err != nil {
+		return offeringSchema.DetailOfferingResponse{}, "03", status.StatusInternalServerError, err
+	}
+	return offeringSchema.DetailOfferingResponse{Specification: get}, "", status.StatusOK, nil
+}
+
 func (repo *Repository) db() dataSources.OfferingDS {
 	return repo.DBDS
 }

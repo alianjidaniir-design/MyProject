@@ -10,3 +10,7 @@ type ListOfferingResponse struct {
 	Offerings  []dataModels.Offering
 	TotalCount int
 }
+
+type DetailOfferingResponse struct {
+	Specification dataModels.Offering
+}

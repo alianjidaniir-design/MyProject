@@ -149,6 +149,14 @@ func (ds *OfferingDBDS) ListOffering(ctx context.Context, req offeringSchema.Lis
 	return offerings, totalRows, nil
 }
 
+func (ds *OfferingDBDS) GetOffering(ctx context.Context, req offeringSchema.GetRowOfferingRequest) (res dataModels.Offering, err error) {
+	err = ds.checkID(ctx, req.Row)
+	if err != nil {
+		return res, err
+	}
+	return ds.readOfferingByID(ctx, req.Row)
+}
+
 func (ds *OfferingDBDS) readOfferingByID(ctx context.Context, row int64) (res dataModels.Offering, err error) {
 	var offering dataModels.Offering
 	readQuery := fmt.Sprintf("SELECT row , group_number , course_id , teacher_id , capacity , enrolled_count , isActive , reserveation , term_id , class_start_time , class_end_time , exam_start_time , exam_finish_time FROM %s WHERE row = ? ", ds.tableName)
@@ -160,4 +168,20 @@ func (ds *OfferingDBDS) readOfferingByID(ctx context.Context, row int64) (res da
 		return dataModels.Offering{}, err
 	}
 	return offering, nil
+}
+
+func (ds *OfferingDBDS) checkID(ctx context.Context, row int64) error {
+	var check bool
+	searchQuery := `
+SELECT
+CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ?) THEN 1 ELSE 0 END
+`
+	err := ds.db.QueryRowContext(ctx, searchQuery, row).Scan(&check)
+	if err != nil {
+		return errors.New(err.Error())
+	}
+	if !check {
+		return errors.New("This is not a valid ID")
+	}
+	return nil
 }

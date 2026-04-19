@@ -19,3 +19,7 @@ type ListOfferingsRequest struct {
 	PageNumber int `json:"page_number"`
 	PageSize   int `json:"page_size"`
 }
+
+type GetRowOfferingRequest struct {
+	Row int64 `json:"row"`
+}
