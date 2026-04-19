@@ -3,6 +3,7 @@ package mySqlDS
 import (
 	"MyProject/apiSchema/offeringSchema"
 	"MyProject/models/offering/dataModels"
+	"MyProject/pkg/pagination"
 	"context"
 	"database/sql"
 	"errors"
@@ -111,6 +112,41 @@ CASE WHEN EXISTS (SELECT 1 FROM terms WHERE id = ?) THEN 1 ELSE 0 END`
 	}
 	return ds.readOfferingByID(ctx, newID)
 
+}
+
+func (ds *OfferingDBDS) ListOffering(ctx context.Context, req offeringSchema.ListOfferingsRequest) (res []dataModels.Offering, total int, err error) {
+	var offerings []dataModels.Offering
+	page, pageSize, err := pagination.CheckPage(req.PageNumber, req.PageSize)
+	if err != nil {
+		return nil, 0, errors.New(err.Error())
+	}
+	offset := (page - 1) * pageSize
+	limit := pageSize
+	var totalRows int
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s", ds.tableName)
+	err = ds.db.QueryRowContext(ctx, countQuery).Scan(&totalRows)
+	if err != nil {
+		return nil, 0, fmt.Errorf("Error in rows count", err.Error())
+	}
+	selectQuery := fmt.Sprintf("SELECT * FROM %s LIMIT ? OFFSET ?", ds.tableName)
+	rows, err := ds.db.QueryContext(ctx, selectQuery, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("Error pagination", err.Error())
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var offering dataModels.Offering
+		err = rows.Scan(&offering.Row, &offering.GroupNumber, &offering.CourseID, &offering.TeacherID, &offering.Capacity, &offering.EnrolledCount, &offering.IsActive, &offering.Reservation, &offering.TermID, &offering.ClassStartTime, &offering.ClassEndTime, &offering.ExamStartTime, &offering.ExamEndTime)
+		if err != nil {
+			return nil, 0, fmt.Errorf("Error scanning row", err.Error())
+		}
+		offerings = append(offerings, offering)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, 0, fmt.Errorf("Error : ", err.Error())
+	}
+	return offerings, totalRows, nil
 }
 
 func (ds *OfferingDBDS) readOfferingByID(ctx context.Context, row int64) (res dataModels.Offering, err error) {

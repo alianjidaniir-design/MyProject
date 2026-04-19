@@ -59,6 +59,20 @@ func (repo *Repository) Create(ctx context.Context, req commonSchema.BaseRequest
 	return offeringSchema.CreateOfferingResponse{Specification: create}, "", status.StatusOK, nil
 }
 
+func (repo *Repository) List(ctx context.Context, req commonSchema.BaseRequest[offeringSchema.ListOfferingsRequest]) (res offeringSchema.ListOfferingResponse, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return offeringSchema.ListOfferingResponse{}, "04", status.StatusBadRequest, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return offeringSchema.ListOfferingResponse{}, "05", status.StatusBadRequest, err
+	}
+	list, total, err := repo.db().ListOffering(ctx, req.Body)
+	if err != nil {
+		return offeringSchema.ListOfferingResponse{}, "06", status.StatusInternalServerError, err
+	}
+	return offeringSchema.ListOfferingResponse{Offerings: list, TotalCount: total}, "", status.StatusOK, nil
+}
+
 func (repo *Repository) db() dataSources.OfferingDS {
 	return repo.DBDS
 }
