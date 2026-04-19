@@ -6,7 +6,7 @@ func SetupRoutes(app *fiber.App) map[string]string {
 	return mergeMaps(
 		SetupUserRoute(app),
 		SetupCourseRoutes(app),
-		SetupEnrollmentRoute(app),
+		SetupOfferingRoute(app),
 		SetupTeacherRoute(app),
 		SetupDepartmentRoutes(app),
 		SetupTermRoute(app),

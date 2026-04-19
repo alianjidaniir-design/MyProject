@@ -1,8 +1,8 @@
-package department
+package offering
 
 import (
 	"MyProject/apiSchema/commonSchema"
-	"MyProject/apiSchema/departmentSchema"
+	"MyProject/apiSchema/offeringSchema"
 	"MyProject/controllers/mainController"
 	"MyProject/models/repositories"
 	"MyProject/statics/constants/controllerbaseErrCode"
@@ -13,14 +13,14 @@ import (
 func Create(ctx *fiber.Ctx) error {
 	spanCtx := mainController.InitAPI(ctx, "11")
 	defer mainController.FinishSpan(ctx)
-	req := commonSchema.BaseRequest[departmentSchema.CreateDepartmentReq]{}
+	req := commonSchema.BaseRequest[offeringSchema.CreateOfferingRequest]{}
 	errStr, code, err := mainController.ParseBody(ctx, &req)
 	if err != nil {
-		return mainController.Error(ctx, controllerbaseErrCode.DepartmentErrCode, "01", errStr, code, err)
+		return mainController.Error(ctx, controllerbaseErrCode.OfferingErrCode, "01", errStr, code, err)
 	}
-	res, errStr, code, err := repositories.DepartmentRepo.Create(spanCtx, req)
+	res, errStr, code, err := repositories.OfferingRepo.Create(spanCtx, req)
 	if err != nil {
-		return mainController.Error(ctx, controllerbaseErrCode.DepartmentErrCode, "02", errStr, code, err)
+		return mainController.Error(ctx, controllerbaseErrCode.OfferingErrCode, "02", errStr, code, err)
 	}
 	return mainController.Response(ctx, res)
 

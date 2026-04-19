@@ -19,7 +19,7 @@ type TeacherDBDS struct {
 }
 
 func myLocation() *time.Location {
-	location, err := time.LoadLocation("Asia/Tokyo")
+	location, err := time.LoadLocation("Asia/Tehran")
 	if err != nil {
 		return time.FixedZone("Asia/Tehran", 3*3600+30*60)
 	}

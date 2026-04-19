@@ -7,4 +7,5 @@ const (
 	TeacherErrCode    = "2004"
 	DepartmentErrCode = "2005"
 	TermErrCode       = "2006"
+	OfferingErrCode   = "2007"
 )

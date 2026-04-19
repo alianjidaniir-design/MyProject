@@ -1,4 +1,4 @@
-package course
+package department
 
 import (
 	"MyProject/apiSchema/commonSchema"

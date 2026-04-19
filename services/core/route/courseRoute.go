@@ -13,7 +13,6 @@ var routeCourse = map[string]string{
 	"courseUpdate":     "course/update",
 	"courseDelete":     "course/delete",
 	"courseSoftDelete": "course/soft_delete",
-	"courseDeactivate": "course/deactivate",
 	"courseDepartment": "course/list/department",
 }
 
@@ -24,7 +23,6 @@ func SetupCourseRoutes(app *fiber.App) map[string]string {
 	app.Post(routeCourse["courseUpdate"], Update)
 	app.Post(routeCourse["courseDelete"], Delete)
 	app.Post(routeCourse["courseSoftDelete"], SoftDelete)
-	app.Post(routeCourse["courseDeactivate"], DeActive)
 	app.Post(routeCourse["courseDepartment"], ListDepartment)
 
 	return routeCourse
