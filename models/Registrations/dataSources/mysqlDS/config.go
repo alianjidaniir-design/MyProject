@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	TableName             = "registrations"
+	TableName             = "registration"
 	MaxOpenConnections    = 10
 	MaxIdleConnections    = 5
 	MaxConnectionLifetime = 300

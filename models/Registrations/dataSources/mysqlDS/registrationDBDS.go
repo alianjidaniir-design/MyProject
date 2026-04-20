@@ -37,6 +37,7 @@ func NewEnrollmentDBDS(tableName string, db *sql.DB) (dataSources.RegistrationDS
 
 func (ds *RegistrationDBDS) RegistrationsStudent(ctx context.Context, req registrationSchema.RegisterStudentRequest) (res dataModels.Registration, err error) {
 	now := time.Now().In(myLocation())
+	var add int64
 	tx, err := ds.db.BeginTx(ctx, nil)
 	if err != nil {
 		return
@@ -52,7 +53,7 @@ func (ds *RegistrationDBDS) RegistrationsStudent(ctx context.Context, req regist
 	var checkStudent bool
 	teacherQuery := `
 SELECT
-CASE WHEN EXISTS (SELECT 1 FROM student WHERE id = ?)`
+CASE WHEN EXISTS (SELECT 1 FROM student WHERE id = ? AND deleted_at IS NULL) THEN 1 ELSE 0 END`
 	err = tx.QueryRow(teacherQuery, req.StudentID).Scan(&checkStudent)
 	if err != nil {
 		return dataModels.Registration{}, err
@@ -63,66 +64,83 @@ CASE WHEN EXISTS (SELECT 1 FROM student WHERE id = ?)`
 	var checkOffering bool
 	teacherQuery = `
 SELECT
-CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND isActive = true AND capacity > 0  )`
+CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND isActive = true AND capacity > 0  ) THEN 1 ELSE 0 END`
 	err = tx.QueryRow(teacherQuery, req.OfferingID).Scan(&checkOffering)
 	if err != nil {
 		return dataModels.Registration{}, errors.New("checkOffering error")
 	}
 	if !checkOffering {
-		return dataModels.Registration{}, errors.New("this active offering doesn't exist")
+		return dataModels.Registration{}, errors.New("this active offering doesn't exist or this is deActive")
 	}
-	insertQuery := fmt.Sprintf("INSERT INTO %s (student_id, offering_row,status, enrolled_at, created_at, updated_at) VALUES (?,?, ?, ?, ?, ?)", ds.tableName)
+	insertQuery := fmt.Sprintf("INSERT INTO %s (student_id, offering_row,status, enrolled_at, created_at, updated_at , deleted_at) VALUES (?,?, ?, ?, ?, ? , ?)", ds.tableName)
 	var checkCapacity bool
 	teacherQuery = `
 SELECT
-CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE id = ? AND capacity > enrolled_count )`
+CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND capacity > enrolled_count ) THEN 1 ELSE 0 END`
 	err = tx.QueryRow(teacherQuery, req.OfferingID).Scan(&checkCapacity)
 	if err != nil {
-		return dataModels.Registration{}, errors.New("checkCapacity error")
+		return dataModels.Registration{}, err
 	}
 	if !checkCapacity {
 		var reserved = constants.StatusReserveation
-		reserve := fmt.Sprintf("UPDATE offerings SET reserveation = reserveation + 1  WHERE id = ?")
+		reserve := fmt.Sprintf("UPDATE offerings SET reserveation = reserveation + 1  WHERE row = ?")
 		_, err = tx.Exec(reserve, req.OfferingID)
 		if err != nil {
-			return dataModels.Registration{}, errors.New("you can't reserve the reservation")
+			return dataModels.Registration{}, err
 		}
-		_, err := tx.ExecContext(ctx, insertQuery, req.StudentID, req.OfferingID, reserved, now, now, now)
+		_, err = tx.ExecContext(ctx, insertQuery, req.StudentID, req.OfferingID, reserved, now, now, now, nil)
 		if err != nil {
 			return dataModels.Registration{}, errors.New("you can't reserve the reservation")
 		}
+
+	} else {
 		var enrolled = constants.StatusEnrolled
-		enroll := fmt.Sprintf("UPDATE offerings SET enrolled = enrolled + 1 WHERE id = ?")
+		enroll := fmt.Sprintf("UPDATE offerings SET enrolled_count = enrolled_count + 1 WHERE row = ?")
 		_, err = tx.Exec(enroll, req.OfferingID)
 		if err != nil {
-			return dataModels.Registration{}, errors.New("you can't reserve the reservation")
+			return dataModels.Registration{}, err
 		}
-		_, err = tx.ExecContext(ctx, insertQuery, req.StudentID, req.OfferingID, enrolled, now, now, now)
+		sdd, err := tx.ExecContext(ctx, insertQuery, req.StudentID, req.OfferingID, enrolled, now, now, now, nil)
 		if err != nil {
 			return dataModels.Registration{}, errors.New("you can't enroll the student")
 		}
+		add, err = sdd.LastInsertId()
+		if err != nil {
+			return dataModels.Registration{}, err
+		}
 	}
-	var lastID int64
-	selectQuery := fmt.Sprintf("SELECT id FROM %s ", ds.tableName)
-	err = tx.QueryRow(selectQuery).Scan(&lastID)
-	if err != nil {
-		return dataModels.Registration{}, err
-	}
-	return ds.readQuery(ctx, lastID)
+	return ds.readQuery(ctx, add)
 }
 
 func (ds *RegistrationDBDS) readQuery(ctx context.Context, ID int64) (dataModels.Registration, error) {
-	var enrollment dataModels.Registration
+	var register dataModels.Registration
 	readQuery := fmt.Sprintf(`
-        SELECT id, student_id, offering_row, status, enrolled_at, canceled_at, created_at, updated_at , deleted_at
+        SELECT ID, student_id, offering_row, status, enrolled_at, canceled_at, created_at, updated_at , deleted_at
         FROM %s
-        WHERE id = ? AND status = ? `, ds.tableName)
-	var ff = constants.StatusEnrolled
-	err := ds.db.QueryRowContext(ctx, readQuery, ID, ff).Scan(&enrollment.ID, &enrollment.StudentID, &enrollment.OfferingRow, &enrollment.Status, &enrollment.EnrolledAt, &enrollment.CanceledAt, &enrollment.CreatedAt, &enrollment.UpdatedAt, &enrollment.DeletedAt)
-	if err != nil || errors.Is(err, sql.ErrNoRows) {
-		return dataModels.Registration{}, err
+        WHERE id = ? `, ds.tableName)
+	var createdAt, updatedAt, deletedAt sql.NullTime
+	err := ds.db.QueryRowContext(ctx, readQuery, ID).Scan(&register.ID, &register.StudentID, &register.OfferingRow, &register.Status, &register.EnrolledAt, &register.CanceledAt, &createdAt, &updatedAt, &deletedAt)
+	if err != nil {
+		return dataModels.Registration{}, fmt.Errorf(err.Error(), ID, err, ID, err)
+	}
+	if createdAt.Valid {
+		register.CreatedAt = createdAt.Time.In(myLocation())
+	} else {
+		register.CreatedAt = time.Time{}
 	}
 
-	return enrollment, nil
+	if updatedAt.Valid {
+		fmt.Println(updatedAt.Time)
+		register.UpdatedAt = updatedAt.Time.In(myLocation())
+	} else {
+		register.UpdatedAt = time.Time{}
+	}
+	if deletedAt.Valid {
+		register.DeletedAt = deletedAt.Time.In(myLocation())
+	} else {
+		register.DeletedAt = time.Time{}
+	}
+
+	return register, nil
 
 }
