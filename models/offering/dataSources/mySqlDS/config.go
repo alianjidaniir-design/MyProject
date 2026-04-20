@@ -35,7 +35,7 @@ func LoadConfig() (Config, error) {
 		cfg.DSN = defaultTableName
 	}
 	if err := ValidateTableName(cfg.TableName); err != nil {
-		panic(err)
+		return cfg, err
 	}
 	return cfg, nil
 }

@@ -192,7 +192,7 @@ func (ds *CourseDBDS) ListDepartmentsCourse(ctx context.Context, req courseSchem
 
 func (ds *CourseDBDS) readCourseByID(ctx context.Context, id int64) (courseDataModle.Course, error) {
 	var course courseDataModle.Course
-	readQuery := fmt.Sprintf("SELECT id , course_number , title , unit , department_id , description, created_at , updated_at , deleted_at FROM %s WHERE id = ?", ds.tableSQL)
+	readQuery := fmt.Sprintf("SELECT id , course_number , title , unit , department_id , description, created_at , updated_at , deleted_at FROM %s WHERE id = ? ORDER BY id ", ds.tableSQL)
 	var createdAt, updatedAt, deletedAt sql.NullTime
 	if err := ds.db.QueryRowContext(ctx, readQuery, id).Scan(&course.ID, &course.CourseNumber, &course.Title, &course.Unit, &course.DepartmentID, &course.Description, &createdAt, &updatedAt, &deletedAt); err != nil {
 		return courseDataModle.Course{}, err

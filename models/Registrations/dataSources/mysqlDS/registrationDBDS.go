@@ -45,6 +45,7 @@ func (ds *RegistrationDBDS) RegistrationsStudent(ctx context.Context, req regist
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
+			panic(r)
 		}
 		if err != nil {
 			tx.Rollback()
@@ -88,13 +89,18 @@ CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND capacity > enrolled_
 		if err != nil {
 			return dataModels.Registration{}, err
 		}
-		_, err = tx.ExecContext(ctx, insertQuery, req.StudentID, req.OfferingID, reserved, now, now, now, nil)
+		result, err := tx.ExecContext(ctx, insertQuery, req.StudentID, req.OfferingID, reserved, now, now, now, nil)
 		if err != nil {
 			return dataModels.Registration{}, errors.New("you can't reserve the reservation")
+		}
+		add, err = result.LastInsertId()
+		if err != nil {
+			return dataModels.Registration{}, err
 		}
 
 	} else {
 		var enrolled = constants.StatusEnrolled
+
 		enroll := fmt.Sprintf("UPDATE offerings SET enrolled_count = enrolled_count + 1 WHERE row = ?")
 		_, err = tx.Exec(enroll, req.OfferingID)
 		if err != nil {
@@ -109,7 +115,57 @@ CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND capacity > enrolled_
 			return dataModels.Registration{}, err
 		}
 	}
+	if err = tx.Commit(); err != nil {
+		return dataModels.Registration{}, err
+	}
 	return ds.readQuery(ctx, add)
+}
+
+func (ds *RegistrationDBDS) GetRegisterStudent(ctx context.Context, req registrationSchema.GetRegisteredStudentsRequest) (res dataModels.Registration, err error) {
+	err = ds.check(ctx, req.ID)
+	if err != nil {
+		return dataModels.Registration{}, err
+	}
+	return ds.readQuery(ctx, req.ID)
+}
+
+func (ds *RegistrationDBDS) UpdateRegisterStudent(ctx context.Context, req registrationSchema.GetRegisteredStudentsRequest) (res dataModels.Registration, err error) {
+	err = ds.check(ctx, req.ID)
+	if err != nil {
+		return dataModels.Registration{}, err
+	}
+	now := time.Now().In(myLocation())
+	updateQuery := fmt.Sprintf("UPDATE %s SET updated_at = ? WHERE ID = ? ", ds.tableName)
+	result, err := ds.db.PrepareContext(ctx, updateQuery)
+	if err != nil {
+		return dataModels.Registration{}, err
+	}
+	defer result.Close()
+	_, err = result.ExecContext(ctx, now, req.ID)
+	if err != nil {
+		return dataModels.Registration{}, err
+	}
+	return ds.readQuery(ctx, req.ID)
+}
+
+func (ds *RegistrationDBDS) DeleteRegisterStudent(ctx context.Context, req registrationSchema.GetRegisteredStudentsRequest) (res dataModels.Registration, err error) {
+	err = ds.check(ctx, req.ID)
+	if err != nil {
+		return dataModels.Registration{}, err
+	}
+	now := time.Now().In(myLocation())
+	deleteQuery := fmt.Sprintf("UPDATE %s SET deleted_at = ? WHERE ID = ? AND deleted_at IS NULL ", ds.tableName)
+	result, err := ds.db.PrepareContext(ctx, deleteQuery)
+	if err != nil {
+		return dataModels.Registration{}, err
+	}
+	defer result.Close()
+	_, err = result.ExecContext(ctx, now, req.ID)
+	if err != nil {
+		return dataModels.Registration{}, err
+	}
+	return ds.readQuery(ctx, req.ID)
+
 }
 
 func (ds *RegistrationDBDS) readQuery(ctx context.Context, ID int64) (dataModels.Registration, error) {
@@ -118,10 +174,14 @@ func (ds *RegistrationDBDS) readQuery(ctx context.Context, ID int64) (dataModels
         SELECT ID, student_id, offering_row, status, enrolled_at, canceled_at, created_at, updated_at , deleted_at
         FROM %s
         WHERE id = ? `, ds.tableName)
-	var createdAt, updatedAt, deletedAt sql.NullTime
-	err := ds.db.QueryRowContext(ctx, readQuery, ID).Scan(&register.ID, &register.StudentID, &register.OfferingRow, &register.Status, &register.EnrolledAt, &register.CanceledAt, &createdAt, &updatedAt, &deletedAt)
+	var createdAt, updatedAt, deletedAt, canceledAt sql.NullTime
+	err := ds.db.QueryRowContext(ctx, readQuery, ID).Scan(&register.ID, &register.StudentID, &register.OfferingRow, &register.Status, &register.EnrolledAt, &canceledAt, &createdAt, &updatedAt, &deletedAt)
 	if err != nil {
-		return dataModels.Registration{}, fmt.Errorf(err.Error(), ID, err, ID, err)
+		return dataModels.Registration{}, fmt.Errorf(err.Error())
+	}
+
+	if canceledAt.Valid {
+		register.CanceledAt = canceledAt.Time.In(myLocation())
 	}
 	if createdAt.Valid {
 		register.CreatedAt = createdAt.Time.In(myLocation())
@@ -130,7 +190,6 @@ func (ds *RegistrationDBDS) readQuery(ctx context.Context, ID int64) (dataModels
 	}
 
 	if updatedAt.Valid {
-		fmt.Println(updatedAt.Time)
 		register.UpdatedAt = updatedAt.Time.In(myLocation())
 	} else {
 		register.UpdatedAt = time.Time{}
@@ -142,5 +201,22 @@ func (ds *RegistrationDBDS) readQuery(ctx context.Context, ID int64) (dataModels
 	}
 
 	return register, nil
+
+}
+
+func (ds *RegistrationDBDS) check(ctx context.Context, id int64) error {
+	var checkRegister bool
+	selectQuery := `
+SELECT
+CASE WHEN EXISTS (SELECT 1 FROM registration WHERE ID = ?) THEN 1 ELSE 0 END
+`
+	err := ds.db.QueryRowContext(ctx, selectQuery, id).Scan(&checkRegister)
+	if err != nil {
+		return err
+	}
+	if !checkRegister {
+		return errors.New("you can't check the registration . because there is no registration")
+	}
+	return nil
 
 }
