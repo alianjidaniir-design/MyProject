@@ -1,8 +1,9 @@
 package constants
 
 const (
-	StatusEnrolled = "enrolled"
-	StatusCanceled = "canceled"
+	StatusEnrolled     = "enrolled"
+	StatusCanceled     = "canceled"
+	StatusReserveation = "reserveation"
 )
 
 const (

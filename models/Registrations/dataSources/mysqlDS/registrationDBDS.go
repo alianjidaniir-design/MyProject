@@ -3,6 +3,7 @@ package mysqlDS
 import (
 	"MyProject/apiSchema/registrationSchema"
 	"MyProject/models/Registrations/dataModels"
+	"MyProject/models/Registrations/dataSources"
 	"MyProject/statics/constants"
 	"context"
 	"database/sql"
@@ -24,7 +25,7 @@ func myLocation() *time.Location {
 	return location
 }
 
-func NewEnrollmentDBDS(tableName string, db *sql.DB) (dataModels.Registration, error) {
+func NewEnrollmentDBDS(tableName string, db *sql.DB) (dataSources.RegistrationDS, error) {
 	ff := &RegistrationDBDS{
 		tableName: tableName,
 		db:        db,
@@ -35,7 +36,7 @@ func NewEnrollmentDBDS(tableName string, db *sql.DB) (dataModels.Registration, e
 }
 
 func (ds *RegistrationDBDS) RegistrationsStudent(ctx context.Context, req registrationSchema.RegisterStudentRequest) (res dataModels.Registration, err error) {
-	var registration dataModels.Registration
+	now := time.Now().In(myLocation())
 	tx, err := ds.db.BeginTx(ctx, nil)
 	if err != nil {
 		return
@@ -51,10 +52,10 @@ func (ds *RegistrationDBDS) RegistrationsStudent(ctx context.Context, req regist
 	var checkStudent bool
 	teacherQuery := `
 SELECT
-CASE WHEN EXISTS (SELECT 1 FROM registrations WHERE student_id = ?)`
+CASE WHEN EXISTS (SELECT 1 FROM student WHERE id = ?)`
 	err = tx.QueryRow(teacherQuery, req.StudentID).Scan(&checkStudent)
 	if err != nil {
-		return dataModels.Registration{}, errors.New("checkStudent error")
+		return dataModels.Registration{}, err
 	}
 	if !checkStudent {
 		return dataModels.Registration{}, errors.New("this student doesn't exist")
@@ -62,7 +63,7 @@ CASE WHEN EXISTS (SELECT 1 FROM registrations WHERE student_id = ?)`
 	var checkOffering bool
 	teacherQuery = `
 SELECT
-CASE WHEN EXISTS (SELECT 1 FROM registrations WHERE offering_row = ? AND isActive = true )`
+CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND isActive = true AND capacity > 0  )`
 	err = tx.QueryRow(teacherQuery, req.OfferingID).Scan(&checkOffering)
 	if err != nil {
 		return dataModels.Registration{}, errors.New("checkOffering error")
@@ -70,7 +71,44 @@ CASE WHEN EXISTS (SELECT 1 FROM registrations WHERE offering_row = ? AND isActiv
 	if !checkOffering {
 		return dataModels.Registration{}, errors.New("this active offering doesn't exist")
 	}
-
+	insertQuery := fmt.Sprintf("INSERT INTO %s (student_id, offering_row,status, enrolled_at, created_at, updated_at) VALUES (?,?, ?, ?, ?, ?)", ds.tableName)
+	var checkCapacity bool
+	teacherQuery = `
+SELECT
+CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE id = ? AND capacity > enrolled_count )`
+	err = tx.QueryRow(teacherQuery, req.OfferingID).Scan(&checkCapacity)
+	if err != nil {
+		return dataModels.Registration{}, errors.New("checkCapacity error")
+	}
+	if !checkCapacity {
+		var reserved = constants.StatusReserveation
+		reserve := fmt.Sprintf("UPDATE offerings SET reserveation = reserveation + 1  WHERE id = ?")
+		_, err = tx.Exec(reserve, req.OfferingID)
+		if err != nil {
+			return dataModels.Registration{}, errors.New("you can't reserve the reservation")
+		}
+		_, err := tx.ExecContext(ctx, insertQuery, req.StudentID, req.OfferingID, reserved, now, now, now)
+		if err != nil {
+			return dataModels.Registration{}, errors.New("you can't reserve the reservation")
+		}
+		var enrolled = constants.StatusEnrolled
+		enroll := fmt.Sprintf("UPDATE offerings SET enrolled = enrolled + 1 WHERE id = ?")
+		_, err = tx.Exec(enroll, req.OfferingID)
+		if err != nil {
+			return dataModels.Registration{}, errors.New("you can't reserve the reservation")
+		}
+		_, err = tx.ExecContext(ctx, insertQuery, req.StudentID, req.OfferingID, enrolled, now, now, now)
+		if err != nil {
+			return dataModels.Registration{}, errors.New("you can't enroll the student")
+		}
+	}
+	var lastID int64
+	selectQuery := fmt.Sprintf("SELECT id FROM %s ", ds.tableName)
+	err = tx.QueryRow(selectQuery).Scan(&lastID)
+	if err != nil {
+		return dataModels.Registration{}, err
+	}
+	return ds.readQuery(ctx, lastID)
 }
 
 func (ds *RegistrationDBDS) readQuery(ctx context.Context, ID int64) (dataModels.Registration, error) {
