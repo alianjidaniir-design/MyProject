@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	EnrollmentTableName   = "enrollments"
+	TableName             = "registrations"
 	MaxOpenConnections    = 10
 	MaxIdleConnections    = 5
 	MaxConnectionLifetime = 300
@@ -17,7 +17,7 @@ const (
 
 type Config struct {
 	DSN                   string
-	EnrollmentTableName   string
+	RegistrationTableName string
 	MaxOpenConnections    int
 	MaxIdleConnections    int
 	MaxConnectionLifetime int
@@ -26,15 +26,15 @@ type Config struct {
 func LoadConfig() (Config, error) {
 	cfg := Config{
 		DSN:                   normalize(strings.TrimSpace(os.Getenv("MYSQL_DSN"))),
-		EnrollmentTableName:   strings.TrimSpace(os.Getenv("MYSQL_ENROLLMENT_TABLE")),
+		RegistrationTableName: strings.TrimSpace(os.Getenv("MYSQL_REGISTRATION_TABLE")),
 		MaxOpenConnections:    readEnvInt("MYSQL_MAX_OPEN_CONNECTIONS", MaxOpenConnections),
 		MaxIdleConnections:    readEnvInt("MYSQL_MAX_IDLE_CONNECTIONS", MaxIdleConnections),
 		MaxConnectionLifetime: readEnvInt("MYSQL_MAX_CONNECTION_LIFETIME", MaxConnectionLifetime),
 	}
-	if cfg.EnrollmentTableName == "" {
-		 cfg.EnrollmentTableName = EnrollmentTableName
+	if cfg.RegistrationTableName == "" {
+		cfg.RegistrationTableName = TableName
 	}
-	if err := ValidateTableName(cfg.EnrollmentTableName); err != nil {
+	if err := ValidateTableName(cfg.RegistrationTableName); err != nil {
 		return cfg, err
 	}
 	return cfg, nil

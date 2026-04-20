@@ -87,6 +87,21 @@ func (repo *Repository) Get(ctx context.Context, req commonSchema.BaseRequest[of
 	return offeringSchema.DetailOfferingResponse{Specification: get}, "", status.StatusOK, nil
 }
 
+func (repo *Repository) DeActive(ctx context.Context, req commonSchema.BaseRequest[offeringSchema.GetRowOfferingRequest]) (res offeringSchema.DeactivateOfferingResponse, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return offeringSchema.DeactivateOfferingResponse{}, "01", status.StatusUnauthorized, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return offeringSchema.DeactivateOfferingResponse{}, "02", status.StatusBadRequest, err
+	}
+	deActive, err := repo.db().DeActiveOffering(ctx, req.Body)
+	if err != nil {
+		return offeringSchema.DeactivateOfferingResponse{}, "03", status.StatusInternalServerError, err
+	}
+	return offeringSchema.DeactivateOfferingResponse{Specification: deActive}, "", status.StatusOK, nil
+
+}
+
 func (repo *Repository) db() dataSources.OfferingDS {
 	return repo.DBDS
 }

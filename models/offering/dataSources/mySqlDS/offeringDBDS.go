@@ -8,7 +8,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"time"
 )
 
 type OfferingDBDS struct {
@@ -16,13 +15,6 @@ type OfferingDBDS struct {
 	db        *sql.DB
 }
 
-func MyLocation() *time.Location {
-	loc, err := time.LoadLocation("Asia/Tehran")
-	if err != nil {
-		return time.FixedZone("Asia/Tehran", 3*3600+30*60)
-	}
-	return loc
-}
 func NewOfferingDBDS(tableName string, db *sql.DB) (*OfferingDBDS, error) {
 	offer := &OfferingDBDS{
 		tableName: tableName,
@@ -158,20 +150,32 @@ func (ds *OfferingDBDS) GetOffering(ctx context.Context, req offeringSchema.GetR
 }
 func (ds *OfferingDBDS) DeActiveOffering(ctx context.Context, req offeringSchema.GetRowOfferingRequest) (res dataModels.Offering, err error) {
 	var check bool
-	serach := `
+	search := `
 SELECT
 CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND isActive = true ) THEN 1 ELSE 0 END
 `
-	err = ds.db.QueryRowContext(ctx, serach, req.Row).Scan(&check)
+	err = ds.db.QueryRowContext(ctx, search, req.Row).Scan(&check)
 	if err != nil {
 		return dataModels.Offering{}, err
 	}
 	if !check {
 		return dataModels.Offering{}, errors.New("active Offering does not exist")
 	}
-	deActiveQuery:=fmt.Sprintf("UPDATE `%s` SET isActive = 0 WHERE row = ?", ds.tableName)
-
-
+	deActiveQuery := fmt.Sprintf("UPDATE `%s` SET isActive = 0 WHERE row = ?", ds.tableName)
+	update, err := ds.db.PrepareContext(ctx, deActiveQuery)
+	if err != nil {
+		return dataModels.Offering{}, err
+	}
+	defer update.Close()
+	result, err := update.ExecContext(ctx, req.Row)
+	if err != nil {
+		return dataModels.Offering{}, err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil || rows == 0 {
+		return dataModels.Offering{}, err
+	}
+	return ds.readOfferingByID(ctx, req.Row)
 }
 
 func (ds *OfferingDBDS) readOfferingByID(ctx context.Context, row int64) (res dataModels.Offering, err error) {
