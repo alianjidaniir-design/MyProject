@@ -4,6 +4,7 @@ import (
 	"MyProject/apiSchema/registrationSchema"
 	"MyProject/models/Registrations/dataModels"
 	"MyProject/models/Registrations/dataSources"
+	"MyProject/pkg/pagination"
 	"MyProject/statics/constants"
 	"context"
 	"database/sql"
@@ -166,6 +167,53 @@ func (ds *RegistrationDBDS) DeleteRegisterStudent(ctx context.Context, req regis
 	}
 	return ds.readQuery(ctx, req.ID)
 
+}
+
+func (ds *RegistrationDBDS) ListAllRegisterStudent(ctx context.Context, req registrationSchema.SelectPageRegisteredStudentsRequest) (res []dataModels.Registration, total int, err error) {
+	var registers []dataModels.Registration
+	page, pageSize, err := pagination.CheckPage(req.Page, req.PageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+	offset := (page - 1) * pageSize
+	limit := pageSize
+	var totalRows int
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s", ds.tableName)
+	err = ds.db.QueryRowContext(ctx, countQuery).Scan(&totalRows)
+	if err != nil {
+		return nil, 0, errors.New("error getting the total count")
+	}
+	selectQuery := fmt.Sprintf("SELECT * FROM %s LIMIT ? OFFSET ? ", ds.tableName)
+	rows, err := ds.db.QueryContext(ctx, selectQuery, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var register dataModels.Registration
+		var createAt, updatedAt, deletedAt, caceledAt sql.NullTime
+		err = rows.Scan(&register.ID, &register.StudentID, &register.OfferingRow, &register.Status, &register.EnrolledAt, &caceledAt, &createAt, &updatedAt, &deletedAt)
+		if createAt.Valid {
+			register.CreatedAt = createAt.Time
+		}
+		if updatedAt.Valid {
+			register.UpdatedAt = updatedAt.Time
+		}
+		if deletedAt.Valid {
+			register.DeletedAt = deletedAt.Time
+		}
+		if caceledAt.Valid {
+			register.CanceledAt = caceledAt.Time
+		}
+		if err != nil {
+			return nil, 0, errors.New("error scanning the row")
+		}
+		registers = append(registers, register)
+	}
+	if rows.Err() != nil {
+		return nil, 0, err
+	}
+	return registers, totalRows, nil
 }
 
 func (ds *RegistrationDBDS) readQuery(ctx context.Context, ID int64) (dataModels.Registration, error) {

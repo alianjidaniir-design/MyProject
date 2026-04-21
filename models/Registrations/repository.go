@@ -103,6 +103,20 @@ func (repo *Repository) Delete(ctx context.Context, req commonSchema.BaseRequest
 	return registrationSchema.DeleteStudentResponse{Information: deleted, Massage: "deleted successfully"}, "", status.StatusOK, nil
 }
 
+func (repo *Repository) List(ctx context.Context, req commonSchema.BaseRequest[registrationSchema.SelectPageRegisteredStudentsRequest]) (res registrationSchema.ListStudentsResponse, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return registrationSchema.ListStudentsResponse{}, "01", status.StatusUnauthorized, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return registrationSchema.ListStudentsResponse{}, "02", status.StatusBadRequest, errors.New("DB DS not initialized")
+	}
+	list, total, err := repo.db().ListAllRegisterStudent(ctx, req.Body)
+	if err != nil {
+		return registrationSchema.ListStudentsResponse{}, "03", status.StatusInternalServerError, err
+	}
+	return registrationSchema.ListStudentsResponse{List: list, Total: total}, "", status.StatusOK, nil
+}
+
 func (repo *Repository) db() dataSources.RegistrationDS {
 	return repo.DBDS
 }

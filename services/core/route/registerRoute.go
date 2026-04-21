@@ -11,6 +11,7 @@ var registerRoute = map[string]string{
 	"registrationGet":    "registration/get",
 	"registrationUpdate": "registration/update",
 	"registrationDelete": "registration/delete",
+	"registrationList":   "registration/list",
 }
 
 func SetupRegistrationRoute(app *fiber.App) map[string]string {
@@ -18,5 +19,6 @@ func SetupRegistrationRoute(app *fiber.App) map[string]string {
 	app.Post(registerRoute["registrationGet"], Get)
 	app.Post(registerRoute["registrationUpdate"], Update)
 	app.Post(registerRoute["registrationDelete"], Delete)
+	app.Post(registerRoute["registrationList"], List)
 	return registerRoute
 }
