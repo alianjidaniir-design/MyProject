@@ -183,16 +183,17 @@ func (ds *RegistrationDBDS) ListAllRegisterStudent(ctx context.Context, req regi
 	if err != nil {
 		return nil, 0, errors.New("error getting the total count")
 	}
-	selectQuery := fmt.Sprintf("SELECT * FROM %s LIMIT ? OFFSET ? ", ds.tableName)
+	selectQuery := fmt.Sprintf("SELECT * FROM %s LIMIT ? OFFSET ? ORDER BY  ", ds.tableName)
 	rows, err := ds.db.QueryContext(ctx, selectQuery, limit, offset)
 	if err != nil {
+
 		return nil, 0, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var register dataModels.Registration
-		var createAt, updatedAt, deletedAt, caceledAt sql.NullTime
-		err = rows.Scan(&register.ID, &register.StudentID, &register.OfferingRow, &register.Status, &register.EnrolledAt, &caceledAt, &createAt, &updatedAt, &deletedAt)
+		var createAt, updatedAt, deletedAt, canceledAt sql.NullTime
+		err = rows.Scan(&register.ID, &register.StudentID, &register.OfferingRow, &register.Status, &register.EnrolledAt, &canceledAt, &createAt, &updatedAt, &deletedAt)
 		if createAt.Valid {
 			register.CreatedAt = createAt.Time
 		}
@@ -202,8 +203,8 @@ func (ds *RegistrationDBDS) ListAllRegisterStudent(ctx context.Context, req regi
 		if deletedAt.Valid {
 			register.DeletedAt = deletedAt.Time
 		}
-		if caceledAt.Valid {
-			register.CanceledAt = caceledAt.Time
+		if canceledAt.Valid {
+			register.CanceledAt = canceledAt.Time
 		}
 		if err != nil {
 			return nil, 0, errors.New("error scanning the row")
@@ -214,6 +215,84 @@ func (ds *RegistrationDBDS) ListAllRegisterStudent(ctx context.Context, req regi
 		return nil, 0, err
 	}
 	return registers, totalRows, nil
+}
+
+func (ds *RegistrationDBDS) CancelRegisterStudent(ctx context.Context, req registrationSchema.GetRegisteredStudentsRequest) (res dataModels.Registration, err error) {
+	now := time.Now().In(myLocation())
+	tx, err := ds.db.BeginTx(ctx, nil)
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		} else if err != nil {
+			tx.Rollback()
+		}
+	}()
+	var checkStatus bool
+	var can = constants.StatusCanceled
+	checkQuery := `
+SELECT
+CASE WHEN EXISTS (SELECT 1 FROM registration WHERE id = ? AND status != ? AND deleted_at IS NULL) THEN 1 ELSE 0 END
+`
+	err = tx.QueryRowContext(ctx, checkQuery, req.ID, can).Scan(&checkStatus)
+	if err != nil {
+		return dataModels.Registration{}, err
+	}
+	if !checkStatus {
+		return dataModels.Registration{}, errors.New(" status is canceled or registration deleted")
+	}
+
+	selectStatus := fmt.Sprintf("SELECT status FROM registration WHERE id = ? AND deleted_at IS NULL")
+	err = tx.QueryRowContext(ctx, selectStatus, req.ID).Scan(&res.Status)
+	var canceling = constants.StatusCanceled
+	updateQuery := fmt.Sprintf("UPDATE %s SET canceled_at = ? , status = ? WHERE ID = ? AND status = ?", ds.tableName)
+	result, err := tx.PrepareContext(ctx, updateQuery)
+	if err != nil {
+		return dataModels.Registration{}, err
+	}
+	defer result.Close()
+	_, err = result.ExecContext(ctx, now, canceling, req.ID, res.Status)
+	if err != nil {
+		return dataModels.Registration{}, err
+	}
+	selectOfferingRow := fmt.Sprintf("SELECT offering_row FROM %s WHERE id = ? ", ds.tableName)
+	var offeringRow int
+	err = tx.QueryRowContext(ctx, selectOfferingRow, req.ID).Scan(&offeringRow)
+	if err != nil {
+		return dataModels.Registration{}, fmt.Errorf("cannot find offering row for registration %d: %w", req.ID, err)
+	}
+
+	if res.Status == constants.StatusReserveation {
+
+		decrementEnrolledQuery := fmt.Sprintf("UPDATE offerings SET reserveation = reserveation - 1  WHERE row = ? AND reserveation > 0")
+		result, err = tx.PrepareContext(ctx, decrementEnrolledQuery)
+		if err != nil {
+			return dataModels.Registration{}, err
+		}
+		defer result.Close()
+		_, err = result.ExecContext(ctx, offeringRow)
+		if err != nil {
+			return dataModels.Registration{}, err
+		}
+	}
+	if res.Status == constants.StatusEnrolled {
+
+		decrementEnrolledQuery := fmt.Sprintf("UPDATE offerings SET enrolled_count = enrolled_count - 1 WHERE row = ? AND enrolled_count > 0")
+		result, err = tx.PrepareContext(ctx, decrementEnrolledQuery)
+		if err != nil {
+			return dataModels.Registration{}, err
+		}
+		defer result.Close()
+		_, err = result.ExecContext(ctx, offeringRow)
+		if err != nil {
+			return dataModels.Registration{}, err
+		}
+	}
+	err = tx.Commit()
+	if err != nil {
+		return dataModels.Registration{}, err
+	}
+	return ds.readQuery(ctx, req.ID)
+
 }
 
 func (ds *RegistrationDBDS) readQuery(ctx context.Context, ID int64) (dataModels.Registration, error) {
