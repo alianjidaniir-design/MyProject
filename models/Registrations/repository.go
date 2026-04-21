@@ -130,6 +130,20 @@ func (repo *Repository) Cancel(ctx context.Context, req commonSchema.BaseRequest
 	return registrationSchema.CancelRegistrationResponse{Information: cancel}, "", status.StatusOK, nil
 }
 
+func (repo *Repository) ListStudents(ctx context.Context, req commonSchema.BaseRequest[registrationSchema.ListStudentsRequest]) (res registrationSchema.ListStudentResponse, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return registrationSchema.ListStudentResponse{}, "01", status.StatusUnauthorized, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return registrationSchema.ListStudentResponse{}, "02", status.StatusBadRequest, errors.New("DB DS not initialized")
+	}
+	student, tot, err := repo.db().ListStudentsOffering(ctx, req.Body)
+	if err != nil {
+		return registrationSchema.ListStudentResponse{}, "03", status.StatusInternalServerError, err
+	}
+	return registrationSchema.ListStudentResponse{List: student, Total: tot}, "", status.StatusOK, nil
+}
+
 func (repo *Repository) db() dataSources.RegistrationDS {
 	return repo.DBDS
 }

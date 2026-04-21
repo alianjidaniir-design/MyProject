@@ -183,7 +183,7 @@ func (ds *RegistrationDBDS) ListAllRegisterStudent(ctx context.Context, req regi
 	if err != nil {
 		return nil, 0, errors.New("error getting the total count")
 	}
-	selectQuery := fmt.Sprintf("SELECT * FROM %s LIMIT ? OFFSET ? ORDER BY  ", ds.tableName)
+	selectQuery := fmt.Sprintf("SELECT * FROM %s LIMIT ? OFFSET ?", ds.tableName)
 	rows, err := ds.db.QueryContext(ctx, selectQuery, limit, offset)
 	if err != nil {
 
@@ -293,6 +293,43 @@ CASE WHEN EXISTS (SELECT 1 FROM registration WHERE id = ? AND status != ? AND de
 	}
 	return ds.readQuery(ctx, req.ID)
 
+}
+
+func (ds *RegistrationDBDS) ListStudentsOffering(ctx context.Context, req registrationSchema.ListStudentsRequest) (res []dataModels.Offering, total int, err error) {
+	var registers []dataModels.Offering
+	page, pageSize, err := pagination.CheckPage(req.Page, req.PageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+	offset := (page - 1) * pageSize
+	limit := pageSize
+	var totalRows int
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE student_id = ? ", ds.tableName) // اگر میخواهید تعداد کل برای آن دانشجو را بگیرید
+	err = ds.db.QueryRowContext(ctx, countQuery, req.StudentID).Scan(&totalRows)
+	if err != nil {
+		return nil, 0, fmt.Errorf(err.Error(), "ERROR")
+	}
+	selectQuery := fmt.Sprintf("SELECT offering_row , status FROM %s WHERE student_id = ? ORDER BY offering_row LIMIT ? OFFSET ? ", ds.tableName)
+	rows, err := ds.db.QueryContext(ctx, selectQuery, req.StudentID, limit, offset)
+	if err != nil {
+
+		return nil, 0, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var register dataModels.Offering
+		err = rows.Scan(&register.OfferingRow, &register.Status)
+
+		if err != nil {
+			return nil, 0, errors.New("error scanning the row")
+		}
+
+		registers = append(registers, register)
+	}
+	if rows.Err() != nil {
+		return nil, 0, err
+	}
+	return registers, totalRows, nil
 }
 
 func (ds *RegistrationDBDS) readQuery(ctx context.Context, ID int64) (dataModels.Registration, error) {

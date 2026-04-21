@@ -16,6 +16,11 @@ type ListStudentsResponse struct {
 	Total int
 }
 
+type ListStudentResponse struct {
+	List  []dataModels.Offering
+	Total int
+}
+
 type CancelRegistrationResponse struct {
 	Information dataModels.Registration
 	Massage     string

@@ -13,3 +13,9 @@ type SelectPageRegisteredStudentsRequest struct {
 	Page     int `json:"page"`
 	PageSize int `json:"page_size"`
 }
+
+type ListStudentsRequest struct {
+	StudentID int64 `json:"student_id"`
+	Page      int   `json:"page"`
+	PageSize  int   `json:"page_size"`
+}

@@ -14,6 +14,7 @@ type RegisterRepository interface {
 	Delete(ctx context.Context, req commonSchema.BaseRequest[registrationSchema.GetRegisteredStudentsRequest]) (res registrationSchema.DeleteStudentResponse, errStr string, code int, err error)
 	List(ctx context.Context, req commonSchema.BaseRequest[registrationSchema.SelectPageRegisteredStudentsRequest]) (res registrationSchema.ListStudentsResponse, errStr string, code int, err error)
 	Cancel(ctx context.Context, req commonSchema.BaseRequest[registrationSchema.GetRegisteredStudentsRequest]) (res registrationSchema.CancelRegistrationResponse, errStr string, code int, err error)
+	ListStudents(ctx context.Context, req commonSchema.BaseRequest[registrationSchema.ListStudentsRequest]) (res registrationSchema.ListStudentResponse, errStr string, code int, err error)
 }
 
 var RegistrationRepo RegisterRepository = Registrations.GetRepo()
