@@ -8,13 +8,13 @@ type Profile struct {
 	Score          int    `json:"score"`
 }
 
-type ScoresResponse struct {
+type ScoresStudents struct {
 	StudentID       int64  `json:"student_id"`
-	StudentCode     int    `json:"student_code"`
+	StudentCode     string `json:"student_code"`
 	CourseID        int64  `json:"course_id"`
-	CourseNumber    int    `json:"course_number"`
+	CourseNumber    string `json:"course_number"`
 	OfferingRows    int64  `json:"offering_rows"`
-	OfferingGroup   int64  `json:"offering_group"`
+	OfferingGroup   int    `json:"offering_group"`
 	OfferingTeacher int64  `json:"offering_teacher"`
 	StatusScore     string `json:"status_score"`
 	Grade           string `json:"grade"`

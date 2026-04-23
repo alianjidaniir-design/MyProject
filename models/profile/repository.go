@@ -59,6 +59,20 @@ func (repo *Repository) Create(ctx context.Context, req commonSchema.BaseRequest
 	return profileSchema.InformationResponse{Details: created, Message: "created successfully"}, "", status.StatusOK, nil
 }
 
+func (repo *Repository) List(ctx context.Context, req commonSchema.BaseRequest[profileSchema.ListAllScoresReq]) (res profileSchema.ListAllScoresResp, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return profileSchema.ListAllScoresResp{}, "01", status.UnAvailableServiceError, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return profileSchema.ListAllScoresResp{}, "02", status.StatusUnauthorized, errors.New("db is nil")
+	}
+	list, totalPage, err := repo.db().ListScoresStudents(ctx, req.Body)
+	if err != nil {
+		return profileSchema.ListAllScoresResp{}, "03", status.StatusBadRequest, err
+	}
+	return profileSchema.ListAllScoresResp{Students: list, Total: totalPage}, "", status.StatusOK, nil
+}
+
 func (repo *Repository) db() dataSources.ProfileDS {
 	return repo.DBDS
 }

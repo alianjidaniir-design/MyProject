@@ -3,6 +3,7 @@ package mySQLDS
 import (
 	"MyProject/apiSchema/profileSchema"
 	"MyProject/models/profile/dataModels"
+	"MyProject/pkg/pagination"
 	"MyProject/statics/constants"
 	"context"
 	"database/sql"
@@ -87,13 +88,75 @@ INSERT INTO profiles (registration_id , status_score , grade , score) VALUES (?,
 	return ds.readOProfileByID(ctx, result)
 }
 
-func (ds *ProfileDBDS) ListScoresStudents(crx context.Context, req profileSchema.ListAllScoresReq) (res dataModels.Profile, err error) {
+func (ds *ProfileDBDS) ListScoresStudents(crx context.Context, req profileSchema.ListAllScoresReq) (res []dataModels.ScoresStudents, total int, err error) {
+	var profile []dataModels.ScoresStudents
+	page, pageSize, err := pagination.CheckPage(req.Page, req.PageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+	offset := (page - 1) * pageSize
+	limit := pageSize
+	var totalRows int
+	countQuery := `SELECT COUNT(*) FROM profiles`
+	err = ds.db.QueryRowContext(crx, countQuery).Scan(&totalRows)
+	if err != nil {
+		return nil, 0, err
+	}
+	selectQuery := `
+SELECT
+u.ID    AS student_id,
+u.code AS student_code,
+c.ID AS course_id,
+c.course_number AS course_number,
+o.row AS offering_row,
+o.group_number AS offering_group_number,
+o.teacher_id AS offering_teacher_id,
+p.status_score ,
+p.grade ,
+p.score 
+FROM profiles p 
+JOIN registration r ON p.registration_id = r.ID 
+JOIN offerings o ON r.offering_row = o.row 
+JOIN courses c ON o.course_id = c.ID 
+JOIN student u ON r.student_id = u.ID 
+ORDER BY u.code LIMIT ? OFFSET ?;
+`
+	rows, err := ds.db.QueryContext(crx, selectQuery, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var s dataModels.ScoresStudents
+		err = rows.Scan(
+			&s.StudentID,
+			&s.StudentCode,
+			&s.CourseID,
+			&s.CourseNumber,
+			&s.OfferingRows,
+			&s.OfferingGroup,
+			&s.OfferingTeacher,
+			&s.StatusScore,
+			&s.Grade,
+			&s.Score,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+		profile = append(profile, s)
+
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, 0, err
+	}
+	return profile, totalRows, nil
 }
 
 func (ds *ProfileDBDS) readOProfileByID(ctx context.Context, ID int64) (res dataModels.Profile, err error) {
 	var profile dataModels.Profile
 	readQuery := fmt.Sprintf("SELECT ID , registration_id , status_score , grade  , score FROM %s WHERE ID = ? ", ds.tableName)
-	err = ds.db.QueryRowContext(ctx, readQuery, ID).Scan(&profile.Row, &profile.RegistrationID, &profile.StatusScore, &profile.Grade, &profile.Score)
+	err = ds.db.QueryRowContext(ctx, readQuery, ID).Scan(&profile.ID, &profile.RegistrationID, &profile.StatusScore, &profile.Grade, &profile.Score)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return dataModels.Profile{}, errors.New(sql.ErrNoRows.Error())
