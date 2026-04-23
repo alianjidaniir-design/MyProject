@@ -11,3 +11,8 @@ type ListAllScoresResp struct {
 	Students []dataModels.ScoresStudents
 	Total    int
 }
+
+type StudentsSummeryResponse struct {
+	Summery []dataModels.StudentsSummary
+	Total   int
+}

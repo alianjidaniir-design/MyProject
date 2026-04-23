@@ -73,6 +73,20 @@ func (repo *Repository) List(ctx context.Context, req commonSchema.BaseRequest[p
 	return profileSchema.ListAllScoresResp{Students: list, Total: totalPage}, "", status.StatusOK, nil
 }
 
+func (repo *Repository) Summery(ctx context.Context, req commonSchema.BaseRequest[profileSchema.ListAllScoresReq]) (res profileSchema.StudentsSummeryResponse, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return profileSchema.StudentsSummeryResponse{}, "01", status.StatusUnauthorized, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return profileSchema.StudentsSummeryResponse{}, "02", status.StatusUnauthorized, errors.New("db is nil")
+	}
+	list, totalPages, err := repo.db().ListSummeryStudents(ctx, req.Body)
+	if err != nil {
+		return profileSchema.StudentsSummeryResponse{}, "03", status.StatusBadRequest, err
+	}
+	return profileSchema.StudentsSummeryResponse{Summery: list, Total: totalPages}, "", status.StatusOK, nil
+}
+
 func (repo *Repository) db() dataSources.ProfileDS {
 	return repo.DBDS
 }

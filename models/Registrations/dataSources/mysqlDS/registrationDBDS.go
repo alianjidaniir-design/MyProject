@@ -74,7 +74,7 @@ CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND isActive = true AND 
 	if !checkOffering {
 		return dataModels.Registration{}, errors.New("this active offering doesn't exist or this is deActive")
 	}
-	insertQuery := fmt.Sprintf("INSERT INTO %s (student_id, offering_row,status, enrolled_at, created_at, updated_at , deleted_at) VALUES (?,?, ?, ?, ?, ? , ?)", ds.tableName)
+	insertQuery := fmt.Sprintf("INSERT INTO %s (student_id , course_id, offering_row,status, enrolled_at, created_at, updated_at , deleted_at) VALUES (?,?,?, ?, ?, ?, ? , ?)", ds.tableName)
 	var checkCapacity bool
 	teacherQuery = `
 SELECT
@@ -90,7 +90,7 @@ CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND capacity > enrolled_
 		if err != nil {
 			return dataModels.Registration{}, err
 		}
-		result, err := tx.ExecContext(ctx, insertQuery, req.StudentID, req.OfferingID, reserved, now, now, now, nil)
+		result, err := tx.ExecContext(ctx, insertQuery, req.StudentID, req.CourseID, req.OfferingID, reserved, now, now, now, nil)
 		if err != nil {
 			return dataModels.Registration{}, errors.New("you can't reserve the reservation")
 		}
@@ -107,9 +107,9 @@ CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND capacity > enrolled_
 		if err != nil {
 			return dataModels.Registration{}, err
 		}
-		sdd, err := tx.ExecContext(ctx, insertQuery, req.StudentID, req.OfferingID, enrolled, now, now, now, nil)
+		sdd, err := tx.ExecContext(ctx, insertQuery, req.StudentID, req.CourseID, req.OfferingID, enrolled, now, now, now, nil)
 		if err != nil {
-			return dataModels.Registration{}, errors.New("you can't enroll the student")
+			return dataModels.Registration{}, fmt.Errorf("you can't enroll the student", err)
 		}
 		add, err = sdd.LastInsertId()
 		if err != nil {
@@ -193,7 +193,7 @@ func (ds *RegistrationDBDS) ListAllRegisterStudent(ctx context.Context, req regi
 	for rows.Next() {
 		var register dataModels.Registration
 		var createAt, updatedAt, deletedAt, canceledAt sql.NullTime
-		err = rows.Scan(&register.ID, &register.StudentID, &register.OfferingRow, &register.Status, &register.EnrolledAt, &canceledAt, &createAt, &updatedAt, &deletedAt)
+		err = rows.Scan(&register.ID, &register.StudentID, &register.CourseID, &register.OfferingRow, &register.Status, &register.EnrolledAt, &canceledAt, &createAt, &updatedAt, &deletedAt)
 		if createAt.Valid {
 			register.CreatedAt = createAt.Time
 		}
@@ -371,11 +371,11 @@ func (ds *RegistrationDBDS) ListStudentsOffering(ctx context.Context, req regist
 func (ds *RegistrationDBDS) readQuery(ctx context.Context, ID int64) (dataModels.Registration, error) {
 	var register dataModels.Registration
 	readQuery := fmt.Sprintf(`
-        SELECT ID, student_id, offering_row, status, enrolled_at, canceled_at, created_at, updated_at , deleted_at
+        SELECT ID, student_id,course_id, offering_row, status, enrolled_at, canceled_at, created_at, updated_at , deleted_at
         FROM %s
         WHERE id = ? `, ds.tableName)
 	var createdAt, updatedAt, deletedAt, canceledAt sql.NullTime
-	err := ds.db.QueryRowContext(ctx, readQuery, ID).Scan(&register.ID, &register.StudentID, &register.OfferingRow, &register.Status, &register.EnrolledAt, &canceledAt, &createdAt, &updatedAt, &deletedAt)
+	err := ds.db.QueryRowContext(ctx, readQuery, ID).Scan(&register.ID, &register.StudentID, &register.CourseID, &register.OfferingRow, &register.Status, &register.EnrolledAt, &canceledAt, &createdAt, &updatedAt, &deletedAt)
 	if err != nil {
 		return dataModels.Registration{}, fmt.Errorf(err.Error())
 	}

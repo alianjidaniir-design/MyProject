@@ -20,3 +20,16 @@ type ScoresStudents struct {
 	Grade           string `json:"grade"`
 	Score           int    `json:"score"`
 }
+
+type StudentsSummary struct {
+	StudentID     int64   `json:"student_id"`
+	StudentName   string  `json:"student_name"`
+	StudentFamily string  `json:"student_family"`
+	Major         string  `json:"major"`
+	TotalCourse   int     `json:"total_course"`
+	AverageScore  float64 `json:"average_score"`
+	TotalUnits    int     `json:"total_units"`
+	TotalGrade    string  `json:"total_grade"`
+}
+
+type 

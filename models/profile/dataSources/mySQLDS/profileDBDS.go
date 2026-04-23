@@ -153,6 +153,74 @@ ORDER BY u.code LIMIT ? OFFSET ?;
 	return profile, totalRows, nil
 }
 
+func (ds *ProfileDBDS) ListSummeryStudents(ctx context.Context, req profileSchema.ListAllScoresReq) (res []dataModels.StudentsSummary, total int, err error) {
+	var profile []dataModels.StudentsSummary
+	page, pageSize, err := pagination.CheckPage(req.Page, req.PageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+	offset := (page - 1) * pageSize
+	limit := pageSize
+	var totalRows int
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM profiles")
+	err = ds.db.QueryRowContext(ctx, countQuery).Scan(&totalRows)
+	if err != nil {
+		return nil, 0, errors.New("error getting total rows")
+	}
+	selectQuery := `
+SELECT
+u.ID    AS student_id,
+u.name AS student_name,
+u.family  AS student_family,
+u.major AS major,
+COUNT(DISTINCT c.course_number) AS total_course,
+AVG(p.score) AS average_score,
+ CASE
+        WHEN AVG(p.score) >= 17 THEN 'A'
+        WHEN AVG(p.score) >= 14 THEN 'B'
+        WHEN AVG(p.score) >= 10 THEN 'C'
+        WHEN AVG(p.score) >= 7 THEN 'D'
+        ELSE 'E'
+    END AS total_grade,
+SUM(c.unit) AS total_units
+FROM profiles p
+JOIN registration r ON p.registration_id = r.ID
+JOIN offerings o ON r.offering_row = o.row
+JOIN courses c ON o.course_id = c.ID
+JOIN student u ON r.student_id = u.ID
+GROUP BY u.ID , u.name, u.family, u.major 
+ORDER BY u.code LIMIT ? OFFSET ?;
+`
+	rows, err := ds.db.QueryContext(ctx, selectQuery, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error in syntax", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var s dataModels.StudentsSummary
+		err = rows.Scan(
+			&s.StudentID,
+			&s.StudentName,
+			&s.StudentFamily,
+			&s.Major,
+			&s.TotalCourse,
+			&s.AverageScore,
+			&s.TotalGrade,
+			&s.TotalUnits,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("error", err)
+		}
+		profile = append(profile, s)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, 0, err
+	}
+	return profile, totalRows, nil
+
+}
+
 func (ds *ProfileDBDS) readOProfileByID(ctx context.Context, ID int64) (res dataModels.Profile, err error) {
 	var profile dataModels.Profile
 	readQuery := fmt.Sprintf("SELECT ID , registration_id , status_score , grade  , score FROM %s WHERE ID = ? ", ds.tableName)
