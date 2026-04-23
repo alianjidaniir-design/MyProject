@@ -19,3 +19,9 @@ type ListStudentsRequest struct {
 	Page      int   `json:"page"`
 	PageSize  int   `json:"page_size"`
 }
+
+type ListOfferingRequest struct {
+	OfferingRow int64 `json:"offering_row"`
+	Page        int   `json:"page"`
+	PageSize    int   `json:"page_size"`
+}

@@ -7,6 +7,11 @@ const (
 )
 
 const (
+	Passed = "Passed"
+	Failed = "failed"
+)
+
+const (
 	SuccessCode     = "200"
 	BadRequestCode  = "400"
 	ForbiddenCode   = "403"

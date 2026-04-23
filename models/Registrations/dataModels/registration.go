@@ -14,8 +14,8 @@ type Registration struct {
 	DeletedAt   time.Time `json:"deleted_at"`
 }
 
-type Enroll struct {
-	StudentID int64  `json:"course_id"`
+type Student struct {
+	StudentID int64  `json:"student_id"`
 	Status    string `json:"status"`
 }
 

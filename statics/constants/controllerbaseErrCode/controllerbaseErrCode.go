@@ -8,4 +8,5 @@ const (
 	TermErrCode         = "2006"
 	OfferingErrCode     = "2007"
 	RegistrationErrCode = "2008"
+	ProfileErrCode      = "2009"
 )

@@ -144,6 +144,20 @@ func (repo *Repository) ListStudents(ctx context.Context, req commonSchema.BaseR
 	return registrationSchema.ListStudentResponse{List: student, Total: tot}, "", status.StatusOK, nil
 }
 
+func (repo *Repository) ListOfferings(ctx context.Context, req commonSchema.BaseRequest[registrationSchema.ListOfferingRequest]) (res registrationSchema.ListOfferingResponse, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return registrationSchema.ListOfferingResponse{}, "01", status.StatusUnauthorized, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return registrationSchema.ListOfferingResponse{}, "02", status.StatusBadRequest, errors.New("DB DS not initialized")
+	}
+	offering, totalAll, err := repo.db().ListOfferingsStudent(ctx, req.Body)
+	if err != nil {
+		return registrationSchema.ListOfferingResponse{}, "03", status.StatusInternalServerError, err
+	}
+	return registrationSchema.ListOfferingResponse{List: offering, Total: totalAll}, "", status.StatusOK, nil
+}
+
 func (repo *Repository) db() dataSources.RegistrationDS {
 	return repo.DBDS
 }
