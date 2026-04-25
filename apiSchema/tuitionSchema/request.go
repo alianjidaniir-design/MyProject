@@ -6,6 +6,4 @@ type CreateTuition struct {
 	FixedTuition  int   `json:"fixed_tuition"`
 	CourseTuition int   `json:"course_tuition"`
 	ExtraOption   int   `json:"extra_option"`
-	DebitAmount   int   `json:"debit_amount"`
-	CreditAmount  int   `json:"credit_amount"`
 }

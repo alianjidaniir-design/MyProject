@@ -20,7 +20,7 @@ func Create(ctx *fiber.Ctx) error {
 	}
 	res, errStr, code, err := repositories.TuitionRepo.Create(spanCtx, req)
 	if err != nil {
-		return mainController.Error(ctx, controllerbaseErrCode.TuitionErrCode, "02 ", errStr, code, err)
+		return mainController.Error(ctx, controllerbaseErrCode.TuitionErrCode, "02", errStr, code, err)
 	}
 	return mainController.Response(ctx, res)
 }

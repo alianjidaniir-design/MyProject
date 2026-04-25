@@ -8,6 +8,7 @@ import (
 	"MyProject/statics/constants/status"
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 )
 
@@ -24,17 +25,21 @@ var (
 func initRepository() {
 	cfg, err := mySQLDS.LoadConfig()
 	if err != nil {
-		repo = &Repository{initRepo: errors.New(err.Error())}
+		repo = &Repository{initRepo: errors.New("problem loading config")}
+		return
 	}
 	open, err := mySQLDS.Open(cfg)
 	if err != nil {
 		repo = &Repository{initRepo: errors.New("there isa problem in opening")}
+		return
 	}
-	newTui, err := mySQLDS.NewTuitionDBDS(open, cfg.TermTableName)
+	newTui, err := mySQLDS.NewTuitionDBDS(cfg.TuitionTableName, open)
 	if err != nil {
 		repo = &Repository{initRepo: errors.New(err.Error())}
+		return
 	}
 	repo = &Repository{DBDS: newTui}
+	fmt.Println(newTui)
 }
 
 func GetRepo() *Repository {

@@ -13,7 +13,6 @@ import (
 
 type TuitionDBDS struct {
 	tableName string
-	tableSQL  string
 	db        *sql.DB
 }
 
@@ -25,17 +24,17 @@ func myLocation() *time.Location {
 	return loc
 }
 
-func NewTuitionDBDS(db *sql.DB, tableName string) (tuitionDataSourses.TuitionDS, error) {
+func NewTuitionDBDS(tableName string, db *sql.DB) (tuitionDataSourses.TuitionDS, error) {
 
 	tuitionDBInstance := &TuitionDBDS{
 		tableName: tableName,
-		tableSQL:  tableName,
 		db:        db,
 	}
 	return tuitionDBInstance, nil
 }
 
 func (ds *TuitionDBDS) CreateTuition(ctx context.Context, req tuitionSchema.CreateTuition) (res dataModels.Tuition, err error) {
+	var tuition dataModels.Tuition
 	tx, err := ds.db.BeginTx(ctx, nil)
 	if err != nil {
 		return dataModels.Tuition{}, err
@@ -67,17 +66,23 @@ CASE WHEN EXISTS (SELECT 1 FROM  registration WHERE course_id = ? ) THEN 1 ELSE 
 	lastIDQuery := fmt.Sprintf("SELECT COALESCE(MAX(row), 0) FROM %s", ds.tableName)
 	err = tx.QueryRowContext(ctx, lastIDQuery).Scan(&lastID)
 	if err != nil {
-		return dataModels.Tuition{}, err
+		return dataModels.Tuition{}, fmt.Errorf(err.Error())
 	}
 	newID := lastID + 1
 	insertQuery := fmt.Sprintf("INSERT INTO %s (row , student_id, course_id , fixed_tuition , course_tuition , extra_option , debit_amount , credit_amount , reminder , created_At , updated_at) VALUES (?,?, ? , ? , ? , ? , ? , ? , ? , ? , ?)", ds.tableName)
 	now := time.Now().In(myLocation())
 	deb := req.FixedTuition + req.CourseTuition + req.ExtraOption
-	remained := req.CreditAmount - req.DebitAmount
-	_, err = ds.db.ExecContext(ctx, insertQuery, newID, req.StudentID, req.CourseID, req.FixedTuition, req.CourseTuition, req.ExtraOption, deb, req.CreditAmount, remained, now, now)
+	remained := tuition.CreditAmount - deb
+	_, err = tx.ExecContext(ctx, insertQuery, newID, req.StudentID, req.CourseID, req.FixedTuition, req.CourseTuition, req.ExtraOption, deb, tuition.CreditAmount, remained, now, now)
 	if err != nil {
-		return dataModels.Tuition{}, fmt.Errorf("failed to insert tuition: %w", err)
+		fmt.Println(ds.tableName)
+		return dataModels.Tuition{}, err
 	}
+	err = tx.Commit()
+	if err != nil {
+		fmt.Println(ds.tableName)
+	}
+
 	return ds.selectTuitionByID(ctx, newID)
 
 }

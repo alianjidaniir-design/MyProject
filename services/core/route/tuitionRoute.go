@@ -6,11 +6,11 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-var toitionRoute = map[string]string{
+var tuitionRoute = map[string]string{
 	"TuitionCreate": "tuition/create",
 }
 
 func SetupTuitionRoute(app *fiber.App) map[string]string {
-	app.Post(toitionRoute["TuitionCreate"], Create)
-	return toitionRoute
+	app.Post(tuitionRoute["TuitionCreate"], Create)
+	return tuitionRoute
 }
