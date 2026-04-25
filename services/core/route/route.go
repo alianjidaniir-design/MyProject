@@ -12,6 +12,7 @@ func SetupRoutes(app *fiber.App) map[string]string {
 		SetupTermRoute(app),
 		SetupRegistrationRoute(app),
 		SetupProfileRoute(app),
+		SetupTuitionRoute(app),
 	)
 }
 

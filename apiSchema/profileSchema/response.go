@@ -16,3 +16,11 @@ type StudentsSummeryResponse struct {
 	Summery []dataModels.StudentsSummary
 	Total   int
 }
+
+type DetailProfileStudent struct {
+	Detail []dataModels.ScoresAnnouncement `json:"detail"`
+}
+
+type DeleteProfileScoresResp struct {
+	Message string `json:"message"`
+}

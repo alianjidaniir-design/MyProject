@@ -87,6 +87,34 @@ func (repo *Repository) Summery(ctx context.Context, req commonSchema.BaseReques
 	return profileSchema.StudentsSummeryResponse{Summery: list, Total: totalPages}, "", status.StatusOK, nil
 }
 
+func (repo *Repository) Get(ctx context.Context, req commonSchema.BaseRequest[profileSchema.GetScoresReq]) (res profileSchema.DetailProfileStudent, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return profileSchema.DetailProfileStudent{}, "01", status.StatusUnauthorized, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return profileSchema.DetailProfileStudent{}, "02", status.StatusUnauthorized, errors.New("db is nil")
+	}
+	get, err := repo.db().GetStudent(ctx, req.Body)
+	if err != nil {
+		return profileSchema.DetailProfileStudent{}, "03", status.StatusBadRequest, err
+	}
+	return profileSchema.DetailProfileStudent{Detail: get}, "", status.StatusOK, nil
+}
+
+func (repo *Repository) Delete(ctx context.Context, req commonSchema.BaseRequest[profileSchema.DeleteScoresReq]) (res profileSchema.DeleteProfileScoresResp, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return profileSchema.DeleteProfileScoresResp{}, "01", status.StatusUnauthorized, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return profileSchema.DeleteProfileScoresResp{}, "02", status.StatusUnauthorized, errors.New("db is nil")
+	}
+	err = repo.db().DeleteProfile(ctx, req.Body)
+	if err != nil {
+		return profileSchema.DeleteProfileScoresResp{}, "03", status.StatusBadRequest, err
+	}
+	return profileSchema.DeleteProfileScoresResp{Message: "deleted successfully"}, "", status.StatusOK, nil
+}
+
 func (repo *Repository) db() dataSources.ProfileDS {
 	return repo.DBDS
 }

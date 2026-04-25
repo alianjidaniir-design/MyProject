@@ -1,7 +1,7 @@
 package dataModels
 
 type Profile struct {
-	ID             int64  `json:"row"`
+	ID             int64  `json:"ID"`
 	RegistrationID int64  `json:"registration_id"`
 	StatusScore    string `json:"status_score"`
 	Grade          string `json:"grade"`
@@ -32,4 +32,22 @@ type StudentsSummary struct {
 	TotalGrade    string  `json:"total_grade"`
 }
 
-type 
+type ScoresAnnouncement struct {
+	ID                  int64   `json:"ID"`
+	StudentCode         string  `json:"student_code"`
+	StudentName         string  `json:"student_name"`
+	StudentFamily       string  `json:"student_family"`
+	Major               string  `json:"major"`
+	OfferingGroupNumber int     `json:"offering_group_number"`
+	CourseNumber        string  `json:"course_number"`
+	CourseTitle         string  `json:"course_title"`
+	Unit                int     `json:"unit"`
+	TeacherName         string  `json:"teacher_name"`
+	TeacherLastName     string  `json:"teacher_last_name"`
+	StatusScore         string  `json:"status_score"`
+	Grade               string  `json:"grade"`
+	Score               int     `json:"score"`
+	TotalUnits          int     `json:"total_units"`
+	AverageScore        float64 `json:"average_score"`
+	TotalGrade          string  `json:"total_grade"`
+}

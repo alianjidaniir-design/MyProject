@@ -9,4 +9,5 @@ const (
 	OfferingErrCode     = "2007"
 	RegistrationErrCode = "2008"
 	ProfileErrCode      = "2009"
+	TuitionErrCode      = "2010"
 )

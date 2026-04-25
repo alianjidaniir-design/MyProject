@@ -172,7 +172,7 @@ SELECT
 u.ID    AS student_id,
 u.name AS student_name,
 u.family  AS student_family,
-u.major AS major,
+u.major AS major
 COUNT(DISTINCT c.course_number) AS total_course,
 AVG(p.score) AS average_score,
  CASE
@@ -221,6 +221,120 @@ ORDER BY u.code LIMIT ? OFFSET ?;
 
 }
 
+func (ds ProfileDBDS) GetStudent(ctx context.Context, req profileSchema.GetScoresReq) (res []dataModels.ScoresAnnouncement, err error) {
+	var profile []dataModels.ScoresAnnouncement
+	selectQuery := `
+SELECT
+p.ID AS profile_id,
+u.code AS student_code,
+u.name AS student_name,
+u.family  AS student_family,
+u.major AS major,
+o.group_number AS offering_group_number,
+c.course_number AS course_number,
+c.title AS course_title,
+c.unit AS unit,
+t.name AS teacher_name,
+t.last_name AS teacher_last_name,
+p.status_score,
+p.grade,
+p.score,
+0 AS total_units,
+AVG(p.score) AS average_score,
+ CASE
+        WHEN AVG(p.score) >= 17 THEN 'A'
+        WHEN AVG(p.score) >= 14 THEN 'B'
+        WHEN AVG(p.score) >= 10 THEN 'C'
+        WHEN AVG(p.score) >= 7 THEN 'D'
+        ELSE 'E'
+    END AS total_grade
+FROM profiles p
+JOIN registration r ON p.registration_id = r.ID
+JOIN offerings o ON r.offering_row = o.row
+JOIN courses c ON o.course_id = c.ID
+JOIN teachers t ON o.teacher_id = t.ID
+JOIN student u ON r.student_id = u.ID
+WHERE u.ID = ?
+GROUP BY
+    p.ID, 
+    u.code,
+    u.name,
+    u.family,
+    u.major,
+    o.group_number, 
+    c.course_number,
+    c.title,
+    c.unit,
+    t.name,
+    t.last_name,
+    p.status_score,
+    p.grade,
+    p.score,
+    u.ID
+
+UNION ALL 
+SELECT
+    0 AS profile_id,
+    "" AS student_code,
+    "" AS student_name,
+    "" AS student_family,
+    "" AS major,
+    0 AS offering_group_number,
+    0 AS course_number,
+    "" AS course_title,
+    0 AS unit,
+    "" AS teacher_name,
+    "" AS teacher_last_name,
+    "" AS status_score,
+    "" AS grade,
+    0 AS score,
+    COALESCE(SUM(c.unit), 0) AS total_units, -- اصلاح شده: استفاده از COALESCE
+    0 AS average_score,
+    0 AS total_grade
+ 
+
+    FROM registration r
+    JOIN offerings o ON r.offering_row = o.row
+    JOIN courses c ON o.course_id = c.ID
+    JOIN student u ON r.student_id = u.ID
+    WHERE u.ID = ? 
+
+;
+`
+	rows, err := ds.db.QueryContext(ctx, selectQuery, req.StudentID, req.StudentID)
+	if err != nil {
+		return res, fmt.Errorf("error in syntax", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var s dataModels.ScoresAnnouncement
+		err = rows.Scan(&s.ID, &s.StudentCode, &s.StudentName, &s.StudentFamily, &s.Major, &s.OfferingGroupNumber, &s.CourseNumber, &s.CourseTitle, &s.Unit, &s.TeacherName, &s.TeacherLastName, &s.StatusScore, &s.Grade, &s.Score, &s.TotalUnits, &s.AverageScore, &s.TotalGrade)
+		if err != nil {
+			return res, fmt.Errorf("error in scanning", err)
+		}
+		profile = append(profile, s)
+
+	}
+	err = rows.Err()
+	if err != nil {
+		return res, fmt.Errorf("error in syntax", err)
+	}
+	return profile, nil
+}
+
+func (ds *ProfileDBDS) DeleteProfile(ctx context.Context, req profileSchema.DeleteScoresReq) (err error) {
+	err = ds.checkID(ctx, req.ID)
+	if err != nil {
+		return err
+	}
+	deleted := fmt.Sprintf("DELETE FROM %s WHERE id=?", ds.tableName)
+	_, err = ds.db.ExecContext(ctx, deleted, req.ID)
+	if err != nil {
+		return fmt.Errorf("error in deletion", err)
+	}
+	return nil
+}
+
 func (ds *ProfileDBDS) readOProfileByID(ctx context.Context, ID int64) (res dataModels.Profile, err error) {
 	var profile dataModels.Profile
 	readQuery := fmt.Sprintf("SELECT ID , registration_id , status_score , grade  , score FROM %s WHERE ID = ? ", ds.tableName)
@@ -238,7 +352,7 @@ func (ds *ProfileDBDS) checkID(ctx context.Context, row int64) error {
 	var check bool
 	searchQuery := `
 SELECT
-CASE WHEN EXISTS (SELECT 1 FROM profiles WHERE row = ?) THEN 1 ELSE 0 END
+CASE WHEN EXISTS (SELECT 1 FROM profiles WHERE ID = ?) THEN 1 ELSE 0 END
 `
 	err := ds.db.QueryRowContext(ctx, searchQuery, row).Scan(&check)
 	if err != nil {
