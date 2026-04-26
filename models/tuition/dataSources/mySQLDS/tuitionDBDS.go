@@ -8,7 +8,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 )
 
@@ -35,7 +34,6 @@ func NewTuitionDBDS(tableName string, db *sql.DB) (tuitionDataSourses.TuitionDS,
 }
 
 func (ds *TuitionDBDS) CreateTuition(ctx context.Context, req tuitionSchema.CreateTuition) (res dataModels.Tuition, err error) {
-	var tuition dataModels.Tuition
 	tx, err := ds.db.BeginTx(ctx, nil)
 	if err != nil {
 		return dataModels.Tuition{}, err
@@ -48,40 +46,47 @@ func (ds *TuitionDBDS) CreateTuition(ctx context.Context, req tuitionSchema.Crea
 		}
 	}()
 
-	var checkStudent, checkCourse bool
+	var check bool
 	checkQuery := `
 SELECT
-CASE WHEN EXISTS (SELECT 1 FROM registration WHERE student_id = ? ) THEN 1 ELSE 0 END,
-CASE WHEN EXISTS (SELECT 1 FROM registration WHERE course_id = ? ) THEN 1 ELSE 0 END
+CASE WHEN EXISTS (SELECT 1 FROM registration WHERE course_id = ? AND student_id = ?) THEN 1 ELSE 0 END
 `
-	err = tx.QueryRow(checkQuery, req.StudentID, req.CourseID).Scan(&checkStudent, &checkCourse)
+	err = tx.QueryRow(checkQuery, req.CourseID, req.StudentID).Scan(&check)
 	if err != nil {
 		return dataModels.Tuition{}, err
 	}
-	if !checkStudent || !checkCourse {
+	if !check {
+		fmt.Println(req.StudentID, req.CourseID)
 		return dataModels.Tuition{}, errors.New("student or course not exist")
 	}
 	var lastID int64
 
-	log.Printf("DEBUG: Selecting from table: %s", ds.tableName) // یا از package logging استفاده کنید
-
-	lastIDQuery := fmt.Sprintf("SELECT COALESCE(MAX(row), 0) FROM tuition")
+	lastIDQuery := fmt.Sprintf("SELECT COALESCE(MAX(row), 0) FROM %s", ds.tableName)
 	err = tx.QueryRowContext(ctx, lastIDQuery).Scan(&lastID)
 	if err != nil {
-		return dataModels.Tuition{}, fmt.Errorf(err.Error())
+		return dataModels.Tuition{}, fmt.Errorf("failed to get last tuition row: %w", err)
 	}
-	log.Printf("DEBUG: Selecting from table: %s", ds.tableName) // یا از package logging استفاده کنید
 
 	newID := lastID + 1
-	insertQuery := fmt.Sprintf("INSERT INTO tuition (row , student_id, course_id , fixed_tuition , course_tuition , extra_option , debit_amount , credit_amount , reminder , created_At , updated_at) VALUES (?,?, ? , ? , ? , ? , ? , ? , ? , ? , ?)")
-	fmt.Printf("DEBUG: Executing Query: %s\n", insertQuery) // این را اضافه کنید
+	insertQuery := fmt.Sprintf("INSERT INTO %s (row , student_id, course_id , fixed_tuition , course_tuition , extra_option , debit_amount , credit_amount , reminder , created_At , updated_at) VALUES (?,?, ? , ? , ? , ? , ? , ? , ? , ? , ?)", ds.tableName)
 	now := time.Now().In(myLocation())
-	deb := req.FixedTuition + req.CourseTuition + req.ExtraOption
-	remained := tuition.CreditAmount - deb
-	_, err = tx.ExecContext(ctx, insertQuery, newID, req.StudentID, req.CourseID, req.FixedTuition, req.CourseTuition, req.ExtraOption, deb, tuition.CreditAmount, remained, now, now)
+	var t dataModels.Tuition
+	if req.ExtraOption != 0 {
+		deb := req.ExtraOption
+		remained := deb - t.CreditAmount
+		_, err = tx.ExecContext(ctx, insertQuery, newID, req.StudentID, req.CourseID, req.FixedTuition, req.CourseTuition, req.ExtraOption, deb, t.CreditAmount, remained, now, now)
+
+	} else if req.CourseTuition != 0 && req.CourseID != 0 {
+		deb := req.CourseTuition
+		remained := t.CreditAmount - deb
+		_, err = tx.ExecContext(ctx, insertQuery, newID, req.StudentID, req.CourseID, req.FixedTuition, req.CourseTuition, req.ExtraOption, deb, t.CreditAmount, remained, now, now)
+	}
+	deb := req.FixedTuition
+	remained := deb - t.CreditAmount
+	_, err = tx.ExecContext(ctx, insertQuery, newID, req.StudentID, req.CourseID, req.FixedTuition, req.CourseTuition, req.ExtraOption, deb, t.CreditAmount, remained, now, now)
+
 	if err != nil {
-		fmt.Println(ds.tableName)
-		return dataModels.Tuition{}, err
+		return dataModels.Tuition{}, fmt.Errorf("Error inserting tuition: %s", err)
 	}
 	err = tx.Commit()
 	if err != nil {
@@ -96,13 +101,13 @@ func (ds *TuitionDBDS) selectTuitionByID(ctx context.Context, ID int64) (res dat
 
 	readQuery := fmt.Sprintf(`
         SELECT row, student_id,course_id, fixed_tuition, course_tuition, extra_option, 	debit_amount ,credit_amount , reminder, created_at, updated_at , deleted_at
-        FROM tuition
-        WHERE id = ? `)
+        FROM %s
+        WHERE row = ? `, ds.tableName)
 
 	var createdAt, updatedAt, deletedAt sql.NullTime
 	err = ds.db.QueryRowContext(ctx, readQuery, ID).Scan(&tuition.Row, &tuition.StudentID, &tuition.CourseID, &tuition.FixedTuition, &tuition.CourseTuition, &tuition.ExtraOption, &tuition.DebitAmount, &tuition.CreditAmount, &tuition.Reminder, &createdAt, &updatedAt, &deletedAt)
 	if err != nil {
-		return dataModels.Tuition{}, fmt.Errorf(err.Error())
+		return dataModels.Tuition{}, fmt.Errorf("failed to read tuition by row: %w", err)
 	}
 
 	if createdAt.Valid {

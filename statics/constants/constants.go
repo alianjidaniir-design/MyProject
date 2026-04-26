@@ -12,6 +12,10 @@ const (
 )
 
 const (
+	FixedTuition = 6000000
+)
+
+const (
 	SuccessCode     = "200"
 	BadRequestCode  = "400"
 	ForbiddenCode   = "403"
