@@ -30,7 +30,7 @@ func initRepository() {
 	}
 	open, err := mySQLDS.Open(cfg)
 	if err != nil {
-		repo = &Repository{initRepo: errors.New("there isa problem in opening")}
+		repo = &Repository{initRepo: err}
 		return
 	}
 	newTui, err := mySQLDS.NewTuitionDBDS(cfg.TuitionTableName, open)

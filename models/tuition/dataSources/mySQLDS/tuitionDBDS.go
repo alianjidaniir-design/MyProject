@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 )
 
@@ -42,7 +43,6 @@ func (ds *TuitionDBDS) CreateTuition(ctx context.Context, req tuitionSchema.Crea
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
-			panic(r)
 		} else if err != nil {
 			tx.Rollback()
 		}
@@ -51,8 +51,8 @@ func (ds *TuitionDBDS) CreateTuition(ctx context.Context, req tuitionSchema.Crea
 	var checkStudent, checkCourse bool
 	checkQuery := `
 SELECT
-CASE WHEN EXISTS (SELECT 1 FROM  registration WHERE student_id = ? ) THEN 1 ELSE 0 END,
-CASE WHEN EXISTS (SELECT 1 FROM  registration WHERE course_id = ? ) THEN 1 ELSE 0 END
+CASE WHEN EXISTS (SELECT 1 FROM registration WHERE student_id = ? ) THEN 1 ELSE 0 END,
+CASE WHEN EXISTS (SELECT 1 FROM registration WHERE course_id = ? ) THEN 1 ELSE 0 END
 `
 	err = tx.QueryRow(checkQuery, req.StudentID, req.CourseID).Scan(&checkStudent, &checkCourse)
 	if err != nil {
@@ -63,13 +63,18 @@ CASE WHEN EXISTS (SELECT 1 FROM  registration WHERE course_id = ? ) THEN 1 ELSE 
 	}
 	var lastID int64
 
-	lastIDQuery := fmt.Sprintf("SELECT COALESCE(MAX(row), 0) FROM %s", ds.tableName)
+	log.Printf("DEBUG: Selecting from table: %s", ds.tableName) // یا از package logging استفاده کنید
+
+	lastIDQuery := fmt.Sprintf("SELECT COALESCE(MAX(row), 0) FROM tuition")
 	err = tx.QueryRowContext(ctx, lastIDQuery).Scan(&lastID)
 	if err != nil {
 		return dataModels.Tuition{}, fmt.Errorf(err.Error())
 	}
+	log.Printf("DEBUG: Selecting from table: %s", ds.tableName) // یا از package logging استفاده کنید
+
 	newID := lastID + 1
-	insertQuery := fmt.Sprintf("INSERT INTO %s (row , student_id, course_id , fixed_tuition , course_tuition , extra_option , debit_amount , credit_amount , reminder , created_At , updated_at) VALUES (?,?, ? , ? , ? , ? , ? , ? , ? , ? , ?)", ds.tableName)
+	insertQuery := fmt.Sprintf("INSERT INTO tuition (row , student_id, course_id , fixed_tuition , course_tuition , extra_option , debit_amount , credit_amount , reminder , created_At , updated_at) VALUES (?,?, ? , ? , ? , ? , ? , ? , ? , ? , ?)")
+	fmt.Printf("DEBUG: Executing Query: %s\n", insertQuery) // این را اضافه کنید
 	now := time.Now().In(myLocation())
 	deb := req.FixedTuition + req.CourseTuition + req.ExtraOption
 	remained := tuition.CreditAmount - deb
@@ -80,7 +85,6 @@ CASE WHEN EXISTS (SELECT 1 FROM  registration WHERE course_id = ? ) THEN 1 ELSE 
 	}
 	err = tx.Commit()
 	if err != nil {
-		fmt.Println(ds.tableName)
 	}
 
 	return ds.selectTuitionByID(ctx, newID)
@@ -89,10 +93,12 @@ CASE WHEN EXISTS (SELECT 1 FROM  registration WHERE course_id = ? ) THEN 1 ELSE 
 
 func (ds *TuitionDBDS) selectTuitionByID(ctx context.Context, ID int64) (res dataModels.Tuition, err error) {
 	var tuition dataModels.Tuition
+
 	readQuery := fmt.Sprintf(`
         SELECT row, student_id,course_id, fixed_tuition, course_tuition, extra_option, 	debit_amount ,credit_amount , reminder, created_at, updated_at , deleted_at
-        FROM %s
-        WHERE id = ? `, ds.tableName)
+        FROM tuition
+        WHERE id = ? `)
+
 	var createdAt, updatedAt, deletedAt sql.NullTime
 	err = ds.db.QueryRowContext(ctx, readQuery, ID).Scan(&tuition.Row, &tuition.StudentID, &tuition.CourseID, &tuition.FixedTuition, &tuition.CourseTuition, &tuition.ExtraOption, &tuition.DebitAmount, &tuition.CreditAmount, &tuition.Reminder, &createdAt, &updatedAt, &deletedAt)
 	if err != nil {
