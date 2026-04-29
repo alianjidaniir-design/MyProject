@@ -6,7 +6,7 @@ type InformationTuitionSchema struct {
 	Detail dataModels.Tuition
 }
 
-type MassageUpdateTuition struct {
+type MassageTuition struct {
 	Detail  dataModels.Tuition
 	Massage string
 }

@@ -13,3 +13,7 @@ type UpdateTuition struct {
 	CourseTuition int   `json:"course_tuition"`
 	ExtraOption   int   `json:"extra_option"`
 }
+
+type DeleteTuition struct {
+	Row int64 `json:"row"`
+}
