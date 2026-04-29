@@ -61,6 +61,20 @@ func (repo *Repository) Create(ctx context.Context, req commonSchema.BaseRequest
 	return tuitionSchema.InformationTuitionSchema{Detail: create}, "", status.StatusOK, nil
 }
 
+func (repo *Repository) Update(ctx context.Context, req commonSchema.BaseRequest[tuitionSchema.UpdateTuition]) (res tuitionSchema.MassageUpdateTuition, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return tuitionSchema.MassageUpdateTuition{}, "01", status.UnAvailableServiceError, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return tuitionSchema.MassageUpdateTuition{}, "02", status.StatusInternalServerError, err
+	}
+	update, err := repo.db().UpdateTuition(ctx, req.Body)
+	if err != nil {
+		return tuitionSchema.MassageUpdateTuition{}, "03", status.StatusBadRequest, err
+	}
+	return tuitionSchema.MassageUpdateTuition{Detail: update, Massage: "updated successfully"}, "", status.StatusOK, nil
+}
+
 func (repo *Repository) db() dataSources.TuitionDS {
 	return repo.DBDS
 }

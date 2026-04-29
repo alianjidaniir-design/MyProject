@@ -50,27 +50,28 @@ func (ds *TuitionDBDS) CreateTuition(ctx context.Context, req tuitionSchema.Crea
 	var check bool
 	studentQuery := `
 SELECT
-CASE WHEN EXISTS (SELECT 1 FROM student WHERE id = ?) THEN 1 ELSE 0 END
+CASE WHEN EXISTS (SELECT 1 FROM registration WHERE student_id = ?) THEN 1 ELSE 0 END
 `
 	err = tx.QueryRow(studentQuery, req.StudentID).Scan(&check)
 	if err != nil {
-		return dataModels.Tuition{}, err
+		return dataModels.Tuition{}, errors.New("student not exist or not enrolled")
 	}
 	var dbOffering any
 
 	if req.OfferingRow != 0 {
-		var check bool
+		var checking bool
 		dbOffering = req.OfferingRow
 		checkQuery := `
 SELECT
 CASE WHEN EXISTS (SELECT 1 FROM registration WHERE offering_row = ? AND status = 'enrolled' AND deleted_at IS NULL AND student_id = ?) THEN 1 ELSE 0 END
 `
-		err = tx.QueryRow(checkQuery, req.OfferingRow, req.StudentID).Scan(&check)
+
+		err = tx.QueryRow(checkQuery, dbOffering, req.StudentID).Scan(&checking)
 		if err != nil {
 			return dataModels.Tuition{}, err
 		}
-		if !check {
-			return dataModels.Tuition{}, errors.New("student not exist or not enrolled")
+		if !checking {
+			return dataModels.Tuition{}, errors.New("offering exist or not enrolled")
 		}
 	} else {
 		dbOffering = nil
@@ -97,17 +98,17 @@ CASE WHEN EXISTS (SELECT 1 FROM registration WHERE offering_row = ? AND status =
 		if req.ExtraOption != 0 {
 			totalDebit += req.ExtraOption
 		}
-	} else if req.FixedTuition != 0 {
+	} else if req.CourseTuition == 0 && dbOffering == nil {
 		req.CourseTuition = 0
 		totalDebit = constants.FixedTuition
 		fix := constants.FixedTuition
 		var number int
-		counted := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE fixed_tuition = ? AND offering_row = ?", ds.tableName)
+		counted := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE fixed_tuition = ? AND student_id = ? ", ds.tableName)
 		err = tx.QueryRowContext(ctx, counted, fix, req.StudentID).Scan(&number)
 		if err != nil {
 			return dataModels.Tuition{}, err
 		}
-		if number > 1 {
+		if number >= 1 {
 			return dataModels.Tuition{}, errors.New(" fixed tuition exists already")
 		}
 		req.FixedTuition = fix
@@ -130,6 +131,49 @@ CASE WHEN EXISTS (SELECT 1 FROM registration WHERE offering_row = ? AND status =
 
 	return ds.selectTuitionByID(ctx, newID)
 
+}
+
+func (ds *TuitionDBDS) UpdateTuition(ctx context.Context, req tuitionSchema.UpdateTuition) (res dataModels.Tuition, err error) {
+	err = ds.checkTuition(ctx, req.Row)
+	if err != nil {
+		return dataModels.Tuition{}, err
+	}
+	tx, err := ds.db.BeginTx(ctx, nil)
+	if err != nil {
+		return dataModels.Tuition{}, err
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			panic(r)
+		} else if err != nil {
+			tx.Rollback()
+		}
+	}()
+	var tuition dataModels.Tuition
+	now := time.Now().In(myLocation())
+
+	if tuition.FixedTuition == 0 {
+		debit := req.CourseTuition + req.ExtraOption
+		updated := fmt.Sprintf("UPDATE %s SET  course_tuition = ? AND extra_option = ? AND debit_amount = ? AND updated_at = ?  WHERE row = ?", ds.tableName)
+		rows, err := tx.PrepareContext(ctx, updated)
+		if err != nil {
+			return tuition, err
+		}
+		defer rows.Close()
+		_, err = rows.ExecContext(ctx, req.CourseTuition, req.ExtraOption, debit, now, req.Row)
+		if err != nil {
+			return tuition, err
+		}
+
+	} else {
+		return dataModels.Tuition{}, errors.New("course and option tuition is zero")
+	}
+	err = tx.Commit()
+	if err != nil {
+		return dataModels.Tuition{}, fmt.Errorf("Error updating tuition: %s", err)
+	}
+	return ds.selectTuitionByID(ctx, req.Row)
 }
 
 func (ds *TuitionDBDS) selectTuitionByID(ctx context.Context, ID int64) (res dataModels.Tuition, err error) {
@@ -171,4 +215,20 @@ func (ds *TuitionDBDS) selectTuitionByID(ctx context.Context, ID int64) (res dat
 
 	return tuition, nil
 
+}
+
+func (ds *TuitionDBDS) checkTuition(ctx context.Context, ID int64) error {
+	var ok bool
+	selectQuery := `
+SELECT
+CASE WHEN EXISTS (SELECT 1 FROM tuition WHERE row = ?) THEN 1 ELSE 0 END
+`
+	err := ds.db.QueryRowContext(ctx, selectQuery, ID).Scan(&ok)
+	if err != nil {
+		return fmt.Errorf("Error checking tuition existence: %w", err)
+	}
+	if !ok {
+		return errors.New("tuition not exist")
+	}
+	return nil
 }
