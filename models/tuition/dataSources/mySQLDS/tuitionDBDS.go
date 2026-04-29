@@ -150,20 +150,24 @@ func (ds *TuitionDBDS) UpdateTuition(ctx context.Context, req tuitionSchema.Upda
 			tx.Rollback()
 		}
 	}()
-	var tuition dataModels.Tuition
-	now := time.Now().In(myLocation())
 
-	if tuition.FixedTuition == 0 {
+	now := time.Now().In(myLocation())
+	currentTuition, err := ds.selectTuitionByID(ctx, req.Row)
+	if err != nil {
+		return dataModels.Tuition{}, err
+	}
+
+	if currentTuition.FixedTuition == 0 {
 		debit := req.CourseTuition + req.ExtraOption
-		updated := fmt.Sprintf("UPDATE %s SET  course_tuition = ? AND extra_option = ? AND debit_amount = ? AND updated_at = ?  WHERE row = ?", ds.tableName)
+		updated := fmt.Sprintf("UPDATE %s SET  course_tuition = ? , extra_option = ? , debit_amount = ? , updated_at = ?  WHERE row = ?", ds.tableName)
 		rows, err := tx.PrepareContext(ctx, updated)
 		if err != nil {
-			return tuition, err
+			return dataModels.Tuition{}, err
 		}
 		defer rows.Close()
 		_, err = rows.ExecContext(ctx, req.CourseTuition, req.ExtraOption, debit, now, req.Row)
 		if err != nil {
-			return tuition, err
+			return dataModels.Tuition{}, err
 		}
 
 	} else {
