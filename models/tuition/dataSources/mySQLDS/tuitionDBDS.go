@@ -47,6 +47,15 @@ func (ds *TuitionDBDS) CreateTuition(ctx context.Context, req tuitionSchema.Crea
 			tx.Rollback()
 		}
 	}()
+	var check bool
+	studentQuery := `
+SELECT
+CASE WHEN EXISTS (SELECT 1 FROM student WHERE id = ?) THEN 1 ELSE 0 END
+`
+	err = tx.QueryRow(studentQuery, req.StudentID).Scan(&check)
+	if err != nil {
+		return dataModels.Tuition{}, err
+	}
 	var dbOffering any
 
 	if req.OfferingRow != 0 {
@@ -64,7 +73,7 @@ CASE WHEN EXISTS (SELECT 1 FROM registration WHERE offering_row = ? AND status =
 			return dataModels.Tuition{}, errors.New("student not exist or not enrolled")
 		}
 	} else {
-		return dataModels.Tuition{}, errors.New("offering Row is null")
+		dbOffering = nil
 	}
 
 	var lastID int64
@@ -80,30 +89,30 @@ CASE WHEN EXISTS (SELECT 1 FROM registration WHERE offering_row = ? AND status =
 	now := time.Now().In(myLocation())
 	var totalDebit int
 
-	if (!((req.FixedTuition != 0) || (req.CourseTuition != 0 || req.ExtraOption != 0))) || ((req.FixedTuition != 0) && (req.CourseTuition != 0 || req.ExtraOption != 0)) {
-
-		return dataModels.Tuition{}, errors.New("invalid tuition: either fixed tuition must be non-zero, or course/extra tuition must be provided")
-	}
+	req.FixedTuition = constants.FixedTuition
 
 	if req.CourseTuition != 0 && dbOffering != nil {
+		req.FixedTuition = 0
 		totalDebit = req.CourseTuition
-		fmt.Println(12)
 		if req.ExtraOption != 0 {
 			totalDebit += req.ExtraOption
 		}
-	} else {
+	} else if req.FixedTuition != 0 {
 		req.CourseTuition = 0
 		totalDebit = constants.FixedTuition
 		fix := constants.FixedTuition
+		var number int
 		counted := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE fixed_tuition = ? AND offering_row = ?", ds.tableName)
-		err = tx.QueryRowContext(ctx, counted).Scan(&fix, &dbOffering)
+		err = tx.QueryRowContext(ctx, counted, fix, req.StudentID).Scan(&number)
 		if err != nil {
 			return dataModels.Tuition{}, err
 		}
-		if fix > 1 {
+		if number > 1 {
 			return dataModels.Tuition{}, errors.New(" fixed tuition exists already")
 		}
 		req.FixedTuition = fix
+	} else {
+		return dataModels.Tuition{}, errors.New("this kind is invalid")
 	}
 	if totalDebit < 0 {
 		return dataModels.Tuition{}, errors.New("calculated total debit cannot be negative")
