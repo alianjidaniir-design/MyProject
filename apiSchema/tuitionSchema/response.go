@@ -10,3 +10,8 @@ type MassageTuition struct {
 	Detail  dataModels.Tuition
 	Massage string
 }
+
+type ListTuitionSchema struct {
+	Detail []dataModels.StudentsDebit
+	Total  int
+}

@@ -17,3 +17,8 @@ type UpdateTuition struct {
 type DeleteTuition struct {
 	Row int64 `json:"row"`
 }
+
+type ListFixedTuition struct {
+	Page int `json:"page"`
+	Size int `json:"size"`
+}

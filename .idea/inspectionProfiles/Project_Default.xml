@@ -4,6 +4,7 @@
     <inspection_tool class="GoDfaErrorMayBeNotNil" enabled="true" level="WARNING" enabled_by_default="true">
       <methods>
         <method importPath="database/sql" receiver="*DB" name="BeginTx" />
+        <method importPath="database/sql" receiver="*DB" name="PrepareContext" />
       </methods>
     </inspection_tool>
   </profile>

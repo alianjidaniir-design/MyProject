@@ -75,7 +75,7 @@ func (repo *Repository) Update(ctx context.Context, req commonSchema.BaseRequest
 	return tuitionSchema.MassageTuition{Detail: update, Massage: "updated successfully"}, "", status.StatusOK, nil
 }
 
-func (repo *Repository)	Delete(ctx context.Context, req commonSchema.BaseRequest[tuitionSchema.DeleteTuition]) (res tuitionSchema.MassageTuition, errStr string, code int, err error){
+func (repo *Repository) Delete(ctx context.Context, req commonSchema.BaseRequest[tuitionSchema.DeleteTuition]) (res tuitionSchema.MassageTuition, errStr string, code int, err error) {
 	if repo.initRepo != nil {
 		return tuitionSchema.MassageTuition{}, "01", status.UnAvailableServiceError, repo.initRepo
 	}
@@ -88,7 +88,19 @@ func (repo *Repository)	Delete(ctx context.Context, req commonSchema.BaseRequest
 	}
 	return tuitionSchema.MassageTuition{Detail: deleted, Massage: "deleted successfully"}, "", status.StatusOK, nil
 }
-
+func (repo *Repository) ListFixTuition(ctx context.Context, req commonSchema.BaseRequest[tuitionSchema.ListFixedTuition]) (res tuitionSchema.ListTuitionSchema, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return tuitionSchema.ListTuitionSchema{}, "01", status.UnAvailableServiceError, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return tuitionSchema.ListTuitionSchema{}, "02", status.StatusInternalServerError, err
+	}
+	list, err, tot := repo.db().ListFixedTuition(ctx, req.Body)
+	if err != nil {
+		return tuitionSchema.ListTuitionSchema{}, "03", status.StatusBadRequest, err
+	}
+	return tuitionSchema.ListTuitionSchema{Detail: list, Total: tot}, "", status.StatusOK, nil
+}
 
 func (repo *Repository) db() dataSources.TuitionDS {
 	return repo.DBDS

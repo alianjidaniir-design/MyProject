@@ -4,6 +4,7 @@ import (
 	"MyProject/apiSchema/tuitionSchema"
 	"MyProject/models/tuition/dataModels"
 	tuitionDataSourses "MyProject/models/tuition/dataSources"
+	"MyProject/pkg/pagination"
 	"context"
 	"database/sql"
 	"errors"
@@ -193,6 +194,43 @@ func (ds *TuitionDBDS) DeleteTuition(ctx context.Context, req tuitionSchema.Dele
 		return dataModels.Tuition{}, err
 	}
 	return ds.selectTuitionByID(ctx, req.Row)
+}
+
+func (ds *TuitionDBDS) ListFixedTuition(ctx context.Context, req tuitionSchema.ListFixedTuition) (res []dataModels.StudentsDebit, err error, total int) {
+	var deb []dataModels.StudentsDebit
+	var debs dataModels.StudentsDebit
+
+	page, pageSize, err := pagination.CheckPage(req.Page, req.Size)
+	if err != nil {
+		return nil, err, 0
+	}
+	limit := pageSize
+	offset := (page - 1) * limit
+	selectQuery := fmt.Sprintf("SELECT student_id , fixed_tuition , course_tuition , extra_option , SUM(fixed_tuition)+SUM(course_tuition)+SUM(extra_option) AS total_sum FROM %s WHERE deleted_at IS NULL GROUP BY student_id  ORDER BY student_id LIMIT ? OFFSET ?", ds.tableName)
+	rows, err := ds.db.QueryContext(ctx, selectQuery, limit, offset)
+	if err != nil {
+		return nil, err, 0
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		err = rows.Scan(&debs.StudentID, &debs.FixedTuition, &debs.CourseTuition, &debs.ExtraOption, &debs.TotalSum)
+		if err != nil {
+			return nil, err, 0
+		}
+		countQuery := fmt.Sprintf("SELECT COUNT(student_id) AS count_student FROM %s", ds.tableName)
+		err = ds.db.QueryRowContext(ctx, countQuery).Scan(&debs.CountStudents)
+		if err != nil {
+			return nil, err, 0
+		}
+		deb = append(deb, debs)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err, 0
+	}
+	return deb, nil, debs.CountStudents
+
 }
 
 func (ds *TuitionDBDS) selectTuitionByID(ctx context.Context, ID int64) (res dataModels.Tuition, err error) {
