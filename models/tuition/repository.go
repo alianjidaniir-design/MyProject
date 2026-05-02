@@ -75,6 +75,21 @@ func (repo *Repository) Update(ctx context.Context, req commonSchema.BaseRequest
 	return tuitionSchema.MassageTuition{Detail: update, Massage: "updated successfully"}, "", status.StatusOK, nil
 }
 
+func (repo *Repository)	Delete(ctx context.Context, req commonSchema.BaseRequest[tuitionSchema.DeleteTuition]) (res tuitionSchema.MassageTuition, errStr string, code int, err error){
+	if repo.initRepo != nil {
+		return tuitionSchema.MassageTuition{}, "01", status.UnAvailableServiceError, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return tuitionSchema.MassageTuition{}, "02", status.StatusInternalServerError, err
+	}
+	deleted, err := repo.db().DeleteTuition(ctx, req.Body)
+	if err != nil {
+		return tuitionSchema.MassageTuition{}, "03", status.StatusBadRequest, err
+	}
+	return tuitionSchema.MassageTuition{Detail: deleted, Massage: "deleted successfully"}, "", status.StatusOK, nil
+}
+
+
 func (repo *Repository) db() dataSources.TuitionDS {
 	return repo.DBDS
 }

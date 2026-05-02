@@ -4,7 +4,6 @@ import (
 	"MyProject/apiSchema/tuitionSchema"
 	"MyProject/models/tuition/dataModels"
 	tuitionDataSourses "MyProject/models/tuition/dataSources"
-	"MyProject/statics/constants"
 	"context"
 	"database/sql"
 	"errors"
@@ -90,18 +89,16 @@ CASE WHEN EXISTS (SELECT 1 FROM registration WHERE offering_row = ? AND status =
 	now := time.Now().In(myLocation())
 	var totalDebit int
 
-	req.FixedTuition = constants.FixedTuition
-
-	if req.CourseTuition != 0 && dbOffering != nil {
+	if req.CourseTuition != 0 && dbOffering != nil && req.FixedTuition == 0 {
 		req.FixedTuition = 0
 		totalDebit = req.CourseTuition
 		if req.ExtraOption != 0 {
 			totalDebit += req.ExtraOption
 		}
-	} else if req.CourseTuition == 0 && dbOffering == nil {
+	} else if req.CourseTuition == 0 && dbOffering == nil && req.FixedTuition != 0 {
 		req.CourseTuition = 0
-		totalDebit = constants.FixedTuition
-		fix := constants.FixedTuition
+		totalDebit = req.FixedTuition
+		fix := req.FixedTuition
 		var number int
 		counted := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE fixed_tuition = ? AND student_id = ? ", ds.tableName)
 		err = tx.QueryRowContext(ctx, counted, fix, req.StudentID).Scan(&number)
@@ -111,9 +108,9 @@ CASE WHEN EXISTS (SELECT 1 FROM registration WHERE offering_row = ? AND status =
 		if number >= 1 {
 			return dataModels.Tuition{}, errors.New(" fixed tuition exists already")
 		}
-		req.FixedTuition = fix
-	} else {
-		return dataModels.Tuition{}, errors.New("this kind is invalid")
+
+	} else if req.FixedTuition == 0 && req.CourseTuition == 0 {
+		return dataModels.Tuition{}, errors.New("Error")
 	}
 	if totalDebit < 0 {
 		return dataModels.Tuition{}, errors.New("calculated total debit cannot be negative")
@@ -176,6 +173,24 @@ func (ds *TuitionDBDS) UpdateTuition(ctx context.Context, req tuitionSchema.Upda
 	err = tx.Commit()
 	if err != nil {
 		return dataModels.Tuition{}, fmt.Errorf("Error updating tuition: %s", err)
+	}
+	return ds.selectTuitionByID(ctx, req.Row)
+}
+
+func (ds *TuitionDBDS) DeleteTuition(ctx context.Context, req tuitionSchema.DeleteTuition) (res dataModels.Tuition, err error) {
+	err = ds.checkTuition(ctx, req.Row)
+	if err != nil {
+		return dataModels.Tuition{}, err
+	}
+	deleted := fmt.Sprintf("UPDATE %s SET deleted_at = ? , updated_at = ? WHERE row = ? AND deleted_at IS NULL", ds.tableName)
+	rows, err := ds.db.PrepareContext(ctx, deleted)
+	defer rows.Close()
+	if err != nil {
+		return dataModels.Tuition{}, err
+	}
+	_, err = rows.ExecContext(ctx, time.Now(), time.Now(), req.Row)
+	if err != nil {
+		return dataModels.Tuition{}, err
 	}
 	return ds.selectTuitionByID(ctx, req.Row)
 }
