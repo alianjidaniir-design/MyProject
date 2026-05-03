@@ -12,6 +12,7 @@ var profileRoute = map[string]string{
 	"ProfileSummery":           "profile/summery",
 	"ProfileDetail":            "profile/detail",
 	"ProfileDelete":            "profile/delete",
+	"ProfileListTopStudents":   "profile/list/top",
 }
 
 func SetupProfileRoute(app *fiber.App) map[string]string {
@@ -20,5 +21,6 @@ func SetupProfileRoute(app *fiber.App) map[string]string {
 	app.Post(profileRoute["ProfileSummery"], ListSummeryStudents)
 	app.Post(profileRoute["ProfileDetail"], Get)
 	app.Post(profileRoute["ProfileDelete"], Delete)
+	app.Post(profileRoute["ProfileListTopStudents"], ListTopStudents)
 	return profileRoute
 }

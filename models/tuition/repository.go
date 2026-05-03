@@ -102,6 +102,20 @@ func (repo *Repository) ListFixTuition(ctx context.Context, req commonSchema.Bas
 	return tuitionSchema.ListTuitionSchema{Detail: list, Total: tot}, "", status.StatusOK, nil
 }
 
+func (repo *Repository) List(ctx context.Context, req commonSchema.BaseRequest[tuitionSchema.ListFixedTuition]) (res tuitionSchema.ListAllTuitionSchema, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return tuitionSchema.ListAllTuitionSchema{}, "01", status.UnAvailableServiceError, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return tuitionSchema.ListAllTuitionSchema{}, "02", status.StatusInternalServerError, err
+	}
+	student, err, tot := repo.db().ListAllTuitionStudents(ctx, req.Body)
+	if err != nil {
+		return tuitionSchema.ListAllTuitionSchema{}, "03", status.StatusBadRequest, err
+	}
+	return tuitionSchema.ListAllTuitionSchema{Detail: student, Total: tot}, "", status.StatusOK, nil
+}
+
 func (repo *Repository) db() dataSources.TuitionDS {
 	return repo.DBDS
 }

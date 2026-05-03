@@ -117,7 +117,7 @@ CASE WHEN EXISTS (SELECT 1 FROM registration WHERE offering_row = ? AND status =
 		return dataModels.Tuition{}, errors.New("calculated total debit cannot be negative")
 	}
 
-	_, err = tx.ExecContext(ctx, insertQuery, newID, req.StudentID, dbOffering, req.FixedTuition, req.CourseTuition, req.ExtraOption, totalDebit, now, now)
+	_, err = tx.ExecContext(ctx, insertQuery, newID, req.StudentID, req.OfferingRow, req.FixedTuition, req.CourseTuition, req.ExtraOption, totalDebit, now, now)
 	if err != nil {
 		return dataModels.Tuition{}, fmt.Errorf("Error inserting tuition: %s", err)
 	}
@@ -206,7 +206,14 @@ func (ds *TuitionDBDS) ListFixedTuition(ctx context.Context, req tuitionSchema.L
 	}
 	limit := pageSize
 	offset := (page - 1) * limit
-	selectQuery := fmt.Sprintf("SELECT student_id , fixed_tuition , course_tuition , extra_option , SUM(fixed_tuition)+SUM(course_tuition)+SUM(extra_option) AS total_sum FROM %s WHERE deleted_at IS NULL GROUP BY student_id  ORDER BY student_id LIMIT ? OFFSET ?", ds.tableName)
+
+	var countStudents int
+	countQuery := fmt.Sprintf("SELECT COUNT(DISTINCT student_id) FROM %s WHERE deleted_at IS NULL", ds.tableName)
+	err = ds.db.QueryRowContext(ctx, countQuery).Scan(&countStudents)
+	if err != nil {
+		return nil, err, 0
+	}
+	selectQuery := fmt.Sprintf("SELECT student_id , SUM(fixed_tuition)+SUM(course_tuition)+SUM(extra_option) AS total_tuition  FROM %s WHERE deleted_at IS NULL GROUP BY student_id  ORDER BY student_id LIMIT ? OFFSET ?", ds.tableName)
 	rows, err := ds.db.QueryContext(ctx, selectQuery, limit, offset)
 	if err != nil {
 		return nil, err, 0
@@ -214,23 +221,64 @@ func (ds *TuitionDBDS) ListFixedTuition(ctx context.Context, req tuitionSchema.L
 
 	defer rows.Close()
 	for rows.Next() {
-		err = rows.Scan(&debs.StudentID, &debs.FixedTuition, &debs.CourseTuition, &debs.ExtraOption, &debs.TotalSum)
+		err = rows.Scan(&debs.StudentID, &debs.TotalTuition)
 		if err != nil {
 			return nil, err, 0
 		}
-		countQuery := fmt.Sprintf("SELECT COUNT(student_id) AS count_student FROM %s", ds.tableName)
-		err = ds.db.QueryRowContext(ctx, countQuery).Scan(&debs.CountStudents)
-		if err != nil {
-			return nil, err, 0
-		}
+
 		deb = append(deb, debs)
 	}
 	err = rows.Err()
 	if err != nil {
 		return nil, err, 0
 	}
-	return deb, nil, debs.CountStudents
+	return deb, nil, countStudents
 
+}
+
+func (ds *TuitionDBDS) ListAllTuitionStudents(ctx context.Context, req tuitionSchema.ListFixedTuition) (res []dataModels.Tuition, err error, total int) {
+	var tui []dataModels.Tuition
+	page, pageSize, err := pagination.CheckPage(req.Page, req.Size)
+	if err != nil {
+		return nil, err, 0
+	}
+	limit := pageSize
+	offset := (page - 1) * limit
+	var totalStudents int
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s", ds.tableName)
+	err = ds.db.QueryRowContext(ctx, countQuery).Scan(&totalStudents)
+	if err != nil {
+		return nil, err, 0
+	}
+	selectQuery := fmt.Sprintf("SELECT * FROM %s LIMIT ? OFFSET ?", ds.tableName)
+	rows, err := ds.db.QueryContext(ctx, selectQuery, limit, offset)
+	if err != nil {
+		return nil, err, 0
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var tuition dataModels.Tuition
+		var createdAt, updatedAt, deletedAt sql.NullTime
+		err = rows.Scan(&tuition.Row, &tuition.StudentID, &tuition.OfferingID, &tuition.FixedTuition, &tuition.CourseTuition, &tuition.ExtraOption, &tuition.DebitAmount, &tuition.CreditAmount, &createdAt, &updatedAt, &deletedAt)
+		if err != nil {
+			return nil, err, 0
+		}
+		if createdAt.Valid {
+			tuition.CreatedAt = createdAt.Time
+		}
+		if updatedAt.Valid {
+			tuition.UpdatedAt = updatedAt.Time
+		}
+		if deletedAt.Valid {
+			tuition.DeletedAt = deletedAt.Time
+		}
+		tui = append(tui, tuition)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err, 0
+	}
+	return tui, nil, totalStudents
 }
 
 func (ds *TuitionDBDS) selectTuitionByID(ctx context.Context, ID int64) (res dataModels.Tuition, err error) {

@@ -172,7 +172,7 @@ SELECT
 u.ID    AS student_id,
 u.name AS student_name,
 u.family  AS student_family,
-u.major AS major
+u.major AS major,
 COUNT(DISTINCT c.course_number) AS total_course,
 AVG(p.score) AS average_score,
  CASE
@@ -333,6 +333,66 @@ func (ds *ProfileDBDS) DeleteProfile(ctx context.Context, req profileSchema.Dele
 		return fmt.Errorf("error in deletion", err)
 	}
 	return nil
+}
+
+func (ds *ProfileDBDS) ListTopStudents(ctx context.Context, req profileSchema.ListAllScoresReq) (res []dataModels.StudentsSummary, total int, err error) {
+	var profiles []dataModels.StudentsSummary
+	page, pageSize, err := pagination.CheckPage(req.Page, req.PageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+	limit := pageSize
+	offset := (page - 1) * limit
+	var tot int
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s ", ds.tableName)
+	err = ds.db.QueryRowContext(ctx, countQuery).Scan(&tot)
+	if err != nil {
+		return nil, 0, err
+	}
+	selected := `
+SELECT
+u.ID AS student_code,
+u.name AS student_name,
+u.family AS student_family,
+u.major AS major,
+COUNT(DISTINCT c.course_number) AS total_course,
+AVG(p.score) AS average_score,
+ CASE
+        WHEN AVG(p.score) >= 17 THEN 'A'
+        WHEN AVG(p.score) >= 14 THEN 'B'
+        WHEN AVG(p.score) >= 10 THEN 'C'
+        WHEN AVG(p.score) >= 7 THEN 'D'
+        ELSE 'E'
+    END AS total_grade,
+SUM(c.unit) AS total_units
+FROM profiles p
+JOIN registration r ON p.registration_id = r.ID
+JOIN offerings o ON r.offering_row = o.row
+JOIN courses c ON o.course_id = c.ID
+JOIN student u ON r.student_id = u.ID
+GROUP BY u.ID , u.name, u.family, u.major 
+HAVING average_score >= 17
+ORDER BY u.ID LIMIT ? OFFSET ?;
+`
+	rows, err := ds.db.QueryContext(ctx, selected, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var profile dataModels.StudentsSummary
+		err = rows.Scan(&profile.StudentID, &profile.StudentName, &profile.StudentFamily, &profile.Major, &profile.TotalCourse, &profile.AverageScore, &profile.TotalGrade, &profile.TotalUnits)
+		if err != nil {
+			return nil, 0, err
+		}
+		profiles = append(profiles, profile)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, 0, err
+	}
+	return profiles, tot, nil
+
 }
 
 func (ds *ProfileDBDS) readOProfileByID(ctx context.Context, ID int64) (res dataModels.Profile, err error) {

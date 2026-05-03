@@ -17,10 +17,6 @@ type Tuition struct {
 }
 
 type StudentsDebit struct {
-	StudentID     int64 `json:"student_id"`
-	FixedTuition  int   `json:"fixed_tuition"`
-	CourseTuition int   `json:"course_tuition"`
-	ExtraOption   int   `json:"extra_option"`
-	TotalSum      int   `json:"total_sum"`
-	CountStudents int   `json:"count_students"`
+	StudentID    int64 `json:"student_id"`
+	TotalTuition int   `json:"total_tuition"`
 }

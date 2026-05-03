@@ -12,6 +12,7 @@ type TuitionRepository interface {
 	Update(ctx context.Context, req commonSchema.BaseRequest[tuitionSchema.UpdateTuition]) (res tuitionSchema.MassageTuition, errStr string, code int, err error)
 	Delete(ctx context.Context, req commonSchema.BaseRequest[tuitionSchema.DeleteTuition]) (res tuitionSchema.MassageTuition, errStr string, code int, err error)
 	ListFixTuition(ctx context.Context, req commonSchema.BaseRequest[tuitionSchema.ListFixedTuition]) (res tuitionSchema.ListTuitionSchema, errStr string, code int, err error)
+	List(ctx context.Context, req commonSchema.BaseRequest[tuitionSchema.ListFixedTuition]) (res tuitionSchema.ListAllTuitionSchema, errStr string, code int, err error)
 }
 
 var TuitionRepo TuitionRepository = tuition.GetRepo()

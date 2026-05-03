@@ -15,3 +15,8 @@ type ListTuitionSchema struct {
 	Detail []dataModels.StudentsDebit
 	Total  int
 }
+
+type ListAllTuitionSchema struct {
+	Detail []dataModels.Tuition
+	Total  int
+}

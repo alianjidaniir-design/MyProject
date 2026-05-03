@@ -22,3 +22,7 @@ type ListFixedTuition struct {
 	Page int `json:"page"`
 	Size int `json:"size"`
 }
+
+type GetTuition struct {
+	Row int64 `json:"row"`
+}
