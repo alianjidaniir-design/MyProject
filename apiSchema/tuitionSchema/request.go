@@ -24,5 +24,5 @@ type ListFixedTuition struct {
 }
 
 type GetTuition struct {
-	Row int64 `json:"row"`
+	StudentID int64 `json:"student_id"`
 }

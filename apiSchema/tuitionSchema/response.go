@@ -20,3 +20,11 @@ type ListAllTuitionSchema struct {
 	Detail []dataModels.Tuition
 	Total  int
 }
+
+type TuitionStudentSchema struct {
+	Detail            []dataModels.TuitionStudent
+	TotalUnits        int
+	TotalDebitAmount  int
+	TotalCreditAmount int
+	Reminder          int
+}

@@ -116,6 +116,20 @@ func (repo *Repository) List(ctx context.Context, req commonSchema.BaseRequest[t
 	return tuitionSchema.ListAllTuitionSchema{Detail: student, Total: tot}, "", status.StatusOK, nil
 }
 
+func (repo *Repository) Get(ctx context.Context, req commonSchema.BaseRequest[tuitionSchema.GetTuition]) (res tuitionSchema.TuitionStudentSchema, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return tuitionSchema.TuitionStudentSchema{}, "01", status.UnAvailableServiceError, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return tuitionSchema.TuitionStudentSchema{}, "02", status.StatusInternalServerError, err
+	}
+	get, unit, debit, credit, remine, err := repo.db().GetTuitionStudent(ctx, req.Body)
+	if err != nil {
+		return tuitionSchema.TuitionStudentSchema{}, "03", status.StatusBadRequest, err
+	}
+	return tuitionSchema.TuitionStudentSchema{Detail: get, TotalUnits: unit, TotalDebitAmount: debit, TotalCreditAmount: credit, Reminder: remine}, "", status.StatusOK, nil
+}
+
 func (repo *Repository) db() dataSources.TuitionDS {
 	return repo.DBDS
 }

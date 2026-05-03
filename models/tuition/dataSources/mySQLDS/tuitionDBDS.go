@@ -18,7 +18,7 @@ type TuitionDBDS struct {
 }
 
 func myLocation() *time.Location {
-	loc, err := time.LoadLocation("Asia/ُTehran")
+	loc, err := time.LoadLocation("Asia/Tehran")
 	if err != nil {
 		return time.FixedZone("Asia/Tehran", 3*3600+30*60)
 	}
@@ -77,6 +77,8 @@ CASE WHEN EXISTS (SELECT 1 FROM registration WHERE offering_row = ? AND status =
 		dbOffering = nil
 	}
 
+	// Reject ambiguous / impossible combinations (otherwise no branch sets totalDebit but INSERT still runs).
+
 	var lastID int64
 
 	lastIDQuery := fmt.Sprintf("SELECT COALESCE(MAX(row), 0) FROM %s", ds.tableName)
@@ -90,13 +92,18 @@ CASE WHEN EXISTS (SELECT 1 FROM registration WHERE offering_row = ? AND status =
 	now := time.Now().In(myLocation())
 	var totalDebit int
 
-	if req.CourseTuition != 0 && dbOffering != nil && req.FixedTuition == 0 {
+	switch {
+	case (req.CourseTuition != 0 && req.OfferingRow == 0) || (req.CourseTuition == 0 && req.OfferingRow != 0):
+		return dataModels.Tuition{}, errors.New("course tuition requires a non-zero offering_row")
+	case req.FixedTuition != 0 && req.OfferingRow != 0:
+		return dataModels.Tuition{}, errors.New("fixed tuition must use offering_row 0")
+	case req.CourseTuition != 0 && req.OfferingRow != 0 && req.FixedTuition == 0:
 		req.FixedTuition = 0
 		totalDebit = req.CourseTuition
 		if req.ExtraOption != 0 {
 			totalDebit += req.ExtraOption
 		}
-	} else if req.CourseTuition == 0 && dbOffering == nil && req.FixedTuition != 0 {
+	case req.CourseTuition == 0 && dbOffering == nil && req.FixedTuition != 0:
 		req.CourseTuition = 0
 		totalDebit = req.FixedTuition
 		fix := req.FixedTuition
@@ -109,10 +116,11 @@ CASE WHEN EXISTS (SELECT 1 FROM registration WHERE offering_row = ? AND status =
 		if number >= 1 {
 			return dataModels.Tuition{}, errors.New(" fixed tuition exists already")
 		}
+	default:
+		return dataModels.Tuition{}, errors.New("invalid request")
 
-	} else if req.FixedTuition == 0 && req.CourseTuition == 0 {
-		return dataModels.Tuition{}, errors.New("Error")
 	}
+
 	if totalDebit < 0 {
 		return dataModels.Tuition{}, errors.New("calculated total debit cannot be negative")
 	}
@@ -279,6 +287,89 @@ func (ds *TuitionDBDS) ListAllTuitionStudents(ctx context.Context, req tuitionSc
 		return nil, err, 0
 	}
 	return tui, nil, totalStudents
+}
+
+func (ds *TuitionDBDS) GetTuitionStudent(ctx context.Context, req tuitionSchema.GetTuition) (res []dataModels.TuitionStudent, units int, debits int, credits int, reminder int, err error) {
+	var totUnit, totDebit, totCredit, remine int
+
+	// LEFT JOIN offerings/courses so rows with offering_row = 0 (fixed tuition) still appear.
+	selected := fmt.Sprintf(`
+SELECT
+u.ID AS student_id,
+u.code AS student_code,
+u.name AS student_name,
+u.family AS student_family,
+u.major AS major,
+c.ID AS course_id,
+c.title AS course_title,
+c.course_number AS course_number,
+c.unit AS unit,
+t.fixed_tuition,
+t.course_tuition,
+t.extra_option,
+t.debit_amount,
+t.credit_amount
+FROM %s t
+JOIN student u ON t.student_id = u.ID
+LEFT JOIN offerings o ON t.offering_row > 0 AND t.offering_row = o.row
+LEFT JOIN courses c ON o.course_id = c.ID
+WHERE t.student_id = ? AND t.deleted_at IS NULL
+ORDER BY t.row
+`, ds.tableName)
+	rows, err := ds.db.QueryContext(ctx, selected, req.StudentID)
+	if err != nil {
+		return nil, 0, 0, 0, 0, err
+	}
+	defer rows.Close()
+	var tuition []dataModels.TuitionStudent
+
+	for rows.Next() {
+		var tui dataModels.TuitionStudent
+		var courseID sql.NullInt64
+		var courseTitle, unit sql.NullString
+		var courseNumber sql.NullInt64
+
+		err = rows.Scan(&tui.StudentID, &tui.StudentCode, &tui.StudentName, &tui.StudentFamily, &tui.Major, &courseID, &courseTitle, &courseNumber, &unit, &tui.FixedTuition, &tui.CourseTuition, &tui.ExtraOption, &tui.DebitAmount, &tui.CreditAmount)
+		if err != nil {
+			return nil, 0, 0, 0, 0, err
+		}
+		if courseID.Valid {
+			tui.CourseID = courseID.Int64
+		}
+		if courseTitle.Valid {
+			tui.CourseTitle = courseTitle.String
+		}
+		if courseNumber.Valid {
+			tui.CourseNumber = int(courseNumber.Int64)
+		}
+		if unit.Valid {
+			tui.Unit = unit.String
+		}
+
+		tuition = append(tuition, tui)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, 0, 0, 0, 0, err
+	}
+	totalQuery := fmt.Sprintf(`
+SELECT
+COALESCE(SUM(c.unit), 0) AS total_units,
+COALESCE(SUM(t.debit_amount), 0) AS tot_debit,
+COALESCE(SUM(t.credit_amount), 0) AS tot_credit,
+COALESCE(SUM(t.debit_amount), 0) - COALESCE(SUM(t.credit_amount), 0) AS remine
+FROM %s t
+JOIN student u ON t.student_id = u.ID
+LEFT JOIN offerings o ON t.offering_row > 0 AND t.offering_row = o.row
+LEFT JOIN courses c ON o.course_id = c.ID
+WHERE t.student_id = ? AND t.deleted_at IS NULL
+`, ds.tableName)
+	err = ds.db.QueryRowContext(ctx, totalQuery, req.StudentID).Scan(&totUnit, &totDebit, &totCredit, &remine)
+	if err != nil {
+		return nil, 0, 0, 0, 0, err
+	}
+	return tuition, totUnit, totDebit, totCredit, remine, nil
+
 }
 
 func (ds *TuitionDBDS) selectTuitionByID(ctx context.Context, ID int64) (res dataModels.Tuition, err error) {

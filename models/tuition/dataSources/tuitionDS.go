@@ -12,4 +12,5 @@ type TuitionDS interface {
 	DeleteTuition(ctx context.Context, req tuitionSchema.DeleteTuition) (res dataModels.Tuition, err error)
 	ListFixedTuition(ctx context.Context, req tuitionSchema.ListFixedTuition) (res []dataModels.StudentsDebit, err error, total int)
 	ListAllTuitionStudents(ctx context.Context, req tuitionSchema.ListFixedTuition) (res []dataModels.Tuition, err error, total int)
+	GetTuitionStudent(ctx context.Context, req tuitionSchema.GetTuition) (res []dataModels.TuitionStudent, Units int, debits int, credits int, reminder int, err error)
 }
