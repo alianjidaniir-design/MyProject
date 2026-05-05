@@ -1,4 +1,4 @@
-package mySqlDS
+package mySQLDS
 
 import (
 	"fmt"

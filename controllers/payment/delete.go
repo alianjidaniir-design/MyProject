@@ -10,15 +10,15 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func Create(ctx *fiber.Ctx) error {
+func Delete(ctx *fiber.Ctx) error {
 	spanCtx := mainController.InitAPI(ctx, "12")
 	defer mainController.FinishSpan(ctx)
-	req := commonSchema.BaseRequest[paymentSchema.ConfirmationSchema]{}
+	req := commonSchema.BaseRequest[paymentSchema.DeleteInformation]{}
 	errStr, code, err := mainController.ParseBody(ctx, &req)
 	if err != nil {
 		return mainController.Error(ctx, controllerbaseErrCode.PaymentErrCode, "01", errStr, code, err)
 	}
-	res, errStr, code, err := repositories.PaymentRepo.Create(spanCtx, req)
+	res, errStr, code, err := repositories.PaymentRepo.Delete(spanCtx, req)
 	if err != nil {
 		return mainController.Error(ctx, controllerbaseErrCode.PaymentErrCode, "02", errStr, code, err)
 	}

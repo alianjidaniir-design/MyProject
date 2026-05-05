@@ -11,7 +11,7 @@ import (
 )
 
 func Create(ctx *fiber.Ctx) error {
-	spanCtx := mainController.InitAPI(ctx, "11")
+	spanCtx := mainController.InitAPI(ctx, "20")
 	defer mainController.FinishSpan(ctx)
 	req := commonSchema.BaseRequest[courseSchema.RequestCourse]{}
 	errStr, code, err := mainController.ParseBody(ctx, &req)

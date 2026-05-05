@@ -11,7 +11,7 @@ import (
 )
 
 func Delete(ctx *fiber.Ctx) error {
-	spanCtx := mainController.InitAPI(ctx, "19")
+	spanCtx := mainController.InitAPI(ctx, "12")
 	defer mainController.FinishSpan(ctx)
 	req := commonSchema.BaseRequest[userSchema.DeleteRequest]{}
 	errStr, code, err := mainController.ParseBody(ctx, &req)

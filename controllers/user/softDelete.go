@@ -11,7 +11,7 @@ import (
 )
 
 func SoftDelete(ctx *fiber.Ctx) error {
-	spanCtx := mainController.InitAPI(ctx, "19")
+	spanCtx := mainController.InitAPI(ctx, "15")
 	defer mainController.FinishSpan(ctx)
 	req := commonSchema.BaseRequest[userSchema.SoftDeleteRequest]{}
 	errStr, code, err := mainController.ParseBody(ctx, &req)

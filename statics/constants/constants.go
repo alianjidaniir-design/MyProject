@@ -16,10 +16,14 @@ const (
 )
 
 const (
-	SuccessCode     = "200"
-	BadRequestCode  = "400"
-	ForbiddenCode   = "403"
-	ServerErrorCode = "500"
+	Installment = "installment"
+	Cash        = "cash"
+)
+
+const (
+	Melat   = "melat"
+	Meli    = "meli"
+	Saderat = "saderat"
 )
 
 const (

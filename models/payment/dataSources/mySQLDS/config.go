@@ -1,4 +1,4 @@
-package mySqlDS
+package mySQLDS
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	defaultTableName      = "courses"
+	defaultTableName      = "payments"
 	MaxOpenConnections    = 10
 	MaxIdleConnections    = 5
 	MaxConnectionLifetime = 300
@@ -17,7 +17,7 @@ const (
 
 type Config struct {
 	DSN                   string
-	CourseTableName       string
+	PaymentTableName      string
 	MaxOpenConnections    int
 	MaxIdleConnections    int
 	MaxConnectionLifetime int
@@ -26,16 +26,16 @@ type Config struct {
 func LoadConfig() (Config, error) {
 	cfg := Config{
 		DSN:                   normalize(strings.TrimSpace(os.Getenv("MYSQL_DSN"))),
-		CourseTableName:       strings.TrimSpace(os.Getenv("MYSQL_COURSE_TABLE_NAME")),
+		PaymentTableName:      strings.TrimSpace(os.Getenv("MYSQL_PAYMENT_TABLE")),
 		MaxOpenConnections:    readEnvInt("MYSQL_MAX_OPEN_CONNECTIONS", MaxOpenConnections),
 		MaxIdleConnections:    readEnvInt("MYSQL_MAX_IDLE_CONNECTIONS", MaxIdleConnections),
 		MaxConnectionLifetime: readEnvInt("MYSQL_MAX_CONNECTION_LIFETIME", MaxConnectionLifetime),
 	}
-	if cfg.CourseTableName == "" {
-		cfg.CourseTableName = defaultTableName
+	if cfg.PaymentTableName == "" {
+		cfg.PaymentTableName = defaultTableName
 	}
 
-	if err := validateTableName(cfg.CourseTableName); err != nil {
+	if err := validateTableName(cfg.PaymentTableName); err != nil {
 		return Config{}, err
 	}
 	return cfg, nil

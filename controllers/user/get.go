@@ -11,7 +11,7 @@ import (
 )
 
 func Get(ctx *fiber.Ctx) error {
-	spanCtx := mainController.InitAPI(ctx, "12")
+	spanCtx := mainController.InitAPI(ctx, "13")
 	defer mainController.FinishSpan(ctx)
 	req := commonSchema.BaseRequest[userSchema.GetRequest]{}
 	errStr, code, err := mainController.ParseBody(ctx, &req)
