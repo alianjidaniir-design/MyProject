@@ -314,7 +314,7 @@ JOIN student u ON t.student_id = u.ID
 LEFT JOIN offerings o ON t.offering_row > 0 AND t.offering_row = o.row
 LEFT JOIN courses c ON o.course_id = c.ID
 WHERE t.student_id = ? AND t.deleted_at IS NULL
-ORDER BY t.row
+ORDER BY t.row 
 `, ds.tableName)
 	rows, err := ds.db.QueryContext(ctx, selected, req.StudentID)
 	if err != nil {

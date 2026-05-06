@@ -10,3 +10,7 @@ type DetailChangePaymentSchema struct {
 	Detail  dataModels.Payment `json:"detail"`
 	Massage string             `json:"massage"`
 }
+
+type DetailListPaymentSchema struct {
+	Detail []dataModels.Payment `json:"detail"`
+}

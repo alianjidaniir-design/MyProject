@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -157,6 +158,93 @@ func (ds *PaymentDBDS) DeletePayment(ctx context.Context, req paymentSchema.Dele
 	}
 	return ds.getPaymentStudent(ctx, req.ID)
 
+}
+
+func (ds *PaymentDBDS) DetailPayment(ctx context.Context, req paymentSchema.GetInformation) (res dataModels.Payment, err error) {
+	err = ds.checkPayment(ctx, req.ID)
+	if err != nil {
+		return dataModels.Payment{}, err
+	}
+	return ds.getPaymentStudent(ctx, req.ID)
+}
+
+func (ds *PaymentDBDS) ListPayment(ctx context.Context, req paymentSchema.ListPayment) (res []dataModels.Payment, err error) {
+	var payments []dataModels.Payment
+	var rows *sql.Rows
+	if req.Filter == nil {
+		selectQuery := fmt.Sprintf("SELECT * FROM %s ", ds.tableName)
+		rows, err = ds.db.QueryContext(ctx, selectQuery)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		filterQuery, args := ds.filterQuery(*req.Filter)
+		rows, err = ds.db.QueryContext(ctx, filterQuery, args...)
+		if err != nil {
+			return nil, err
+		}
+
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var payment dataModels.Payment
+		var createdAt, updatedAt, deletedAt sql.NullTime
+		var PaymentTotal, PaymentCash, PaymentAmount dataModels.NullInt64
+		var PaymentNumber dataModels.NullString
+		err = rows.Scan(&payment.ID, &payment.TuitionRow, &payment.PaymentType, &PaymentNumber.Val, &PaymentTotal.Val, &PaymentAmount.Val, &PaymentCash.Val, &payment.Bank, &payment.Operation, &createdAt, &updatedAt, &deletedAt)
+		if err != nil {
+			return nil, err
+		}
+		payment.NumberInstallment = PaymentNumber
+		payment.InstallmentTotal = PaymentTotal
+		payment.InstallmentAmount = PaymentAmount
+		payment.CashAmount = PaymentCash
+		if createdAt.Valid {
+			payment.CreatedAt = createdAt.Time
+		}
+
+		if updatedAt.Valid {
+			payment.UpdatedAt = updatedAt.Time
+		}
+		if deletedAt.Valid {
+			payment.DeletedAt = deletedAt.Time
+		}
+		payments = append(payments, payment)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	return payments, nil
+}
+
+func (ds *PaymentDBDS) filterQuery(req paymentSchema.Filter) (string, []interface{}) {
+	query := fmt.Sprintf("SELECT * FROM %s WHERE ", ds.tableName)
+	var args []interface{}
+	condition := []string{}
+	if req.PaymentType == "cash" || req.PaymentType == "installment" {
+		condition = append(condition, "payment_type = ?")
+		args = append(args, req.PaymentType)
+	} else {
+		return "this is ", nil
+	}
+	if req.Bank != "" {
+		condition = append(condition, "bank = ?")
+		args = append(args, req.Bank)
+	}
+	if req.Operation != false {
+		condition = append(condition, "operation = ?")
+		args = append(args, req.Operation)
+	} else if req.Operation == true {
+		condition = append(condition, "operation = ?")
+		args = append(args, req.Operation)
+	}
+	if len(condition) > 0 {
+		query += strings.Join(condition, " AND ")
+	}
+
+	query += " ORDER BY id "
+	return query, args
 }
 
 func (ds *PaymentDBDS) getPaymentStudent(ctx context.Context, ID int64) (dataModels.Payment, error) {

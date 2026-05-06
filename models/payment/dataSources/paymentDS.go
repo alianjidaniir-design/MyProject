@@ -9,4 +9,6 @@ import (
 type PaymentDS interface {
 	CreatePayment(ctx context.Context, req paymentSchema.ConfirmationSchema) (res dataModels.Payment, err error)
 	DeletePayment(ctx context.Context, req paymentSchema.DeleteInformation) (res dataModels.Payment, err error)
+	DetailPayment(ctx context.Context, req paymentSchema.GetInformation) (res dataModels.Payment, err error)
+	ListPayment(ctx context.Context, req paymentSchema.ListPayment) (res []dataModels.Payment, err error)
 }

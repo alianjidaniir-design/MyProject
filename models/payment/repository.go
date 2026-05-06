@@ -76,6 +76,35 @@ func (repo *Repository) Delete(ctx context.Context, req commonSchema.BaseRequest
 	return paymentSchema.DetailChangePaymentSchema{Detail: deleted, Massage: "payment deleted successfully"}, "", status.StatusOK, nil
 }
 
+func (repo *Repository) Get(ctx context.Context, req commonSchema.BaseRequest[paymentSchema.GetInformation]) (res paymentSchema.DetailPaymentSchema, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return paymentSchema.DetailPaymentSchema{}, "01", status.StatusInternalServerError, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return paymentSchema.DetailPaymentSchema{}, "02", status.StatusInternalServerError, err
+	}
+	get, err := repo.db().DetailPayment(ctx, req.Body)
+	if err != nil {
+		return paymentSchema.DetailPaymentSchema{}, "03", status.StatusBadRequest, err
+	}
+	return paymentSchema.DetailPaymentSchema{Detail: get}, "", status.StatusOK, nil
+}
+
+func (repo *Repository) List(ctx context.Context, req commonSchema.BaseRequest[paymentSchema.ListPayment]) (res paymentSchema.DetailListPaymentSchema, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return paymentSchema.DetailListPaymentSchema{}, "01", status.StatusInternalServerError, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return paymentSchema.DetailListPaymentSchema{}, "02", status.StatusInternalServerError, err
+	}
+	list, err := repo.db().ListPayment(ctx, req.Body)
+	if err != nil {
+		return paymentSchema.DetailListPaymentSchema{}, "03", status.StatusBadRequest, err
+	}
+	return paymentSchema.DetailListPaymentSchema{Detail: list}, "", status.StatusOK, nil
+
+}
+
 func (repo *Repository) db() dataSources.PaymentDS {
 	return repo.DBDS
 }
