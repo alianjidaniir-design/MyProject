@@ -11,4 +11,7 @@ const (
 	ProfileErrCode      = "2009"
 	TuitionErrCode      = "2010"
 	PaymentErrCode      = "2011"
+	CategoryErrCode     = "2012"
+	ProgramErrCode      = "2013"
+	MemberShipErrCode   = "2014"
 )

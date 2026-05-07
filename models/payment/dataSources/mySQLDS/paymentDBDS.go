@@ -178,7 +178,10 @@ func (ds *PaymentDBDS) ListPayment(ctx context.Context, req paymentSchema.ListPa
 			return nil, err
 		}
 	} else {
-		filterQuery, args := ds.filterQuery(*req.Filter)
+		filterQuery, args, err := ds.filterQuery(*req.Filter)
+		if err != nil {
+			return nil, err
+		}
 		rows, err = ds.db.QueryContext(ctx, filterQuery, args...)
 		if err != nil {
 			return nil, err
@@ -218,19 +221,32 @@ func (ds *PaymentDBDS) ListPayment(ctx context.Context, req paymentSchema.ListPa
 	return payments, nil
 }
 
-func (ds *PaymentDBDS) filterQuery(req paymentSchema.Filter) (string, []interface{}) {
+func (ds *PaymentDBDS) filterQuery(req paymentSchema.Filter) (string, []interface{}, error) {
 	query := fmt.Sprintf("SELECT * FROM %s WHERE ", ds.tableName)
 	var args []interface{}
 	condition := []string{}
+
 	if req.PaymentType == "cash" || req.PaymentType == "installment" {
 		condition = append(condition, "payment_type = ?")
 		args = append(args, req.PaymentType)
 	} else {
-		return "this is ", nil
+		return "", nil, errors.New("invalid payment type")
 	}
-	if req.Bank != "" {
-		condition = append(condition, "bank = ?")
-		args = append(args, req.Bank)
+	banks := []string{"meli", "melat", "saderat"}
+
+	check := false
+	for _, bank := range banks {
+
+		if req.Bank == bank {
+			condition = append(condition, "bank = ?")
+			args = append(args, req.Bank)
+			check = true
+			break
+		}
+	}
+	if !check {
+		invalid := "This bank does not exist."
+		return invalid, nil, errors.New(invalid)
 	}
 	if req.Operation != false {
 		condition = append(condition, "operation = ?")
@@ -244,7 +260,7 @@ func (ds *PaymentDBDS) filterQuery(req paymentSchema.Filter) (string, []interfac
 	}
 
 	query += " ORDER BY id "
-	return query, args
+	return query, args, nil
 }
 
 func (ds *PaymentDBDS) getPaymentStudent(ctx context.Context, ID int64) (dataModels.Payment, error) {
