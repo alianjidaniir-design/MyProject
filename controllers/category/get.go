@@ -10,15 +10,15 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func Delete(ctx *fiber.Ctx) error {
-	spanCtx := mainController.InitAPI(ctx, "13")
+func Get(ctx *fiber.Ctx) error {
+	spanCtx := mainController.InitAPI(ctx, "14")
 	defer mainController.FinishSpan(ctx)
 	req := commonSchema.BaseRequest[categorySchema.GetRowCategoryRequest]{}
 	errStr, code, err := mainController.ParseBody(ctx, &req)
 	if err != nil {
 		return mainController.Error(ctx, controllerbaseErrCode.CategoryErrCode, "01", errStr, code, err)
 	}
-	res, errStr, code, err := repositories.CategoryRepo.Delete(spanCtx, req)
+	res, errStr, code, err := repositories.CategoryRepo.Get(spanCtx, req)
 	if err != nil {
 		return mainController.Error(ctx, controllerbaseErrCode.CategoryErrCode, "02", errStr, code, err)
 	}

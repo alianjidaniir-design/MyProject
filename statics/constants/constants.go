@@ -12,7 +12,9 @@ const (
 )
 
 const (
-	FixedTuition = 6000000
+	Approved = "approved"
+	Rejected = "rejected"
+	Review   = "review"
 )
 
 const (

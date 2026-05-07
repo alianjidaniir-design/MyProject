@@ -51,6 +51,14 @@ CASE WHEN EXISTS (SELECT 1 FROM categories WHERE row = ? )THEN 1 ELSE 0 END`
 
 }
 
+func (ds *ProgramDBDS) GetProgram(ctx context.Context, req programSchema.GetDetailProgramRequest) (res dataModel.Program, err error) {
+	err = ds.checkID(ctx, req.Row)
+	if err != nil {
+		return dataModel.Program{}, err
+	}
+	return ds.selectProgram(ctx, req.Row)
+}
+
 func (ds *ProgramDBDS) selectProgram(ctx context.Context, ID int64) (dataModel.Program, error) {
 	var program dataModel.Program
 	selectQuery := fmt.Sprintf("SELECT row , category_row , name , description FROM %s WHERE row = ?", ds.tableName)
@@ -59,4 +67,18 @@ func (ds *ProgramDBDS) selectProgram(ctx context.Context, ID int64) (dataModel.P
 		return dataModel.Program{}, err
 	}
 	return program, nil
+}
+
+func (ds *ProgramDBDS) checkID(ctx context.Context, ID int64) error {
+	var check bool
+	checkQuery := `
+SELECT EXISTS (SELECT 1 FROM programs WHERE row = ? )`
+	err := ds.db.QueryRowContext(ctx, checkQuery, ID).Scan(&check)
+	if err != nil {
+		return err
+	}
+	if !check {
+		return errors.New("program does not exist")
+	}
+	return nil
 }

@@ -74,6 +74,20 @@ func (repo *Repository) Delete(ctx context.Context, req commonSchema.BaseRequest
 	return categorySchema.InformationCategoryResponse{Detail: deleted, Massage: "deleted successfully"}, "", status.StatusOK, nil
 }
 
+func (repo *Repository) Get(ctx context.Context, req commonSchema.BaseRequest[categorySchema.GetRowCategoryRequest]) (res categorySchema.InformationCategoryResponse, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return categorySchema.InformationCategoryResponse{}, "01", status.UnAvailableServiceError, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return categorySchema.InformationCategoryResponse{}, "02", status.StatusInternalServerError, err
+	}
+	get, err := repo.db().GetDetailCategory(ctx, req.Body)
+	if err != nil {
+		return categorySchema.InformationCategoryResponse{}, "03", status.StatusBadRequest, err
+	}
+	return categorySchema.InformationCategoryResponse{Detail: get, Massage: "information category"}, "", 0, nil
+}
+
 func (repo *Repository) db() dataSources.CategoryDS {
 	return repo.DBDS
 }

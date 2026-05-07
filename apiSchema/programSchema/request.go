@@ -5,3 +5,7 @@ type CreateProgramRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 }
+
+type GetDetailProgramRequest struct {
+	Row int64 `json:"row"`
+}

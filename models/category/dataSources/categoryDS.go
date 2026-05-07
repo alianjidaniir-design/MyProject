@@ -9,4 +9,5 @@ import (
 type CategoryDS interface {
 	CreateCategory(ctx context.Context, req categorySchema.CreateCategoryRequest) (res dataModel.Category, err error)
 	DeleteCategory(ctx context.Context, req categorySchema.GetRowCategoryRequest) (res dataModel.Category, err error)
+	GetDetailCategory(ctx context.Context, req categorySchema.GetRowCategoryRequest) (res dataModel.Category, err error)
 }

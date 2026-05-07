@@ -52,6 +52,14 @@ func (ff *CategoryDBDS) DeleteCategory(ctx context.Context, req categorySchema.G
 	return ff.selectCategory(ctx, req.Row)
 }
 
+func (ff *CategoryDBDS) GetDetailCategory(ctx context.Context, req categorySchema.GetRowCategoryRequest) (res dataModel.Category, err error) {
+	err = ff.checkCategory(ctx, req.Row)
+	if err != nil {
+		return dataModel.Category{}, err
+	}
+	return ff.selectCategory(ctx, req.Row)
+}
+
 func (ff *CategoryDBDS) selectCategory(ctx context.Context, ID int64) (res dataModel.Category, err error) {
 	var category dataModel.Category
 	selectQuery := `SELECT row , name FROM ` + ff.tableName + ` where row = ?`

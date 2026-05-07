@@ -9,6 +9,7 @@ import (
 
 type ProgramRepository interface {
 	Create(ctx context.Context, req commonSchema.BaseRequest[programSchema.CreateProgramRequest]) (res programSchema.DetailProgramResponse, errStr string, code int, err error)
+	Get(ctx context.Context, req commonSchema.BaseRequest[programSchema.GetDetailProgramRequest]) (res programSchema.DetailProgramResponse, errStr string, code int, err error)
 }
 
 var ProgramRepo ProgramRepository = program.GetRepo()

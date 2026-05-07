@@ -60,6 +60,20 @@ func (repo *Repository) Create(ctx context.Context, req commonSchema.BaseRequest
 	return programSchema.DetailProgramResponse{Detail: create, Massage: "successfully created"}, "0", status.StatusOK, nil
 }
 
+func (repo *Repository) Get(ctx context.Context, req commonSchema.BaseRequest[programSchema.GetDetailProgramRequest]) (res programSchema.DetailProgramResponse, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return programSchema.DetailProgramResponse{}, "01", status.StatusBadRequest, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return programSchema.DetailProgramResponse{}, "02", status.StatusInternalServerError, err
+	}
+	get, err := repo.db().GetProgram(ctx, req.Body)
+	if err != nil {
+		return programSchema.DetailProgramResponse{}, "03", status.StatusBadRequest, err
+	}
+	return programSchema.DetailProgramResponse{Detail: get, Massage: "information Program"}, "", status.StatusOK, nil
+}
+
 func (repo *Repository) db() dataSources.ProgramDS {
 	return repo.DBDS
 }
