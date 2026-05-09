@@ -14,3 +14,8 @@ type UpdateMembership struct {
 	ID               int64  `json:"id"`
 	StatusMembership string `json:"status_membership"`
 }
+
+type PaginationMemberShip struct {
+	Page int `json:"page"`
+	Size int `json:"size"`
+}

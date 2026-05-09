@@ -12,4 +12,5 @@ type MembershipDS interface {
 	UpdateMembership(ctx context.Context, req membershipSchema.UpdateMembership) (res dataModel.Membership, err error)
 	DeActiveMembership(ctx context.Context, req membershipSchema.GetIDMembership) (res dataModel.Membership, err error)
 	DetailMembership(ctx context.Context, req membershipSchema.GetIDMembership) (res dataModel.Membership, err error)
+	ListMembership(ctx context.Context, req membershipSchema.PaginationMemberShip) (res []dataModel.Membership, total int, err error)
 }
