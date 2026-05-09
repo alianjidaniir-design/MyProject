@@ -77,6 +77,116 @@ CASE WHEN EXISTS (SELECT 1 FROM programs WHERE row = ? )THEN 1 ELSE 0 END`
 
 }
 
+func (ds *MembershipDBDS) DeleteMembership(ctx context.Context, req membershipSchema.GetIDMembership) (dataModel.Membership, error) {
+	err := ds.checkID(ctx, req.ID)
+	now := time.Now().In(myLocation())
+	if err != nil {
+		return dataModel.Membership{}, err
+	}
+	membership, err := ds.selectMembership(ctx, req.ID)
+	if membership.DeletedAt != nil {
+		return dataModel.Membership{}, errors.New("membership deleted before")
+	}
+	deleted := fmt.Sprintf("UPDATE %s SET deleted_at = ? WHERE ID = ?", ds.tableName)
+	row, err := ds.db.PrepareContext(ctx, deleted)
+	if err != nil {
+		return dataModel.Membership{}, err
+	}
+	defer row.Close()
+	_, err = row.ExecContext(ctx, now, req.ID)
+	if err != nil {
+		return dataModel.Membership{}, err
+	}
+
+	return ds.selectMembership(ctx, req.ID)
+}
+
+func (ds *MembershipDBDS) UpdateMembership(ctx context.Context, req membershipSchema.UpdateMembership) (dataModel.Membership, error) {
+	err := ds.checkID(ctx, req.ID)
+	if err != nil {
+		return dataModel.Membership{}, err
+	}
+	now := time.Now().In(myLocation())
+	var createMembershipAt *time.Time
+	var status string
+	detailMembership, err := ds.selectMembership(ctx, req.ID)
+	if detailMembership.DeletedAt != nil {
+		return dataModel.Membership{}, errors.New("membership deleted before")
+	}
+	if req.StatusMembership == constants.Approved {
+		if detailMembership.StatusMemberShip == constants.Approved {
+			return dataModel.Membership{}, errors.New("membership status is already approved")
+		}
+		status = constants.Approved
+		createMembershipAt = &now
+
+	} else if req.StatusMembership == constants.Review {
+		if detailMembership.StatusMemberShip == constants.Review {
+			return dataModel.Membership{}, errors.New("membership status is already reviewed")
+		} else if detailMembership.StatusMemberShip == constants.Approved {
+			return dataModel.Membership{}, errors.New("can not update approved status to review status")
+		}
+		status = constants.Review
+
+	} else if req.StatusMembership == constants.Rejected {
+		if detailMembership.StatusMemberShip == constants.Rejected {
+			return dataModel.Membership{}, errors.New("membership status is already rejected")
+		} else if detailMembership.StatusMemberShip == constants.Approved {
+			return dataModel.Membership{}, errors.New("can not update approved status to rejected status")
+		}
+		status = constants.Rejected
+
+	} else {
+		return dataModel.Membership{}, errors.New("invalid status membership")
+	}
+	update := fmt.Sprintf("UPDATE %s SET status_membership = ? , created_membership_at = ? , updated_at = ?  WHERE ID = ? ", ds.tableName)
+	row, err := ds.db.PrepareContext(ctx, update)
+	if err != nil {
+		return dataModel.Membership{}, err
+	}
+	defer row.Close()
+	_, err = row.ExecContext(ctx, status, createMembershipAt, now, req.ID)
+	if err != nil {
+		return dataModel.Membership{}, err
+	}
+	return ds.selectMembership(ctx, req.ID)
+}
+func (ds *MembershipDBDS) DeActiveMembership(ctx context.Context, req membershipSchema.GetIDMembership) (res dataModel.Membership, err error) {
+	var membership dataModel.Membership
+	err = ds.checkID(ctx, req.ID)
+	if err != nil {
+		return membership, err
+	}
+	membership, err = ds.selectMembership(ctx, req.ID)
+	if membership.DeletedAt != nil {
+		return membership, errors.New("membership deleted before")
+	} else if membership.StatusMemberShip != constants.Approved {
+		return membership, errors.New("membership is not approved")
+	} else if membership.FinishMemberShipAt != nil {
+		return membership, errors.New("membership finished before")
+	}
+	now := time.Now().In(myLocation())
+	update := fmt.Sprintf("UPDATE `%s` SET updated_at = ? , finish_membership_at = ? WHERE ID = ?", ds.tableName)
+	row, err := ds.db.PrepareContext(ctx, update)
+	if err != nil {
+		return membership, err
+	}
+	defer row.Close()
+	_, err = row.ExecContext(ctx, now, now, req.ID)
+	if err != nil {
+		return membership, err
+	}
+	return ds.selectMembership(ctx, req.ID)
+}
+
+func (ds *MembershipDBDS) DetailMembership(ctx context.Context, req membershipSchema.GetIDMembership) (res dataModel.Membership, err error) {
+	err = ds.checkID(ctx, req.ID)
+	if err != nil {
+		return dataModel.Membership{}, err
+	}
+	return ds.selectMembership(ctx, req.ID)
+}
+
 func (ds *MembershipDBDS) selectMembership(ctx context.Context, ID int64) (res dataModel.Membership, err error) {
 	var membership dataModel.Membership
 	selectQuery := fmt.Sprintf("SELECT * FROM %s WHERE ID = ?", ds.tableName)
@@ -86,4 +196,19 @@ func (ds *MembershipDBDS) selectMembership(ctx context.Context, ID int64) (res d
 	}
 
 	return membership, nil
+}
+
+func (ds *MembershipDBDS) checkID(ctx context.Context, ID int64) error {
+	var check bool
+	checkQuery := `
+SELECT
+CASE WHEN EXISTS (SELECT 1 FROM memberships WHERE ID = ?)THEN 1 ELSE 0 END`
+	err := ds.db.QueryRowContext(ctx, checkQuery, ID).Scan(&check)
+	if err != nil {
+		return err
+	}
+	if !check {
+		return errors.New("membership does not exist")
+	}
+	return nil
 }
