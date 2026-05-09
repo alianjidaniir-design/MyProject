@@ -7,3 +7,8 @@ type CreateCategoryRequest struct {
 type GetRowCategoryRequest struct {
 	Row int64 `json:"row"`
 }
+
+type PaginationList struct {
+	Page int `json:"page"`
+	Size int `json:"size"`
+}

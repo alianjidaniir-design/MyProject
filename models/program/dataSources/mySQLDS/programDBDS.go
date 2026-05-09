@@ -4,6 +4,7 @@ import (
 	"MyProject/apiSchema/programSchema"
 	"MyProject/models/program/dataModel"
 	"MyProject/models/program/dataSources"
+	"MyProject/pkg/pagination"
 	"context"
 	"database/sql"
 	"errors"
@@ -57,6 +58,55 @@ func (ds *ProgramDBDS) GetProgram(ctx context.Context, req programSchema.GetDeta
 		return dataModel.Program{}, err
 	}
 	return ds.selectProgram(ctx, req.Row)
+}
+
+func (ds *ProgramDBDS) DeleteProgram(ctx context.Context, req programSchema.DeleteProgramRequest) (res dataModel.Program, err error) {
+	err = ds.checkID(ctx, req.Row)
+	if err != nil {
+		return dataModel.Program{}, err
+	}
+	deleteQuery := fmt.Sprintf("DELETE FROM %s WHERE row = ?", ds.tableName)
+	_, err = ds.db.ExecContext(ctx, deleteQuery, req.Row)
+	if err != nil {
+		return dataModel.Program{}, err
+	}
+	return dataModel.Program{}, nil
+}
+
+func (ds *ProgramDBDS) ListProgram(ctx context.Context, req programSchema.PaginationListProgramsRequest) (res []dataModel.Program, total int64, err error) {
+	var programs []dataModel.Program
+	page, pageSize, err := pagination.CheckPage(req.Page, req.Size)
+	if err != nil {
+		return nil, 0, err
+	}
+	limit := pageSize
+	offset := (page - 1) * limit
+	var totalRows int64
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s", ds.tableName)
+	err = ds.db.QueryRowContext(ctx, countQuery).Scan(&totalRows)
+	if err != nil {
+		return nil, 0, err
+	}
+	selectQuery := fmt.Sprintf("SELECT * FROM %s LIMIT ? OFFSET ?", ds.tableName)
+	rows, err := ds.db.QueryContext(ctx, selectQuery, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var program dataModel.Program
+		err = rows.Scan(&program.Row, &program.CategoryID, &program.Name, &program.Description)
+		if err != nil {
+			return nil, 0, err
+		}
+		programs = append(programs, program)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, 0, err
+	}
+	return programs, totalRows, nil
+
 }
 
 func (ds *ProgramDBDS) selectProgram(ctx context.Context, ID int64) (dataModel.Program, error) {

@@ -4,6 +4,7 @@ import (
 	"MyProject/apiSchema/categorySchema"
 	"MyProject/models/category/dataModel"
 	"MyProject/models/category/dataSources"
+	"MyProject/pkg/pagination"
 	"context"
 	"database/sql"
 	"errors"
@@ -58,6 +59,42 @@ func (ff *CategoryDBDS) GetDetailCategory(ctx context.Context, req categorySchem
 		return dataModel.Category{}, err
 	}
 	return ff.selectCategory(ctx, req.Row)
+}
+
+func (ff *CategoryDBDS) ListCategory(ctx context.Context, req categorySchema.PaginationList) (res []dataModel.Category, total int, err error) {
+	var categories []dataModel.Category
+	page, pageSize, err := pagination.CheckPage(req.Page, req.Size)
+	if err != nil {
+		return nil, 0, err
+	}
+	limit := pageSize
+	offset := (page - 1) * limit
+	var totalRows int
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s", ff.tableName)
+	err = ff.db.QueryRowContext(ctx, countQuery).Scan(&totalRows)
+	if err != nil {
+		return nil, 0, err
+	}
+	selectQuery := fmt.Sprintf("SELECT * FROM %s LIMIT ? OFFSET ? ", ff.tableName)
+	rows, err := ff.db.QueryContext(ctx, selectQuery, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var category dataModel.Category
+		err = rows.Scan(&category.Row, &category.Name)
+		if err != nil {
+			return nil, 0, err
+		}
+		categories = append(categories, category)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, 0, err
+	}
+	return categories, totalRows, nil
+
 }
 
 func (ff *CategoryDBDS) selectCategory(ctx context.Context, ID int64) (res dataModel.Category, err error) {

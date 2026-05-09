@@ -74,6 +74,34 @@ func (repo *Repository) Get(ctx context.Context, req commonSchema.BaseRequest[pr
 	return programSchema.DetailProgramResponse{Detail: get, Massage: "information Program"}, "", status.StatusOK, nil
 }
 
+func (repo *Repository) Delete(ctx context.Context, req commonSchema.BaseRequest[programSchema.DeleteProgramRequest]) (res programSchema.DetailProgramResponse, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return programSchema.DetailProgramResponse{}, "01", status.StatusBadRequest, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return programSchema.DetailProgramResponse{}, "02", status.StatusInternalServerError, err
+	}
+	deleted, err := repo.db().DeleteProgram(ctx, req.Body)
+	if err != nil {
+		return programSchema.DetailProgramResponse{}, "03", status.StatusBadRequest, err
+	}
+	return programSchema.DetailProgramResponse{Detail: deleted, Massage: "program deleted successfully"}, "", status.StatusOK, nil
+}
+
+func (repo *Repository) List(ctx context.Context, req commonSchema.BaseRequest[programSchema.PaginationListProgramsRequest]) (res programSchema.ListProgramsResponse, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return programSchema.ListProgramsResponse{}, "01", status.StatusBadRequest, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return programSchema.ListProgramsResponse{}, "02", status.StatusInternalServerError, err
+	}
+	list, totalRows, err := repo.db().ListProgram(ctx, req.Body)
+	if err != nil {
+		return programSchema.ListProgramsResponse{}, "03", status.StatusBadRequest, err
+	}
+	return programSchema.ListProgramsResponse{Programs: list, Total: totalRows}, "", status.StatusOK, nil
+}
+
 func (repo *Repository) db() dataSources.ProgramDS {
 	return repo.DBDS
 }

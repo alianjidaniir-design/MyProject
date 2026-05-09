@@ -88,6 +88,20 @@ func (repo *Repository) Get(ctx context.Context, req commonSchema.BaseRequest[ca
 	return categorySchema.InformationCategoryResponse{Detail: get, Massage: "information category"}, "", 0, nil
 }
 
+func (repo *Repository) List(ctx context.Context, req commonSchema.BaseRequest[categorySchema.PaginationList]) (res categorySchema.ListCategoryResponse, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return categorySchema.ListCategoryResponse{}, "01", status.UnAvailableServiceError, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return categorySchema.ListCategoryResponse{}, "02", status.StatusInternalServerError, err
+	}
+	list, totalRows, err := repo.db().ListCategory(ctx, req.Body)
+	if err != nil {
+		return categorySchema.ListCategoryResponse{}, "03", status.StatusBadRequest, err
+	}
+	return categorySchema.ListCategoryResponse{List: list, Total: totalRows}, "", status.StatusOK, nil
+}
+
 func (repo *Repository) db() dataSources.CategoryDS {
 	return repo.DBDS
 }

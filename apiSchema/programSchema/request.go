@@ -9,3 +9,12 @@ type CreateProgramRequest struct {
 type GetDetailProgramRequest struct {
 	Row int64 `json:"row"`
 }
+
+type DeleteProgramRequest struct {
+	Row int64 `json:"row"`
+}
+
+type PaginationListProgramsRequest struct {
+	Page int `json:"page"`
+	Size int `json:"size"`
+}
