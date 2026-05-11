@@ -116,6 +116,20 @@ func (repo *Repository) Get(ctx context.Context, req commonSchema.BaseRequest[me
 	return membershipSchema.DetailMembershipSchema{MemberShip: detail, Massage: "detail membership student"}, "", status.StatusOK, nil
 }
 
+func (repo *Repository) List(ctx context.Context, req commonSchema.BaseRequest[membershipSchema.PaginationMemberShip]) (res membershipSchema.ListMembershipSchema, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return membershipSchema.ListMembershipSchema{}, "01", status.StatusInternalServerError, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return membershipSchema.ListMembershipSchema{}, "02", status.StatusInternalServerError, err
+	}
+	list, totalRows, err := repo.db().ListMembership(ctx, req.Body)
+	if err != nil {
+		return membershipSchema.ListMembershipSchema{}, "03", status.StatusBadRequest, err
+	}
+	return membershipSchema.ListMembershipSchema{List: list, Total: totalRows}, "", status.StatusOK, nil
+}
+
 func (repo *Repository) db() dataSources.MembershipDS {
 	return repo.DBDS
 }

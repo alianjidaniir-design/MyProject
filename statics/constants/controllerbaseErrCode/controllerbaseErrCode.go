@@ -14,4 +14,6 @@ const (
 	CategoryErrCode     = "2012"
 	ProgramErrCode      = "2013"
 	MemberShipErrCode   = "2014"
+	BookErrCode         = "2015"
+	InventoryErrCode    = "2016"
 )

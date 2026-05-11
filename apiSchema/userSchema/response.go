@@ -1,30 +1,30 @@
 package userSchema
 
 import (
-	UserdataModel "MyProject/models/user/dataModel"
+	"MyProject/models/user/dataModel"
 )
 
 type ResponseUser struct {
-	User UserdataModel.User `json:"user"`
+	User dataModel.User `json:"user"`
 }
 
 type ListUser struct {
-	Users []UserdataModel.User
+	Users []dataModel.User `json:"users"`
 	Total int64
 }
 
 type GetResponse struct {
-	User UserdataModel.User `json:"user"`
+	User dataModel.User `json:"user"`
 }
 
 type UpdateResponse struct {
-	User UserdataModel.User `json:"user"`
+	User dataModel.User `json:"user"`
 }
 
 type DeleteResponse struct {
-	User UserdataModel.User `json:"user"`
+	User dataModel.User `json:"user"`
 }
 
 type SoftDeleteResponse struct {
-	User UserdataModel.User `json:"user"`
+	User dataModel.User `json:"user"`
 }

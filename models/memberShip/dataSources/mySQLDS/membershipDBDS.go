@@ -3,6 +3,7 @@ package mySQLDS
 import (
 	"MyProject/apiSchema/membershipSchema"
 	"MyProject/models/memberShip/dataModel"
+	"MyProject/pkg/pagination"
 	"MyProject/statics/constants"
 	"context"
 	"database/sql"
@@ -185,6 +186,41 @@ func (ds *MembershipDBDS) DetailMembership(ctx context.Context, req membershipSc
 		return dataModel.Membership{}, err
 	}
 	return ds.selectMembership(ctx, req.ID)
+}
+
+func (ds *MembershipDBDS) ListMembership(ctx context.Context, req membershipSchema.PaginationMemberShip) (res []dataModel.Membership, total int, err error) {
+	var memberships []dataModel.Membership
+	page, pageSize, err := pagination.CheckPage(req.Page, req.Size)
+	if err != nil {
+		return nil, 0, err
+	}
+	limit := pageSize
+	offset := (page - 1) * limit
+	var totalRows int
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s", ds.tableName)
+	err = ds.db.QueryRowContext(ctx, countQuery).Scan(&totalRows)
+	if err != nil {
+		return nil, 0, err
+	}
+	selectQuery := fmt.Sprintf("SELECT * FROM %s LIMIT ? OFFSET ?", ds.tableName)
+	rows, err := ds.db.QueryContext(ctx, selectQuery, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var membership dataModel.Membership
+		err = rows.Scan(&membership.ID, &membership.StudentID, &membership.ProgramRow, &membership.CreatedMemberShipAt, &membership.FinishMemberShipAt, &membership.StatusMemberShip, &membership.CreatedAt, &membership.UpdatedAt, &membership.DeletedAt)
+		if err != nil {
+			return nil, 0, err
+		}
+		memberships = append(memberships, membership)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, 0, err
+	}
+	return memberships, totalRows, nil
 }
 
 func (ds *MembershipDBDS) selectMembership(ctx context.Context, ID int64) (res dataModel.Membership, err error) {

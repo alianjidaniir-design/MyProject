@@ -17,6 +17,7 @@ func SetupRoutes(app *fiber.App) map[string]string {
 		SetupCategoryRoute(app),
 		SetupProgramRoute(app),
 		SetupMembershipRoute(app),
+		SetupBookRoute(app),
 	)
 }
 

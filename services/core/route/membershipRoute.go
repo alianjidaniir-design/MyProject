@@ -12,6 +12,7 @@ var membershipRoute = map[string]string{
 	"membershipUpdate":     "membership/update",
 	"membershipDeactivate": "membership/deactivate",
 	"membershipDetail":     "membership/detail",
+	"membershipList":       "membership/list",
 }
 
 func SetupMembershipRoute(app *fiber.App) map[string]string {
@@ -20,5 +21,6 @@ func SetupMembershipRoute(app *fiber.App) map[string]string {
 	app.Post(membershipRoute["membershipUpdate"], Update)
 	app.Post(membershipRoute["membershipDeactivate"], DeActive)
 	app.Post(membershipRoute["membershipDetail"], Detail)
+	app.Post(membershipRoute["membershipList"], List)
 	return membershipRoute
 }
