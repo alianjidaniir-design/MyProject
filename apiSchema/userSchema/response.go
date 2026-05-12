@@ -4,6 +4,10 @@ import (
 	"MyProject/models/user/dataModel"
 )
 
+type UserResponse struct {
+	User dataModel.User `json:"user"`
+}
+
 type ResponseUser struct {
 	User dataModel.User `json:"user"`
 }

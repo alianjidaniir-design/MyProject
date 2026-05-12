@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	defaultTableName      = "inventories"
+	defaultTableName      = "roles"
 	MaxOpenConnections    = 10
 	MaxIdleConnections    = 5
 	MaxConnectionLifetime = 300
@@ -17,7 +17,7 @@ const (
 
 type Config struct {
 	DSN                   string
-	InventoryTableName    string
+	RoleTableName         string
 	MaxOpenConnections    int
 	MaxIdleConnections    int
 	MaxConnectionLifetime int
@@ -26,16 +26,16 @@ type Config struct {
 func LoadConfig() (Config, error) {
 	cfg := Config{
 		DSN:                   normalize(strings.TrimSpace(os.Getenv("MYSQL_DSN"))),
-		InventoryTableName:    strings.TrimSpace(os.Getenv("MYSQL_INVENTORY_TABLE")),
+		RoleTableName:         strings.TrimSpace(os.Getenv("MYSQL_ROLE_TABLE")),
 		MaxOpenConnections:    readEnvInt("MYSQL_MAX_OPEN_CONNECTIONS", MaxOpenConnections),
 		MaxIdleConnections:    readEnvInt("MYSQL_MAX_IDLE_CONNECTIONS", MaxIdleConnections),
 		MaxConnectionLifetime: readEnvInt("MYSQL_MAX_CONNECTION_LIFETIME", MaxConnectionLifetime),
 	}
-	if cfg.InventoryTableName == "" {
-		cfg.InventoryTableName = defaultTableName
+	if cfg.RoleTableName == "" {
+		cfg.RoleTableName = defaultTableName
 	}
 
-	if err := validateTableName(cfg.InventoryTableName); err != nil {
+	if err := validateTableName(cfg.RoleTableName); err != nil {
 		return Config{}, err
 	}
 	return cfg, nil

@@ -126,9 +126,6 @@ func (ds *UserDBDS) ReadStudent(ctx context.Context, req userSchema.ListRequest)
 			return []userDataModel.User{}, 0, fmt.Errorf("خطا در اسکن ردیف: %w", err)
 		}
 
-		// تبدیل مقادیر NullTime به time.Time در مدل user
-		// اگر مقدار معتبر (NULL نباشد) بود، آن را به فیلد مربوطه اختصاص دهید.
-		// فرض می‌شود myLocation() تابع درستی برای دریافت منطقه زمانی است.
 		if createdAtSQL.Valid {
 			user.CreatedAt = createdAtSQL.Time.In(myLocation())
 		} else {

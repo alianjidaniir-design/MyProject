@@ -7,7 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func requirePermission(permissions permissions.Permissions) fiber.Handler {
+func RequirePermission(permissions permissions.Permissions) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		roleHeader := c.Get("X-Role")
 		if roleHeader == "" {

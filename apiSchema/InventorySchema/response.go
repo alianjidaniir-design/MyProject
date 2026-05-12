@@ -1,4 +1,4 @@
-package Inventory
+package InventorySchema
 
 import "MyProject/models/inventory/dataModel"
 

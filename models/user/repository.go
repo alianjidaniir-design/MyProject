@@ -54,19 +54,19 @@ func GetRepoIns() *Repository {
 	return repoIns
 }
 
-func (repo *Repository) Create(ctx context.Context, req commonSchema.BaseRequest[userSchema.LoginRequest]) (res userSchema.ResponseUser, errStr string, code int, err error) {
+func (repo *Repository) Create(ctx context.Context, req commonSchema.BaseRequest[userSchema.LoginRequest]) (res userSchema.UserResponse, errStr string, code int, err error) {
 	if repo.initErr != nil {
-		return userSchema.ResponseUser{}, "13", status.StatusUnauthorized, repo.initErr
+		return userSchema.UserResponse{}, "13", status.StatusUnauthorized, repo.initErr
 	}
 	if repo.dbDS == nil {
-		return userSchema.ResponseUser{}, "14", status.UnAvailableServiceError, errors.New("student dataSource not configured")
+		return userSchema.UserResponse{}, "14", status.UnAvailableServiceError, errors.New("student dataSource not configured")
 	}
 
 	createdUser, err := repo.db().CreateStudent(ctx, req.Body)
 	if err != nil {
-		return userSchema.ResponseUser{}, "04", status.UnAvailableServiceError, err
+		return userSchema.UserResponse{}, "04", status.UnAvailableServiceError, err
 	}
-	return userSchema.ResponseUser{User: createdUser}, "", status.StatusOK, nil
+	return userSchema.UserResponse{User: createdUser}, "", status.StatusOK, nil
 }
 
 func (repo *Repository) List(ctx context.Context, req commonSchema.BaseRequest[userSchema.ListRequest]) (res userSchema.ListUser, errStr string, code int, err error) {

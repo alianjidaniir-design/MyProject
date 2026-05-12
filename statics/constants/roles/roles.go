@@ -1,9 +1,7 @@
 package roles
 
-type Role string
-
 const (
-	RoleStudent Role = "student"
-	RoleTeacher Role = "teacher"
-	RoleAdmin   Role = "admin"
+	RoleStudent string = "student"
+	RoleTeacher string = "teacher"
+	RoleAdmin   string = "admin"
 )

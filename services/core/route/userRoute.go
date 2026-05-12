@@ -2,6 +2,8 @@ package route
 
 import (
 	. "MyProject/controllers/user"
+	"MyProject/midddleware/authz"
+	"MyProject/statics/constants/permissions"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -16,7 +18,7 @@ var userRoute = map[string]string{
 }
 
 func SetupUserRoute(app *fiber.App) map[string]string {
-	app.Post(userRoute["userCreate"], Create)
+	app.Post(userRoute["userCreate"], authz.RequirePermission(permissions.UserCreate), Create)
 	app.Post(userRoute["userList"], List)
 	app.Post(userRoute["userGet"], Get)
 	app.Post(userRoute["userUpdate"], Update)
