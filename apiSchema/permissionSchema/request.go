@@ -1,10 +1,10 @@
-package roleSchema
+package permissionSchema
 
-type CreateRoleRequest struct {
+type CreatePermissionReq struct {
 	Name string `json:"name"`
 }
 
-type GetRoleRequest struct {
+type GetPermissionReq struct {
 	ID int64 `json:"id"`
 }
 

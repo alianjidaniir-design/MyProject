@@ -18,6 +18,8 @@ func SetupRoutes(app *fiber.App) map[string]string {
 		SetupProgramRoute(app),
 		SetupMembershipRoute(app),
 		SetupBookRoute(app),
+		SetupRoleRoute(app),
+		SetupPermissionRoute(app),
 	)
 }
 
