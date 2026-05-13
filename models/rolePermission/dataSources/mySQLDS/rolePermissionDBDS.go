@@ -23,7 +23,7 @@ func NewRolePermissionDBDS(tableName string, db *sql.DB) (dataSources.RolePermis
 	return ff, nil
 }
 
-func (ds *RolePermissionDBDS) CreatePermission(ctx context.Context, req rolePermissionSchema.CreateRolePermissionReq) (res dataModel.RolePermission, err error) {
+func (ds *RolePermissionDBDS) CreatePermission(ctx context.Context, req rolePermissionSchema.CreateRolePermissionReq) (err error) {
 	var checkRole, checkPermission bool
 	checkingQuery := `
 SELECT
@@ -31,21 +31,18 @@ SELECT
  EXISTS (SELECT 1 FROM permissions WHERE ID = ? )`
 	err = ds.db.QueryRowContext(ctx, checkingQuery, req.RoleID, req.PermissionID).Scan(&checkRole, &checkPermission)
 	if err != nil {
-		return dataModel.RolePermission{}, err
+		return err
 	}
 	if checkRole == false || checkPermission == false {
-		return dataModel.RolePermission{}, errors.New("Role or Permission does not exist")
+		return errors.New("Role or Permission does not exist")
 	}
 	insertQuery := fmt.Sprintf("INSERT INTO %s (role_id, permission_id) VALUES (?, ?)", ds.tableName)
-	result, err := ds.db.Exec(insertQuery, req.RoleID, req.PermissionID)
+	_, err = ds.db.Exec(insertQuery, req.RoleID, req.PermissionID)
 	if err != nil {
-		return dataModel.RolePermission{}, err
+		return err
 	}
-	lastID, err := result.LastInsertId()
-	if err != nil {
-		return dataModel.RolePermission{}, err
-	}
-	return ds.selectRolePermission(ctx, lastID)
+
+	return nil
 
 }
 

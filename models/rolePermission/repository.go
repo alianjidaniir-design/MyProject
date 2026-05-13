@@ -51,11 +51,11 @@ func (repo *Repository) Create(ctx context.Context, req commonSchema.BaseRequest
 	if repo.DBDS == nil {
 		return rolePermissionSchema.DetailRolePermission{}, "02", status.StatusInternalServerError, err
 	}
-	create, err := repo.db().CreatePermission(ctx, req.Body)
+	err = repo.db().CreatePermission(ctx, req.Body)
 	if err != nil {
 		return rolePermissionSchema.DetailRolePermission{}, "03", status.StatusBadRequest, err
 	}
-	return rolePermissionSchema.DetailRolePermission{Detail: create, Massage: "created successfully"}, "", status.StatusOK, nil
+	return rolePermissionSchema.DetailRolePermission{Massage: "created successfully"}, "", status.StatusOK, nil
 }
 
 func (repo *Repository) db() dataSources.RolePermissionDS {
