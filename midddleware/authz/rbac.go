@@ -3,25 +3,17 @@ package authz
 import (
 	dataModel2 "MyProject/models/permission/dataModel"
 	"MyProject/models/role/dataModel"
-	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 )
 
-func GetRoleByID(ds *sql.DB, RoleName string) (*dataModel.Role, error) {
+func GetRoleByID(RoleName string) (*dataModel.Role, error) {
 	var role dataModel.Role
-	var ctx context.Context
-	selectQuery := "SELECT * FROM roles WHERE mame = ? "
-	err := ds.QueryRowContext(ctx, selectQuery, RoleName).Scan(&role.ID, &RoleName)
-	if err != nil {
-		return nil, err
-	} else if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("role '%s' not found", RoleName)
-	}
-	return &role, err
+ro , err:=
 }
 
-func listPermissions(db *sql.DB, roleID int64) ([]dataModel2.Permission, error) {
+func listPermissions(roleID int64) ([]dataModel2.Permission, error) {
 	var perm []dataModel2.Permission
 	joinQuery := `
 SELECT p.id , p.name FROM permission p
@@ -48,17 +40,16 @@ WHERE rp.role_id = ?`
 
 }
 
-func HasPermissionByTID(role *dataModel.Role, p dataModel2.Permission) (bool, error) {
+func HasPermissionByTID(role *dataModel.Role, p string) (bool, error) {
 	if role == nil {
 		return false, nil
 	}
-	var db *sql.DB
-	perm, err := listPermissions(db, role.ID)
+	perm, err := listPermissions(role.ID)
 	if err != nil {
 		return false, err
 	}
 	for _, per := range perm {
-		if per.Name == p.Name {
+		if per.Name == p {
 			return true, nil
 		}
 	}
