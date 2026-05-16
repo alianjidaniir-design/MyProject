@@ -5,3 +5,12 @@ type CreateAuthor struct {
 	LastName  string `json:"last_name" validate:"required,max=63"`
 	BirthYear int    `json:"birth_year" validate:"required,min=1300,max=9999"`
 }
+
+type GetAuthor struct {
+	ID int64 `json:"id"`
+}
+
+type Pagination struct {
+	Page int `json:"page"`
+	Size int `json:"size"`
+}

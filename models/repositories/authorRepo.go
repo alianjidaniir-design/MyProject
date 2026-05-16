@@ -9,6 +9,9 @@ import (
 
 type AuthorRepository interface {
 	CreateAuthor(ctx context.Context, req commonSchema.BaseRequest[authorSchema.CreateAuthor]) (res authorSchema.DetailAuthor, errStr string, code int, err error)
+	GetAuthor(ctx context.Context, req commonSchema.BaseRequest[authorSchema.GetAuthor]) (res authorSchema.DetailAuthor, errStr string, code int, err error)
+	Delete(ctx context.Context, req commonSchema.BaseRequest[authorSchema.GetAuthor]) (res authorSchema.DetailAuthor, errStr string, code int, err error)
+	List(ctx context.Context, req commonSchema.BaseRequest[authorSchema.Pagination]) (res authorSchema.ListAuthor, errStr string, code int, err error)
 }
 
 var AuthorRepo AuthorRepository = author.GetRepo()
