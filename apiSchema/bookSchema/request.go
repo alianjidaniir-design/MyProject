@@ -1,15 +1,19 @@
 package bookSchema
 
 type RegistrationBook struct {
-	Code       int64  `json:"code"`
-	Name       string `json:"name"`
-	Writer     string `json:"writer"`
-	Translator string `json:"translator"`
-	Publisher  string `json:"publisher"`
+	ID              int64  `json:"id"`
+	Name            string `json:"name"`
+	AuthorID        int64  `json:"author_id"`
+	Translator      string `json:"translator"`
+	PublisherID     int64  `json:"publisher_id"`
+	PublicationYear int    `json:"publication_year"`
+	Pages           int    `json:"pages"`
+	Editions        int    `json:"editions"`
+	SubjectID       int64  `json:"subject_id"`
 }
 
 type GetCodeBook struct {
-	Code int64 `json:"code"`
+	ID int64 `json:"id"`
 }
 
 type PaginationBook struct {

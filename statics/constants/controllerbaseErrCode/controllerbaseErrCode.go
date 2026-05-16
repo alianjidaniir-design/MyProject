@@ -15,8 +15,11 @@ const (
 	ProgramErrCode        = "2013"
 	MemberShipErrCode     = "2014"
 	BookErrCode           = "2015"
-	InventoryErrCode      = "2016"
+	BookCopyErrCode       = "2016"
 	RoleErrCode           = "2017"
 	PermissionErrCode     = "2018"
 	RolePermissionErrCode = "2019"
+	AuthorErrCode         = "2020"
+	PublisherErrCode      = "2021"
+	SubjectErrCode        = "2022"
 )
