@@ -1,7 +1,7 @@
 package route
 
 import (
-	. "MyProject/controllers/book"
+	. "MyProject/controllers/author"
 
 	"github.com/gofiber/fiber/v2"
 )

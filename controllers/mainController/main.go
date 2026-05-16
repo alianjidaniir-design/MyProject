@@ -1,11 +1,9 @@
 package mainController
 
 import (
-	"MyProject/models/role/dataModel"
 	"MyProject/statics/constants/status"
 	"context"
 	"fmt"
-	"log"
 	"reflect"
 
 	"github.com/gofiber/fiber/v2"
@@ -59,9 +57,6 @@ func Error(ctx *fiber.Ctx, baseErrCode string, section string, errStr string, co
 }
 
 func Response(ctx *fiber.Ctx, res any) error {
-	role := ctx.Locals("role").(*dataModel.Role)
-	roleID := ctx.Locals("role_id").(int)
-	log.Println("User creation handler executed With role , roleID.", role, roleID)
 	return ctx.Status(status.StatusOK).JSON(responseUser{Data: res})
 }
 

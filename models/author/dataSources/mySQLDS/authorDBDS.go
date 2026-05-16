@@ -47,14 +47,16 @@ func (ds *AuthorDBDS) CreateAuthor(ctx context.Context, req authorSchema.CreateA
 			for _, v := range castValidate {
 				validation = append(validation, switchValidateErr(v))
 			}
+			return dataModel.Author{}, fmt.Errorf("%v", validation)
 
 		} else {
 			validation = append(validation, err.Error())
 		}
+		return dataModel.Author{}, err
 	}
 	now := time.Now().In(myLocation())
 	insertQuery := fmt.Sprintf("INSERT INTO %s (first_name , last_name, birth_year , created_at , updated_at) VALUES (?,?,? ,? ,? )", ds.tableName)
-	result, err := ds.db.ExecContext(ctx, insertQuery, req.FirstName, req.LastName, req.BirthYear, now)
+	result, err := ds.db.ExecContext(ctx, insertQuery, req.FirstName, req.LastName, req.BirthYear, now, now)
 	if err != nil {
 		return dataModel.Author{}, err
 	}
