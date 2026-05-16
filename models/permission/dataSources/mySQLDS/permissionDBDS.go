@@ -128,3 +128,30 @@ SELECT EXISTS (SELECT 1 FROM ` + ds.tableName + ` where id=? )`
 	}
 	return nil
 }
+
+func (ds *PermissionDBDS) ListPerms(roleID int64) ([]dataModel.Permission, error) {
+	var perm []dataModel.Permission
+	joinQuery := `
+SELECT p.id , p.name FROM permission p
+JOIN role_permission rp ON p.id = rp.permission_id
+WHERE rp.role_id = ?`
+	rows, err := ds.db.Query(joinQuery, roleID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var permission dataModel.Permission
+		err = rows.Scan(&permission.ID, &permission.Name)
+		if err != nil {
+			return nil, err
+		}
+		perm = append(perm, permission)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	return perm, nil
+
+}

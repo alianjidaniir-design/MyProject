@@ -1,50 +1,25 @@
 package authz
 
 import (
-	dataModel2 "MyProject/models/permission/dataModel"
+	dataSources2 "MyProject/models/permission/dataSources"
 	"MyProject/models/role/dataModel"
-	"database/sql"
-	"errors"
-	"fmt"
+	"MyProject/models/role/dataSources"
 )
 
-func GetRoleByID(RoleName string) (*dataModel.Role, error) {
-	var role dataModel.Role
-ro , err:=
+type AuthzMiddleWare struct {
+	RolsDS       dataSources.RoleDS
+	PermissionDS dataSources2.PermissionDS
 }
 
-func listPermissions(roleID int64) ([]dataModel2.Permission, error) {
-	var perm []dataModel2.Permission
-	joinQuery := `
-SELECT p.id , p.name FROM permission p
-JOIN role_permission rp ON p.id = rp.permission_id
-WHERE rp.role_id = ?`
-	rows, err := db.Query(joinQuery, roleID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var permission dataModel2.Permission
-		err = rows.Scan(&permission.ID, &permission.Name)
-		if err != nil {
-			return nil, err
-		}
-		perm = append(perm, permission)
-	}
-	err = rows.Err()
-	if err != nil {
-		return nil, err
-	}
-	return perm, nil
-
+func NewAuthMiddleware(roleDS dataSources.RoleDS, permDS dataSources2.PermissionDS) *AuthzMiddleWare {
+	return &AuthzMiddleWare{RolsDS: roleDS, PermissionDS: permDS}
 }
 
-func HasPermissionByTID(role *dataModel.Role, p string) (bool, error) {
+func (a *AuthzMiddleWare) HasPermissionByTID(role *dataModel.Role, p string) (bool, error) {
 	if role == nil {
 		return false, nil
 	}
-	perm, err := listPermissions(role.ID)
+	perm, err := a.PermissionDS.ListPerms(role.ID)
 	if err != nil {
 		return false, err
 	}

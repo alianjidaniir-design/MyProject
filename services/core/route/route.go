@@ -1,6 +1,8 @@
 package route
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"github.com/gofiber/fiber/v2"
+)
 
 func SetupRoutes(app *fiber.App) map[string]string {
 	return mergeMaps(

@@ -130,3 +130,13 @@ SELECT EXISTS(SELECT 1 FROM ` + ds.tableName + ` WHERE ID = ?)`
 	}
 	return nil
 }
+
+func (ds *RoleDBDS) GetRoleByName(ctx context.Context, name string) (dataModel.Role, error) {
+	var role dataModel.Role
+	query := fmt.Sprintf("SELECT id, name FROM %s WHERE name = ?", ds.tableName)
+	err := ds.db.QueryRowContext(ctx, query, name).Scan(&role.ID, &role.Name)
+	if err != nil {
+		return role, err
+	}
+	return role, nil
+}

@@ -11,4 +11,5 @@ type PermissionDS interface {
 	GetPermission(ctx context.Context, req permissionSchema.GetPermissionReq) (res dataModel.Permission, err error)
 	DeletePermission(ctx context.Context, req permissionSchema.GetPermissionReq) (res dataModel.Permission, err error)
 	ListPermissions(ctx context.Context, req permissionSchema.Pagination) (res []dataModel.Permission, total int, err error)
+	ListPerms(roleID int64) ([]dataModel.Permission, error)
 }

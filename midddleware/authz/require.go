@@ -6,7 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func RequirePermission(p string) fiber.Handler {
+func (a *AuthzMiddleWare) RequirePermission(p string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		roleHeader := c.Get("role")
 		if roleHeader == "" {
@@ -16,12 +16,12 @@ func RequirePermission(p string) fiber.Handler {
 			})
 		}
 
-		roleParse, err := ParseRole(roleHeader)
+		roleParse, err := a.ParseRole(roleHeader)
 		if err != nil {
 			return err
 		}
 
-		check, err := HasPermissionByTID(roleParse, p)
+		check, err := a.HasPermissionByTID(roleParse, p)
 		if err != nil {
 			return err
 		}
