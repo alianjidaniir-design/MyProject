@@ -6,15 +6,10 @@ import (
 	"MyProject/models/publisher/dataSources"
 	Val "MyProject/pkg/val"
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
-
-	"database/sql"
-
-	"github.com/go-playground/validator/v10"
 )
-
-var validate *validator.Validate
 
 type PublisherDBDS struct {
 	tableName string
@@ -30,21 +25,9 @@ func NewPublisherDBDS(tableName string, db *sql.DB) (dataSources.PublisherDS, er
 }
 
 func (ds *PublisherDBDS) CreatePublisher(ctx context.Context, req publisherSchema.CreatePublisher) (res dataModel.Publisher, err error) {
-	err = validate.Struct(req)
+	err = Val.CheckValidation(req)
 	if err != nil {
-		var str string
-		var validationErrors validator.ValidationErrors
-		if errors.As(err, &validationErrors) {
-			for _, v := range validationErrors {
-				str = Val.SwitchValidateErr(v)
-				break
-			}
-			return dataModel.Publisher{}, fmt.Errorf("%v", str)
-
-		}
-		str = err.Error()
-		return dataModel.Publisher{}, errors.New(str)
-
+		return dataModel.Publisher{}, err
 	}
 	insertQuery := fmt.Sprintf("INSERT INTO %s (name , phone , address) VALUES (?, ?, ?)", ds.tableName)
 	result, err := ds.db.ExecContext(ctx, insertQuery, req.Name, req.Phone, req.Address)
@@ -59,12 +42,34 @@ func (ds *PublisherDBDS) CreatePublisher(ctx context.Context, req publisherSchem
 
 }
 
+func (ds *PublisherDBDS) DetailPublisher(ctx context.Context, req publisherSchema.GetPublisher) (res dataModel.Publisher, err error) {
+	err = ds.checkID(ctx, req.ID)
+	if err != nil {
+		return dataModel.Publisher{}, err
+	}
+	return ds.selected(ctx, req.ID)
+}
+
 func (ds *PublisherDBDS) selected(ctx context.Context, ID int64) (dataModel.Publisher, error) {
 	var publisher dataModel.Publisher
 	selectQuery := fmt.Sprintf("SELECT * FROM %s WHERE id=?", ds.tableName)
-	err := ds.db.QueryRowContext(ctx, selectQuery, ID).Scan(&publisher.Name, &publisher.Phone, &publisher.Address)
+	err := ds.db.QueryRowContext(ctx, selectQuery, ID).Scan(&publisher.ID, &publisher.Name, &publisher.Phone, &publisher.Address)
 	if err != nil {
 		return dataModel.Publisher{}, err
 	}
 	return publisher, nil
+}
+
+func (ds *PublisherDBDS) checkID(ctx context.Context, ID int64) error {
+	var check bool
+	selectQuery := `
+SELECT EXISTS (SELECT 1 FROM ` + ds.tableName + ` WHERE id=?)`
+	err := ds.db.QueryRowContext(ctx, selectQuery, ID).Scan(&check)
+	if err != nil {
+		return err
+	}
+	if !check {
+		return errors.New("ID not found")
+	}
+	return nil
 }

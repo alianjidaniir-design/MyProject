@@ -18,5 +18,5 @@ func SetupPermissionRoute(app *fiber.App) map[string]string {
 	app.Post(permissionRoute["PermissionDetail"], Get)
 	app.Post(permissionRoute["PermissionDelete"], Delete)
 	app.Post(permissionRoute["PermissionList"], List)
-	return roleRoute
+	return permissionRoute
 }

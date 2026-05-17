@@ -8,4 +8,5 @@ import (
 
 type PublisherDS interface {
 	CreatePublisher(ctx context.Context, req publisherSchema.CreatePublisher) (res dataModel.Publisher, err error)
+	DetailPublisher(ctx context.Context, req publisherSchema.GetPublisher) (res dataModel.Publisher, err error)
 }

@@ -11,19 +11,11 @@ import (
 	"errors"
 	"fmt"
 	"time"
-
-	"github.com/go-playground/validator/v10"
 )
-
-var validate *validator.Validate
 
 type AuthorDBDS struct {
 	tableName string
 	db        *sql.DB
-}
-
-func init() {
-	validate = validator.New()
 }
 
 func NewAuthorDBDS(tableName string, db *sql.DB) (dataSources.AuthorDS, error) {
@@ -43,18 +35,8 @@ func myLocation() *time.Location {
 }
 
 func (ds *AuthorDBDS) CreateAuthor(ctx context.Context, req authorSchema.CreateAuthor) (res dataModel.Author, err error) {
-	err = validate.Struct(req)
+	err = Val.CheckValidation(req)
 	if err != nil {
-		var validation []string
-		if castValidate, ok := err.(validator.ValidationErrors); ok {
-			for _, v := range castValidate {
-				validation = append(validation, Val.SwitchValidateErr(v))
-			}
-			return dataModel.Author{}, fmt.Errorf("%v", validation)
-
-		}
-
-		validation = append(validation, err.Error())
 		return dataModel.Author{}, err
 	}
 	insertQuery := fmt.Sprintf("INSERT INTO %s (first_name , last_name, birth_year ) VALUES (?,?,?)", ds.tableName)
@@ -71,6 +53,10 @@ func (ds *AuthorDBDS) CreateAuthor(ctx context.Context, req authorSchema.CreateA
 }
 
 func (ds *AuthorDBDS) DeleteAuthor(ctx context.Context, req authorSchema.GetAuthor) (res dataModel.Author, err error) {
+	err = Val.CheckValidation(req)
+	if err != nil {
+		return dataModel.Author{}, err
+	}
 	err = ds.checkID(ctx, req.ID)
 	if err != nil {
 		return dataModel.Author{}, err
@@ -86,6 +72,10 @@ func (ds *AuthorDBDS) DeleteAuthor(ctx context.Context, req authorSchema.GetAuth
 
 func (ds *AuthorDBDS) ListAuthor(ctx context.Context, req authorSchema.Pagination) (res []dataModel.Author, total int, err error) {
 	var authors []dataModel.Author
+	err = Val.CheckValidation(req)
+	if err != nil {
+		return nil, 0, err
+	}
 	page, size, err := pagination.CheckPage(req.Page, req.Size)
 	if err != nil {
 		return nil, 0, err
@@ -131,6 +121,10 @@ func (ds *AuthorDBDS) SelectAuthor(ctx context.Context, ID int64) (res dataModel
 }
 
 func (ds *AuthorDBDS) GetAuthor(ctx context.Context, req authorSchema.GetAuthor) (res dataModel.Author, err error) {
+	err = Val.CheckValidation(req)
+	if err != nil {
+		return dataModel.Author{}, err
+	}
 	err = ds.checkID(ctx, req.ID)
 	if err != nil {
 		return dataModel.Author{}, err
