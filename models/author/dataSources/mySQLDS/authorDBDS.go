@@ -5,6 +5,7 @@ import (
 	"MyProject/models/author/dataModel"
 	"MyProject/models/author/dataSources"
 	"MyProject/pkg/pagination"
+	Val "MyProject/pkg/val"
 	"context"
 	"database/sql"
 	"errors"
@@ -47,13 +48,13 @@ func (ds *AuthorDBDS) CreateAuthor(ctx context.Context, req authorSchema.CreateA
 		var validation []string
 		if castValidate, ok := err.(validator.ValidationErrors); ok {
 			for _, v := range castValidate {
-				validation = append(validation, switchValidateErr(v))
+				validation = append(validation, Val.SwitchValidateErr(v))
 			}
 			return dataModel.Author{}, fmt.Errorf("%v", validation)
 
-		} else {
-			validation = append(validation, err.Error())
 		}
+
+		validation = append(validation, err.Error())
 		return dataModel.Author{}, err
 	}
 	insertQuery := fmt.Sprintf("INSERT INTO %s (first_name , last_name, birth_year ) VALUES (?,?,?)", ds.tableName)
@@ -117,24 +118,6 @@ func (ds *AuthorDBDS) ListAuthor(ctx context.Context, req authorSchema.Paginatio
 		return nil, 0, err
 	}
 	return authors, tot, nil
-}
-
-func switchValidateErr(err validator.FieldError) string {
-	switch err.Tag() {
-	case "required":
-		return err.Field() + "this field is required"
-	case "max":
-		return err.Field() + "this field cannot be more than " + err.Param() + " allowed"
-	case "min":
-		return err.Field() + "this field cannot be lower than " + err.Param() + "allowed"
-	case "email":
-		return err.Field() + "this field must be a valid email address"
-	case "len":
-		return err.Field() + "this field must be " + err.Param() + "."
-	default:
-		return err.Tag() + err.Field()
-
-	}
 }
 
 func (ds *AuthorDBDS) SelectAuthor(ctx context.Context, ID int64) (res dataModel.Author, err error) {
