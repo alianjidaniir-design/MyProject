@@ -10,6 +10,8 @@ import (
 type PublisherRepository interface {
 	Create(ctx context.Context, req commonSchema.BaseRequest[publisherSchema.CreatePublisher]) (res publisherSchema.DetailPublisher, errStr string, code int, err error)
 	Detail(ctx context.Context, req commonSchema.BaseRequest[publisherSchema.GetPublisher]) (res publisherSchema.DetailPublisher, errStr string, code int, err error)
+	Delete(ctx context.Context, req commonSchema.BaseRequest[publisherSchema.GetPublisher]) (res publisherSchema.DetailPublisher, errStr string, code int, err error)
+	List(ctx context.Context, req commonSchema.BaseRequest[publisherSchema.PaginationPublisher]) (res publisherSchema.ListPublisherDetail, errStr string, code int, err error)
 }
 
 var PublisherRepo PublisherRepository = publisher.GetRepo()

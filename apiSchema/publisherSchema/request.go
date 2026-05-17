@@ -9,3 +9,8 @@ type CreatePublisher struct {
 type GetPublisher struct {
 	ID int64 `json:"id" validate:"required"`
 }
+
+type PaginationPublisher struct {
+	Page int `json:"page" validate:"required"`
+	Size int `json:"size" validate:"required"`
+}

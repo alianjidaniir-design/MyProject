@@ -28,19 +28,19 @@ func CheckValidation(req any) error {
 func SwitchValidateErr(err validator.FieldError) string {
 	switch err.Tag() {
 	case "required":
-		return err.Field() + "this field is required"
+		return err.Field() + ": this field is required"
 	case "max":
-		return err.Field() + "this field cannot be more than " + err.Param() + " allowed"
+		return err.Field() + " : this field cannot be more than " + err.Param()
 	case "min":
-		return err.Field() + "this field cannot be lower than " + err.Param() + "allowed"
+		return err.Field() + ": this field cannot be lower than " + err.Param()
 	case "email":
-		return err.Field() + "this field must be a valid email address"
+		return err.Field() + ": this field must be a valid email address"
 	case "len":
-		return err.Field() + "this field must be " + err.Param() + "."
+		return err.Field() + ": this field must be " + err.Param()
 	case "alpha":
-		return err.Field() + "this field must be a valid alpha character "
+		return err.Field() + ": this field must be a valid alpha character "
 	case "numeric":
-		return err.Field() + "this field must be a valid number "
+		return err.Field() + ": this field must be a valid number "
 	default:
 		return err.Field() + " validation failed"
 

@@ -7,7 +7,6 @@ import (
 	"MyProject/models/publisher/dataSources/mySQLDS"
 	"MyProject/statics/constants/status"
 	"context"
-	"net/http"
 	"sync"
 )
 
@@ -56,7 +55,7 @@ func (repo *Repository) Create(ctx context.Context, req commonSchema.BaseRequest
 	if err != nil {
 		return publisherSchema.DetailPublisher{}, "03", status.StatusBadRequest, err
 	}
-	return publisherSchema.DetailPublisher{Detail: create}, "", http.StatusCreated, nil
+	return publisherSchema.DetailPublisher{Detail: create}, "", status.StatusOK, nil
 }
 
 func (repo *Repository) Detail(ctx context.Context, req commonSchema.BaseRequest[publisherSchema.GetPublisher]) (res publisherSchema.DetailPublisher, errStr string, code int, err error) {
@@ -71,6 +70,34 @@ func (repo *Repository) Detail(ctx context.Context, req commonSchema.BaseRequest
 		return publisherSchema.DetailPublisher{}, "03", status.StatusBadRequest, err
 	}
 	return publisherSchema.DetailPublisher{Massage: "Detail Publisher", Detail: detail}, "", status.StatusOK, nil
+}
+
+func (repo *Repository) Delete(ctx context.Context, req commonSchema.BaseRequest[publisherSchema.GetPublisher]) (res publisherSchema.DetailPublisher, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return publisherSchema.DetailPublisher{}, "01", status.StatusBadRequest, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return publisherSchema.DetailPublisher{}, "02", status.StatusInternalServerError, err
+	}
+	deleted, err := repo.db().DeletePublisher(ctx, req.Body)
+	if err != nil {
+		return publisherSchema.DetailPublisher{}, "03", status.StatusBadRequest, err
+	}
+	return publisherSchema.DetailPublisher{Massage: "deleted successfully", Detail: deleted}, "", status.StatusOK, nil
+}
+
+func (repo *Repository) List(ctx context.Context, req commonSchema.BaseRequest[publisherSchema.PaginationPublisher]) (res publisherSchema.ListPublisherDetail, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return publisherSchema.ListPublisherDetail{}, "01", status.StatusBadRequest, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return publisherSchema.ListPublisherDetail{}, "02", status.StatusInternalServerError, err
+	}
+	list, tot, err := repo.db().ListPublisher(ctx, req.Body)
+	if err != nil {
+		return publisherSchema.ListPublisherDetail{}, "03", status.StatusBadRequest, err
+	}
+	return publisherSchema.ListPublisherDetail{Massage: "list Publishers", List: list, Total: tot}, "", status.StatusOK, nil
 }
 
 func (repo *Repository) db() dataSources.PublisherDS {
