@@ -10,7 +10,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"time"
 )
 
 type AuthorDBDS struct {
@@ -24,14 +23,6 @@ func NewAuthorDBDS(tableName string, db *sql.DB) (dataSources.AuthorDS, error) {
 		db:        db,
 	}
 	return ff, nil
-}
-
-func myLocation() *time.Location {
-	loc, err := time.LoadLocation("Asia/Tehran")
-	if err != nil {
-		fmt.Println(err)
-	}
-	return loc
 }
 
 func (ds *AuthorDBDS) CreateAuthor(ctx context.Context, req authorSchema.CreateAuthor) (res dataModel.Author, err error) {

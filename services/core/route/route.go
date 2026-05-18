@@ -25,6 +25,7 @@ func SetupRoutes(app *fiber.App) map[string]string {
 		SetupRolePermissionRoute(app),
 		SetupAuthorRoute(app),
 		SetupPublisherRoute(app),
+		SetupSubjectRoute(app),
 	)
 }
 
