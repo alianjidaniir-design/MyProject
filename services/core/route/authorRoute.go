@@ -18,5 +18,5 @@ func SetupAuthorRoute(app *fiber.App) map[string]string {
 	app.Post(authorRoute["authorGet"], Get)
 	app.Post(authorRoute["authorDelete"], Delete)
 	app.Post(authorRoute["authorList"], List)
-	return bookRoute
+	return authorRoute
 }

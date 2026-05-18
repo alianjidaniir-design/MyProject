@@ -22,4 +22,8 @@ const (
 	AuthorErrCode         = "2020"
 	PublisherErrCode      = "2021"
 	SubjectErrCode        = "2022"
+	MemberErrCode         = "2023"
+	LoanErrCode           = "2024"
+	FineErrCode           = "2025"
+	TransactionErrCode    = "2026"
 )
