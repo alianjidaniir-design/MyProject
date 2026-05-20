@@ -84,7 +84,7 @@ func (repo *Repository) Delete(ctx context.Context, req commonSchema.BaseRequest
 	if err != nil {
 		return termSchema.DeletedTerm{}, "03", status.UnAvailableServiceError, err
 	}
-	return termSchema.DeletedTerm{Message: "user deleted successfully"}, "", status.StatusOK, nil
+	return termSchema.DeletedTerm{Message: "student deleted successfully"}, "", status.StatusOK, nil
 }
 
 func (repo *Repository) db() dataSources.TermDS {

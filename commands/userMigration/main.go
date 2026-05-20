@@ -1,7 +1,7 @@
 package main
 
 import (
-	mysqlDataSource "MyProject/models/user/dataSourses/mySqlDS"
+	mysqlDataSource "MyProject/models/student/dataSourses/mySqlDS"
 	"flag"
 	"fmt"
 	"log"
@@ -15,7 +15,7 @@ func main() {
 	}
 
 	dsn := flag.String("dsn", envCFG.DSN, "MySQL DSN")
-	table := flag.String("table", envCFG.StudentTableName, "user table name")
+	table := flag.String("table", envCFG.StudentTableName, "student table name")
 	flag.Parse()
 
 	if *dsn == "" {

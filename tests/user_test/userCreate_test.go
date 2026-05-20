@@ -18,13 +18,13 @@ func setupTestApp() *fiber.App {
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("role_id", 4)
 		c.Locals("permissions", map[string]bool{
-			"user/create": true,
+			"student/create": true,
 		})
 		return c.Next()
 	})
 
 	// مستقیم همان handler را ثبت کن
-	app.Post("/user/create", Create)
+	app.Post("/student/create", Create)
 
 	return app
 }

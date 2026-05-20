@@ -1,40 +1,42 @@
 package authz
 
 import (
-	"fmt"
+	"MyProject/models/student/dataModel"
+	"context"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
 )
 
-func (a *AuthzMiddleWare) RequirePermission(p string) fiber.Handler {
+var jwtSecretKey = []byte("your-super-secret-key") // <--- **این را با کلید واقعی خود جایگزین کنید**
+
+func RequirePermission() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		roleHeader := c.Get("role")
+		roleHeader := c.Get("Authorization")
 		if roleHeader == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"code":    fiber.StatusUnauthorized,
-				"message": "role header is missing",
+				"message": "token header is missing",
 			})
 		}
 
-		roleParse, err := a.ParseRole(roleHeader)
-		if err != nil {
-			return err
-		}
+		tokenStr := strings.TrimPrefix(roleHeader, "Bearer")
 
-		check, err := a.HasPermissionByTID(roleParse, p)
-		if err != nil {
-			return err
-		}
+		claim := &dataModel.StudentRole{}
 
-		if !check {
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-				"code":    fiber.StatusForbidden,
-				"message": fmt.Sprintf("role '%s' does not have permission '%s'", roleParse.Name, p),
+		token, err := jwt.ParseWithClaims(tokenStr, claim, func(token *jwt.Token) (interface{}, error) {
+			return jwtSecretKey, nil
+		})
+		if err != nil || !token.Valid {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"code":    fiber.StatusUnauthorized,
+				"message": "token is invalid",
 			})
 		}
 
-		c.Locals("role", roleParse)
-		c.Locals("role_id", roleParse.ID)
+		ctx := context.WithValue(context.Background(), "student_id", claim.StudentID)
+		c.SetUserContext(ctx)
 		return c.Next()
 	}
 }

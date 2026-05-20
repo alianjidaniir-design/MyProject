@@ -10,6 +10,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -58,6 +59,15 @@ SELECT
 	} else if !checkSubject {
 		return dataModel.Book{}, errors.New("there is not subject")
 	} else if req.TranslatorID == nil {
+		var che int
+		countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE name = ? AND author_id = ?  AND publisher_id = ? AND publication_year = ? AND edition = ?", ds.tableName)
+		err = ds.db.QueryRowContext(ctx, countQuery, req.Name, req.AuthorID, req.PublisherID, req.PublicationYear, req.Editions).Scan(&che)
+		if err != nil {
+			return dataModel.Book{}, err
+		}
+		if che >= 1 {
+			return dataModel.Book{}, errors.New("this is already a book")
+		}
 	} else if !checkTranslator {
 		return dataModel.Book{}, errors.New("there is not translator")
 	}
@@ -96,8 +106,6 @@ func (ds *BookDBDS) DeleteBook(ctx context.Context, req bookSchema.GetCodeBook) 
 		return dataModel.Book{}, err
 	}
 	return ds.selectBook(ctx, req.ID)
-
-	return dataModel.Book{}, nil
 }
 
 func (ds *BookDBDS) DetailBook(ctx context.Context, req bookSchema.GetCodeBook) (res dataModel.Book, err error) {
@@ -112,6 +120,7 @@ func (ds *BookDBDS) DetailBook(ctx context.Context, req bookSchema.GetCodeBook) 
 	return ds.selectBook(ctx, req.ID)
 }
 func (ds *BookDBDS) ListBooks(ctx context.Context, req bookSchema.PaginationBook) (res []dataModel.Book, total int, err error) {
+	var rows *sql.Rows
 	err = Val.CheckValidation(req)
 	if err != nil {
 		return res, total, err
@@ -124,13 +133,15 @@ func (ds *BookDBDS) ListBooks(ctx context.Context, req bookSchema.PaginationBook
 	limit := pageSize
 	offset := (page - 1) * limit
 	var tot int
-	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s ", ds.tableName)
-	err = ds.db.QueryRowContext(ctx, countQuery).Scan(&tot)
+	whereClause, args := filters(req)
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s %s", ds.tableName, whereClause)
+	err = ds.db.QueryRowContext(ctx, countQuery, args...).Scan(&tot)
 	if err != nil {
 		return nil, 0, err
 	}
-	selectQuery := fmt.Sprintf("SELECT * FROM %s LIMIT ? OFFSET ?", ds.tableName)
-	rows, err := ds.db.QueryContext(ctx, selectQuery, limit, offset)
+	selectQuery := fmt.Sprintf("SELECT * FROM %s %s LIMIT ? OFFSET ?", ds.tableName, whereClause)
+	queryArgs := append(args, limit, offset)
+	rows, err = ds.db.QueryContext(ctx, selectQuery, queryArgs...)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -175,13 +186,32 @@ CASE WHEN EXISTS (SELECT 1 FROM books WHERE ID = ?)THEN 1 ELSE 0 END`
 	return nil
 }
 
+// این ساختار برای برگرداندن همزمان رشته SQL و مقادیر آن است
 
-func filters(f1 any , f2 any , f3 any , f4 any) string {
+func filters(req bookSchema.PaginationBook) (string, []any) {
 	var conditions []string
-	var args string
+	var args []any
 
-	if
+	if req.AuthorID != nil {
+		conditions = append(conditions, "author_id = ?")
+		args = append(args, *req.AuthorID)
+	}
+	if req.PublisherID != nil {
+		conditions = append(conditions, "publisher_id = ?")
+		args = append(args, *req.PublisherID)
+	}
+	if req.SubjectID != nil {
+		conditions = append(conditions, "subject_id = ?")
+		args = append(args, *req.SubjectID)
+	}
+	if req.TranslatorID != nil {
+		conditions = append(conditions, "translator_id = ?")
+		args = append(args, *req.TranslatorID)
+	}
 
+	if len(conditions) == 0 {
+		return "", nil
+	}
 
-
+	return "WHERE " + strings.Join(conditions, " AND "), args
 }

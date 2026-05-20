@@ -1,0 +1,310 @@
+package mySqlDS
+
+import (
+	"MyProject/apiSchema/studentSchema"
+	studentDataModel "MyProject/models/student/dataModel"
+	studentDataSourses "MyProject/models/student/dataSourses"
+	"MyProject/pkg/pagination"
+	Val "MyProject/pkg/val"
+	"MyProject/statics/constants/roles"
+	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
+)
+
+type StudentDBDS struct {
+	tableName string
+	tableSQL  string
+	db        *sql.DB
+}
+
+func myLocation() *time.Location {
+	loc, err := time.LoadLocation("Asia/ُTehran")
+	if err != nil {
+		return time.FixedZone("Asia/Tehran", 3*3600+30*60)
+	}
+	return loc
+}
+
+func NewStudentDBDS(db *sql.DB, tableName string) (studentDataSourses.StudentDB, error) {
+
+	userDBInstance := &StudentDBDS{
+		tableName: tableName,
+		tableSQL:  tableName,
+		db:        db,
+	}
+	return userDBInstance, nil
+}
+
+func (ds *StudentDBDS) SoftDeleteStudent(ctx context.Context, req studentSchema.SoftDeleteRequest) (studentDataModel.Student, error) {
+	err := Val.CheckValidation(req)
+	if err != nil {
+		return studentDataModel.Student{}, err
+	}
+	now := time.Now().In(myLocation())
+	err = ds.chackStudent(ctx, req.ID)
+	if err != nil {
+		return studentDataModel.Student{}, errors.New(err.Error())
+	}
+	updateQuery := fmt.Sprintf("UPDATE %s SET updated_at=? , deleted_at=? WHERE id = ?", ds.tableName)
+
+	_, err = ds.db.ExecContext(ctx, updateQuery, now, now, req.ID)
+	if err != nil {
+		return studentDataModel.Student{}, err
+	}
+
+	return ds.readTaskByID(ctx, req.ID)
+}
+
+func (ds *StudentDBDS) DeleteStudent(ctx context.Context, req studentSchema.DeleteRequest) (studentDataModel.Student, error) {
+	err := ds.chackStudent(ctx, req.ID)
+	if err != nil {
+		return studentDataModel.Student{}, errors.New("Found Not student")
+	}
+	var students studentDataModel.Student
+	deleteQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ?", ds.tableName)
+	_, err = ds.db.ExecContext(ctx, deleteQuery, req.ID)
+	if err != nil {
+		return studentDataModel.Student{}, err
+	}
+
+	return students, nil
+}
+
+func (ds *StudentDBDS) GetStudent(ctx context.Context, req studentSchema.GetRequest) (studentDataModel.Student, error) {
+	err := ds.chackStudent(ctx, req.ID)
+	if err != nil {
+		return studentDataModel.Student{}, errors.New("Found Not student")
+	}
+	return ds.readTaskByID(ctx, req.ID)
+}
+
+func (ds *StudentDBDS) CreateStudent(ctx context.Context, req studentSchema.SignUpStudent) (studentDataModel.Student, error) {
+	err := Val.CheckValidation(req)
+	if err != nil {
+		return studentDataModel.Student{}, err
+	}
+	hash, err := hashingPassword(req.Password)
+	code := &req.StudentCode
+	req.UserName = code
+	now := time.Now().In(myLocation())
+	insertQuery := fmt.Sprintf("INSERT INTO %s (name , family, phone ,national_code, major,student_code,user_name ,password , created_at , updated_at , deleted_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)", ds.tableSQL)
+	insertResult, err := ds.db.ExecContext(ctx, insertQuery, req.Name, req.Family, req.Phone, req.NationalCode, req.Major, req.StudentCode, code, hash, now, now, nil)
+	if err != nil {
+		return studentDataModel.Student{}, err
+	}
+
+	insertedID, err := insertResult.LastInsertId()
+	if err != nil {
+		return studentDataModel.Student{}, err
+	}
+	return ds.readTaskByID(ctx, insertedID)
+}
+
+func (ds *StudentDBDS) ReadStudent(ctx context.Context, req studentSchema.ListRequest) ([]studentDataModel.Student, int64, error) {
+	var users []studentDataModel.Student // نام متغیر به جمع تغییر یافت
+	Page, PageSize, err := pagination.CheckPage(req.Page, req.PageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+	// "offest" به "offset" اصلاح شد
+	offset := (Page - 1) * PageSize
+	limit := PageSize
+	var total int64
+	totalItem := fmt.Sprintf("SELECT COUNT(*) FROM %s", ds.tableSQL)
+	err = ds.db.QueryRowContext(ctx, totalItem).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// ستون‌ها را صریحاً نام ببرید تا از مشکلات احتمالی ترتیب ستون‌ها جلوگیری شود.
+	// فرض می‌کنیم ترتیب ستون‌ها در دیتابیس با ترتیب مدل مطابقت دارد.
+	selectQuery := fmt.Sprintf("SELECT id, name, family,phone,national_code,major,student_code,user_name,password, created_at, updated_at, deleted_at FROM %s LIMIT ? OFFSET ?", ds.tableSQL)
+	selectResult, err := ds.db.QueryContext(ctx, selectQuery, limit, offset)
+	if err != nil {
+		return []studentDataModel.Student{}, 0, err
+	}
+	defer selectResult.Close()
+
+	for selectResult.Next() {
+		var student studentDataModel.Student
+		// تعریف متغیرهای موقت از نوع sql.NullTime برای دریافت مقادیر NULL پذیر
+
+		// اسکن مقادیر از دیتابیس به متغیرهای موقت NullTime
+		if err = selectResult.Scan(&student.ID, &student.Name, &student.Family, &student.Phone, &student.NationalCode, &student.Major, &student.StudentCode, &student.UserName, &student.Password, &student.CreatedAt, &student.UpdatedAt, &student.DeletedAt); err != nil {
+			// اگر اینجا خطا رخ داد، ممکن است به دلیل عدم تطابق نوع یا نام ستون باشد
+			return nil, 0, fmt.Errorf("خطا در اسکن ردیف: %w", err)
+		}
+
+		users = append(users, student) // اضافه کردن به slice 'users'
+	}
+	if err = selectResult.Err(); err != nil {
+		return nil, 0, fmt.Errorf("خطا در پیمایش نتایج کوئری: %w", err)
+	}
+	return users, total, nil
+}
+
+func (ds *StudentDBDS) RenameStudent(ctx context.Context, req studentSchema.UpdateUserRequest) (studentDataModel.Student, error) {
+	var students studentDataModel.Student
+	stmt := fmt.Sprintf("UPDATE %s SET  name = ?, family = ?, updated_at = ? WHERE id = ? ", ds.tableName)
+	var updatedAt time.Time
+	sss, err := ds.db.PrepareContext(ctx, stmt)
+	if err != nil {
+		return studentDataModel.Student{}, err
+	}
+	defer sss.Close()
+
+	result, err := sss.ExecContext(ctx,
+		students.Name,
+		students.Family,
+		updatedAt,
+		req.ID,
+	)
+	if err != nil {
+		return studentDataModel.Student{}, err
+	}
+	// (optional) require for number of updated column
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return studentDataModel.Student{}, errors.New("error in number update")
+	}
+	if rows == 0 {
+		return studentDataModel.Student{}, fmt.Errorf("rows == 0")
+	}
+	updatedAt = updatedAt.In(myLocation())
+	return students, nil
+
+}
+
+func (ds *StudentDBDS) UpdateStudent(ctx context.Context, req studentSchema.UpdateUserRequest) (studentDataModel.Student, error) {
+	now := time.Now().In(myLocation())
+	err := ds.chackStudent(ctx, req.ID)
+	if err != nil {
+		return studentDataModel.Student{}, errors.New("Found Not student")
+	}
+	stmt := fmt.Sprintf("UPDATE %s SET updated_at = ? WHERE id = ? ", ds.tableName)
+	sss, err := ds.db.PrepareContext(ctx, stmt)
+	if err != nil {
+		return studentDataModel.Student{}, err
+	}
+	defer sss.Close()
+
+	result, err := sss.ExecContext(ctx,
+		now,
+		req.ID,
+	)
+	if err != nil {
+		return studentDataModel.Student{}, err
+	}
+	// (optional) require for number of updated column
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return studentDataModel.Student{}, errors.New("error in number update")
+	}
+	if rows == 0 {
+		return studentDataModel.Student{}, fmt.Errorf("rows == 0")
+	}
+
+	return ds.readTaskByID(ctx, req.ID)
+
+}
+
+func (ds *StudentDBDS) StudentEntry(ctx context.Context, req studentSchema.LoginStudent) (string, error) {
+	err := Val.CheckValidation(req)
+	if err != nil {
+		return "", err
+	}
+	student, err := ds.checkingStudent(req.UserName)
+	if err != nil {
+		return "", err
+	}
+	err = checkPassword(req.Password, student.Password)
+	if err != nil {
+		return "", err
+	}
+	token, err := generateAccessToken(student)
+	if err != nil {
+		return "", err
+	}
+	return token, nil
+
+}
+
+func (ds *StudentDBDS) readTaskByID(ctx context.Context, userID int64) (studentDataModel.Student, error) {
+	var students studentDataModel.Student
+
+	readQuery := fmt.Sprintf("SELECT id , name , family,phone,national_code,major,student_code,user_name , password , created_at , updated_at , deleted_at FROM %s WHERE id = ?", ds.tableSQL)
+
+	if err := ds.db.QueryRowContext(ctx, readQuery, userID).Scan(&students.ID, &students.Name, &students.Family, &students.Phone, &students.NationalCode, &students.Major, &students.StudentCode, &students.UserName, &students.Password, &students.CreatedAt, &students.UpdatedAt, &students.DeletedAt); err != nil {
+		return studentDataModel.Student{}, err
+	}
+
+	return students, nil
+
+}
+func (ds *StudentDBDS) chackStudent(ctx context.Context, ID int64) error {
+	var check bool
+	search := `
+SELECT
+CASE WHEN EXISTS (SELECT 1 FROM student WHERE ID = ?) THEN 1 ELSE 0 END
+`
+	err := ds.db.QueryRowContext(ctx, search, ID).Scan(&check)
+
+	if err != nil {
+		return err
+	}
+	if !check {
+		return errors.New("Student not found")
+	}
+	return nil
+}
+
+func hashingPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword(
+		[]byte(password),
+		bcrypt.DefaultCost)
+	return string(bytes), err
+}
+
+func checkPassword(password, hash string) error {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	if err != nil {
+		return errors.New("invalid password")
+	}
+	return nil
+
+}
+
+func (ds *StudentDBDS) checkingStudent(ncode string) (data studentDataModel.Student, err error) {
+
+	var students studentDataModel.Student
+	selectQuery := fmt.Sprintf("SELECT * FROM student WHERE national_code = ? ")
+	err = ds.db.QueryRow(selectQuery, ncode).Scan(&students.ID, &students.Name, &students.Family, &students.Phone, &students.NationalCode, &students.Major, &students.StudentCode, &students.UserName, &students.Password, &students.CreatedAt, &students.UpdatedAt, &students.DeletedAt)
+	if err != nil {
+		return studentDataModel.Student{}, err
+	}
+	return students, nil
+}
+
+func generateAccessToken(student studentDataModel.Student) (string, error) {
+	var jwtSecret = []byte("SUPER_SECRET_KEY")
+
+	exp := time.Now().In(myLocation()).Add(20 * time.Minute)
+	claim := studentDataModel.StudentRole{
+		StudentID: student.ID,
+		Role:      roles.RoleStudent,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(exp),
+			IssuedAt:  jwt.NewNumericDate(time.Now().In(myLocation())),
+			ID:        "defe",
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claim)
+	return token.SignedString(jwtSecret)
+
+}

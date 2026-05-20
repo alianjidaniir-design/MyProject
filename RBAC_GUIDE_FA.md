@@ -85,7 +85,7 @@ package roles
 type Role string
 
 const (
-	RoleUser   Role = "user"
+	RoleUser   Role = "student"
 	RoleEditor Role = "editor"
 	RoleAdmin  Role = "admin"
 )
@@ -101,11 +101,11 @@ package permissions
 type Permission string
 
 const (
-	UserCreate Permission = "user.create"
-	UserList   Permission = "user.list"
-	UserGet    Permission = "user.get"
-	UserUpdate Permission = "user.update"
-	UserDelete Permission = "user.delete"
+	UserCreate Permission = "student.create"
+	UserList   Permission = "student.list"
+	UserGet    Permission = "student.get"
+	UserUpdate Permission = "student.update"
+	UserDelete Permission = "student.delete"
 )
 ```
 
@@ -216,19 +216,19 @@ func RequirePermission(p permissions.Permission) fiber.Handler {
 package route
 
 import (
-	. "MyProject/controllers/user"
+	. "MyProject/controllers/student"
 	"MyProject/services/core/authz"
 	"MyProject/statics/constants/permissions"
 	"github.com/gofiber/fiber/v2"
 )
 
 var userRoute = map[string]string{
-	"userCreate":  "/user/create",
-	"userList":    "/user/list",
-	"userGet":     "/user/get",
-	"userUpdate":  "/user/update",
-	"userDelete":  "/user/delete",
-	"userDelete2": "/user/delete2",
+	"userCreate":  "/student/create",
+	"userList":    "/student/list",
+	"userGet":     "/student/get",
+	"userUpdate":  "/student/update",
+	"userDelete":  "/student/delete",
+	"userDelete2": "/student/delete2",
 }
 
 func SetupUserRoute(app *fiber.App) map[string]string {
