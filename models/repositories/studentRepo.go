@@ -28,6 +28,8 @@ type StudentRepository interface {
 	SoftDelete(ctx context.Context, req commonSchema.BaseRequest[studentSchema.SoftDeleteRequest]) (res studentSchema.SoftDeleteResponse, errStr string, code int, err error)
 
 	Entry(ctx context.Context, req commonSchema.BaseRequest[studentSchema.LoginStudent]) (res studentSchema.StudentEntry, errStr string, code int, err error)
+
+	RefreshToken(ctx context.Context, req commonSchema.BaseRequest[studentSchema.RefreshTokenRequest]) (res studentSchema.RefreshTokenResponse, errStr string, code int, err error)
 }
 
 var StudentRepo StudentRepository = student.GetRepoIns()

@@ -34,6 +34,11 @@ type SoftDeleteResponse struct {
 }
 
 type StudentEntry struct {
-	Massage string `json:"massage"`
-	Token   string `json:"token"`
+	Massage      string `json:"massage"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
+type RefreshTokenResponse struct {
+	RefreshToken dataModel.RefreshToken `json:"refresh_token"`
 }

@@ -92,9 +92,20 @@ func (ds *StudentDBDS) CreateStudent(ctx context.Context, req studentSchema.Sign
 	hash, err := hashingPassword(req.Password)
 	code := &req.StudentCode
 	req.UserName = code
+	var check bool
+	checkRole := `
+SELECT
+CASE WHEN EXISTS (SELECT 1 FROM roles WHERE ID = ?) THEN 1 ELSE 0 END`
+	err = ds.db.QueryRowContext(ctx, checkRole, req.RoleID).Scan(&check)
+	if err != nil {
+		return studentDataModel.Student{}, err
+	}
+	if !check {
+		return studentDataModel.Student{}, errors.New("Invalid role")
+	}
 	now := time.Now().In(myLocation())
-	insertQuery := fmt.Sprintf("INSERT INTO %s (name , family, phone ,national_code, major,student_code,user_name ,password , created_at , updated_at , deleted_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)", ds.tableSQL)
-	insertResult, err := ds.db.ExecContext(ctx, insertQuery, req.Name, req.Family, req.Phone, req.NationalCode, req.Major, req.StudentCode, code, hash, now, now, nil)
+	insertQuery := fmt.Sprintf("INSERT INTO %s (name , family, phone ,national_code, major,student_code,user_name ,password, role_id , created_at , updated_at , deleted_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)", ds.tableSQL)
+	insertResult, err := ds.db.ExecContext(ctx, insertQuery, req.Name, req.Family, req.Phone, req.NationalCode, req.Major, req.StudentCode, code, hash, req.RoleID, now, now, nil)
 	if err != nil {
 		return studentDataModel.Student{}, err
 	}
@@ -217,18 +228,26 @@ func (ds *StudentDBDS) UpdateStudent(ctx context.Context, req studentSchema.Upda
 func (ds *StudentDBDS) StudentEntry(ctx context.Context, req studentSchema.LoginStudent) (string, string, error) {
 	err := Val.CheckValidation(req)
 	if err != nil {
+		fmt.Println("s1")
 		return "", "", err
 	}
 	student, err := ds.checkingStudent(req.UserName)
 	if err != nil {
+
+		fmt.Println("s2")
+
 		return "", "", err
 	}
 	err = checkPassword(req.Password, student.Password)
 	if err != nil {
+		fmt.Println(req.Password, student.Password, 12)
+
 		return "", "", err
 	}
 	tok, err := token.GenerateAccessToken(student.ID, student.RoleID)
 	if err != nil {
+		fmt.Println("s4")
+
 		return "", "", err
 	}
 	refresh, err := token.RefreshToken(ctx, req)
@@ -240,10 +259,16 @@ func (ds *StudentDBDS) StudentEntry(ctx context.Context, req studentSchema.Login
 
 	insert := fmt.Sprintf("INSERT INTO refreshs (student_id , token , expires_at , rekoved_at ) VALUES (?, ?, ? , ?)")
 	if _, err = ds.db.ExecContext(ctx, insert, student.ID, tok, expiresAt, false); err != nil {
+		fmt.Println("s4")
+		return "", "", err
 	}
 
 	return tok, refresh, nil
 
+}
+
+func (ds *StudentDBDS) RefreshToken(ctx context.Context, req studentSchema.RefreshTokenRequest) (studentSchema.RefreshTokenResponse, error) {
+	
 }
 
 func (ds *StudentDBDS) readTaskByID(ctx context.Context, userID int64) (studentDataModel.Student, error) {
@@ -279,7 +304,10 @@ func hashingPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword(
 		[]byte(password),
 		bcrypt.DefaultCost)
-	return string(bytes), err
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), nil
 }
 
 func checkPassword(password, hash string) error {
@@ -291,15 +319,13 @@ func checkPassword(password, hash string) error {
 
 }
 
-func (ds *StudentDBDS) checkingStudent(ncode string) (data studentDataModel.Student, err error) {
+func (ds *StudentDBDS) checkingStudent(scode string) (data studentDataModel.Student, err error) {
 
 	var students studentDataModel.Student
-	selectQuery := fmt.Sprintf("SELECT * FROM student WHERE national_code = ? ")
-	err = ds.db.QueryRow(selectQuery, ncode).Scan(&students.ID, &students.Name, &students.Family, &students.Phone, &students.NationalCode, &students.Major, &students.StudentCode, &students.UserName, &students.Password, &students.CreatedAt, &students.UpdatedAt, &students.DeletedAt)
+	selectQuery := fmt.Sprintf("SELECT ID , student_code , password , role_id FROM student WHERE student_code = ?")
+	err = ds.db.QueryRow(selectQuery, scode).Scan(&students.ID, &students.StudentCode, &students.Password, &students.RoleID)
 	if err != nil {
 		return studentDataModel.Student{}, err
 	}
 	return students, nil
 }
-
-func (ds *StudentDBDS) RefreshTokenHandler() error {}

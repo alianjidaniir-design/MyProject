@@ -140,6 +140,21 @@ func (repo *Repository) Delete(ctx context.Context, req commonSchema.BaseRequest
 	return studentSchema.DeleteResponse{User: deletedUser}, "", status.StatusOK, nil
 }
 
+func (repo *Repository) Entry(ctx context.Context, req commonSchema.BaseRequest[studentSchema.LoginStudent]) (res studentSchema.StudentEntry, errStr string, code int, err error) {
+	if repo.initErr != nil {
+		return studentSchema.StudentEntry{}, "01", status.UnAvailableServiceError, repo.initErr
+	}
+	if repo.db() == nil {
+		return studentSchema.StudentEntry{}, "02", status.StatusInternalServerError, errors.New("bad")
+	}
+	access, refresh, err := repo.db().StudentEntry(ctx, req.Body)
+	if err != nil {
+		return studentSchema.StudentEntry{}, "03", status.UnAvailableServiceError, err
+	}
+	return studentSchema.StudentEntry{Massage: "login successfully", AccessToken: access, RefreshToken: refresh}, "", status.StatusOK, nil
+
+}
+
 func (repo *Repository) db() userDataSourses.StudentDB {
 	return repo.dbDS
 }

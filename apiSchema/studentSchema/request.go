@@ -9,6 +9,7 @@ type SignUpStudent struct {
 	StudentCode  string  `json:"student_code" validate:"required,numeric,len=9"`
 	UserName     *string `json:"user_name" validate:"omitempty,len=9,numeric"`
 	Password     string  `json:"password" validate:"required,len=10"`
+	RoleID       int64   `json:"role_id"`
 }
 type LoginStudent struct {
 	UserName string `json:"user_name" validate:"required,len=9,numeric"`
@@ -33,4 +34,8 @@ type DeleteRequest struct {
 
 type SoftDeleteRequest struct {
 	ID int64 `json:"ID"`
+}
+
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token"`
 }

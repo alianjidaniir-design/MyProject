@@ -13,6 +13,7 @@ var studentRoute = map[string]string{
 	"studentUpdate":  "/student/update",
 	"studentDelete":  "/student/delete",
 	"studentDelete2": "/student/delete2",
+	"studentLogin":   "/student/login",
 }
 
 func SetupUserRoute(app *fiber.App) map[string]string {
@@ -22,5 +23,6 @@ func SetupUserRoute(app *fiber.App) map[string]string {
 	app.Post(studentRoute["studentUpdate"], Update)
 	app.Post(studentRoute["studentDelete"], Delete)
 	app.Post(studentRoute["studentDelete2"], SoftDelete)
+	app.Post(studentRoute["studentLogin"], Login)
 	return studentRoute
 }
