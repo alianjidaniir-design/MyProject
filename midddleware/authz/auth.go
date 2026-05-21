@@ -8,17 +8,19 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+var jwtSecretKey = []byte("your-super-secret-key") // <--- **این را با کلید واقعی خود جایگزین کنید**
+
 func AuthMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		roleHeader := c.Get("Authorization")
-		if roleHeader == "" {
+		authHeader := c.Get("Authorization")
+		if authHeader == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"code":    fiber.StatusUnauthorized,
 				"message": "token header is missing",
 			})
 		}
 
-		tokenStr := strings.TrimPrefix(roleHeader, "Bearer")
+		tokenStr := strings.TrimPrefix(authHeader, "Bearer")
 
 		claim := &dataModel.AccessToken{}
 
@@ -49,6 +51,7 @@ func AuthMiddleware() fiber.Handler {
 	}
 }
 
+// ای پی ای محافظت شده
 func GetUserID(c *fiber.Ctx) int64 {
 	if k, ok := c.Locals("userID").(int64); ok {
 		return k
@@ -56,6 +59,7 @@ func GetUserID(c *fiber.Ctx) int64 {
 	return 0
 }
 
+// ای پی ای رول پرمیشن
 func GetRoleID(c *fiber.Ctx) int64 {
 	if k, ok := c.Locals("roleID").(int64); ok {
 		return k
