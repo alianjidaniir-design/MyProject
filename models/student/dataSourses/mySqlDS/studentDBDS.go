@@ -5,15 +5,15 @@ import (
 	studentDataModel "MyProject/models/student/dataModel"
 	studentDataSourses "MyProject/models/student/dataSourses"
 	"MyProject/pkg/pagination"
+	"MyProject/pkg/token"
 	Val "MyProject/pkg/val"
-	"MyProject/statics/constants/roles"
+	"MyProject/statics/constants"
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -214,24 +214,35 @@ func (ds *StudentDBDS) UpdateStudent(ctx context.Context, req studentSchema.Upda
 
 }
 
-func (ds *StudentDBDS) StudentEntry(ctx context.Context, req studentSchema.LoginStudent) (string, error) {
+func (ds *StudentDBDS) StudentEntry(ctx context.Context, req studentSchema.LoginStudent) (string, string, error) {
 	err := Val.CheckValidation(req)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	student, err := ds.checkingStudent(req.UserName)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	err = checkPassword(req.Password, student.Password)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	token, err := generateAccessToken(student)
+	tok, err := token.GenerateAccessToken(student.ID, student.RoleID)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	return token, nil
+	refresh, err := token.RefreshToken(ctx, req)
+	if err != nil {
+		return "", "", err
+	}
+
+	expiresAt := time.Now().In(myLocation()).Add(constants.RefreshTokenExpiry)
+
+	insert := fmt.Sprintf("INSERT INTO refreshs (student_id , token , expires_at , rekoved_at ) VALUES (?, ?, ? , ?)")
+	if _, err = ds.db.ExecContext(ctx, insert, student.ID, tok, expiresAt, false); err != nil {
+	}
+
+	return tok, refresh, nil
 
 }
 
@@ -291,20 +302,4 @@ func (ds *StudentDBDS) checkingStudent(ncode string) (data studentDataModel.Stud
 	return students, nil
 }
 
-func generateAccessToken(student studentDataModel.Student) (string, error) {
-	var jwtSecret = []byte("SUPER_SECRET_KEY")
-
-	exp := time.Now().In(myLocation()).Add(20 * time.Minute)
-	claim := studentDataModel.StudentRole{
-		StudentID: student.ID,
-		Role:      roles.RoleStudent,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(exp),
-			IssuedAt:  jwt.NewNumericDate(time.Now().In(myLocation())),
-			ID:        "defe",
-		},
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claim)
-	return token.SignedString(jwtSecret)
-
-}
+func (ds *StudentDBDS) RefreshTokenHandler() error {}

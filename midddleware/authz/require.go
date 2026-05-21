@@ -1,42 +1,47 @@
 package authz
 
 import (
-	"MyProject/models/student/dataModel"
-	"context"
-	"strings"
+	"MyProject/models/rolePermission/dataSources/mySQLDS"
+	"errors"
+	"fmt"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 var jwtSecretKey = []byte("your-super-secret-key") // <--- **این را با کلید واقعی خود جایگزین کنید**
 
-func RequirePermission() fiber.Handler {
+func RequirePermission(permissionName string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		roleHeader := c.Get("Authorization")
-		if roleHeader == "" {
+		roleID := GetRoleID(c)
+		if roleID == 0 {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"code":    fiber.StatusUnauthorized,
 				"message": "token header is missing",
 			})
 		}
 
-		tokenStr := strings.TrimPrefix(roleHeader, "Bearer")
+		cfg, err := mySQLDS.LoadConfig()
+		if err != nil {
+			return err
+		}
+		DB, err := mySQLDS.Open(cfg)
+		if err != nil {
+			return err
+		}
 
-		claim := &dataModel.StudentRole{}
-
-		token, err := jwt.ParseWithClaims(tokenStr, claim, func(token *jwt.Token) (interface{}, error) {
-			return jwtSecretKey, nil
-		})
-		if err != nil || !token.Valid {
+		var count int64
+		joinQuery := fmt.Sprintf("SELECT * FROM rolepermissions JOIN permissions ON permissions.id = role_permissions.permission_id WHERE role_id = ? AND permission.name = ?")
+		err = DB.QueryRow(joinQuery, roleID, permissionName).Scan(&count)
+		if err != nil {
+			return errors.New("123,d,sd")
+		}
+		if count == 0 {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"code":    fiber.StatusUnauthorized,
-				"message": "token is invalid",
+				"message": "permission denied",
 			})
 		}
 
-		ctx := context.WithValue(context.Background(), "student_id", claim.StudentID)
-		c.SetUserContext(ctx)
 		return c.Next()
 	}
 }

@@ -12,13 +12,13 @@ import (
 
 type RolePermissionDBDS struct {
 	tableName string
-	db        *sql.DB
+	DB        *sql.DB
 }
 
 func NewRolePermissionDBDS(tableName string, db *sql.DB) (dataSources.RolePermissionDS, error) {
 	ff := &RolePermissionDBDS{
 		tableName: tableName,
-		db:        db,
+		DB:        db,
 	}
 	return ff, nil
 }
@@ -29,7 +29,7 @@ func (ds *RolePermissionDBDS) CreatePermission(ctx context.Context, req rolePerm
 SELECT
  EXISTS (SELECT 1 FROM roles WHERE ID = ? ),
  EXISTS (SELECT 1 FROM permissions WHERE ID = ? )`
-	err = ds.db.QueryRowContext(ctx, checkingQuery, req.RoleID, req.PermissionID).Scan(&checkRole, &checkPermission)
+	err = ds.DB.QueryRowContext(ctx, checkingQuery, req.RoleID, req.PermissionID).Scan(&checkRole, &checkPermission)
 	if err != nil {
 		return err
 	}
@@ -37,7 +37,7 @@ SELECT
 		return errors.New("Role or Permission does not exist")
 	}
 	insertQuery := fmt.Sprintf("INSERT INTO %s (role_id, permission_id) VALUES (?, ?)", ds.tableName)
-	_, err = ds.db.Exec(insertQuery, req.RoleID, req.PermissionID)
+	_, err = ds.DB.Exec(insertQuery, req.RoleID, req.PermissionID)
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ SELECT
 func (ds *RolePermissionDBDS) selectRolePermission(ctx context.Context, ID int64) (dataModel.RolePermission, error) {
 	var rolePer dataModel.RolePermission
 	selectQuery := fmt.Sprintf("SELECT * FROM %s WHERE ID = ?", ds.tableName)
-	err := ds.db.QueryRowContext(ctx, selectQuery, ID).Scan(&rolePer.RoleID, &rolePer.PermissionID)
+	err := ds.DB.QueryRowContext(ctx, selectQuery, ID).Scan(&rolePer.RoleID, &rolePer.PermissionID)
 	if err != nil {
 		return dataModel.RolePermission{}, err
 	}

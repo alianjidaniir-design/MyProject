@@ -13,5 +13,5 @@ type StudentDB interface {
 	UpdateStudent(ctx context.Context, req studentSchema.UpdateUserRequest) (studentDataModel.Student, error)
 	DeleteStudent(ctx context.Context, req studentSchema.DeleteRequest) (studentDataModel.Student, error)
 	SoftDeleteStudent(ctx context.Context, req studentSchema.SoftDeleteRequest) (studentDataModel.Student, error)
-	StudentEntry(ctx context.Context, req studentSchema.LoginStudent) (string, error)
+	StudentEntry(ctx context.Context, req studentSchema.LoginStudent) (string, string, error)
 }

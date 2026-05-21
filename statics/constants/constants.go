@@ -1,5 +1,12 @@
 package constants
 
+import "time"
+
+const (
+	AccessTokenExpiry  = 20 * time.Minute
+	RefreshTokenExpiry = 7 * 24 * time.Hour
+)
+
 const (
 	StatusEnrolled     = "enrolled"
 	StatusCanceled     = "canceled"
