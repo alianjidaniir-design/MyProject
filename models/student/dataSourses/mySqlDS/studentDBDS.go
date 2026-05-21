@@ -268,7 +268,20 @@ func (ds *StudentDBDS) StudentEntry(ctx context.Context, req studentSchema.Login
 }
 
 func (ds *StudentDBDS) RefreshToken(ctx context.Context, req studentSchema.RefreshTokenRequest) (studentSchema.RefreshTokenResponse, error) {
-	
+	var rt studentDataModel.RefreshToken
+	if req.RefreshToken == "" {
+		return studentSchema.RefreshTokenResponse{}, errors.New("this is not empty")
+	}
+	checkToken := fmt.Sprintf("SELECT * FROM refreshs WHERE token = ? AND rekoved = false")
+	err := ds.db.QueryRowContext(ctx, checkToken, req.RefreshToken).Scan(&rt)
+	if err != nil {
+		return studentSchema.RefreshTokenResponse{}, err
+	} else if time.Now().In(myLocation()).After(rt.ExpiresAt) {
+		return studentSchema.RefreshTokenResponse{}, errors.New("token expired")
+	} else if rt.Token != req.RefreshToken || rt.RevokedAt == true {
+		return studentSchema.RefreshTokenResponse{}, errors.New("Refresh token is invalid")
+	}
+
 }
 
 func (ds *StudentDBDS) readTaskByID(ctx context.Context, userID int64) (studentDataModel.Student, error) {
