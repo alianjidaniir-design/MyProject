@@ -26,4 +26,5 @@ const (
 	LoanErrCode           = "2024"
 	FineErrCode           = "2025"
 	TransactionErrCode    = "2026"
+	RefreshTokenErrCode   = "2027"
 )

@@ -155,6 +155,20 @@ func (repo *Repository) Entry(ctx context.Context, req commonSchema.BaseRequest[
 
 }
 
+func (repo *Repository) RefreshToken(ctx context.Context, req commonSchema.BaseRequest[studentSchema.RefreshTokenRequest]) (res studentSchema.RefreshTokenResponse, errStr string, code int, err error) {
+	if repo.initErr != nil {
+		return studentSchema.RefreshTokenResponse{}, "01", status.UnAvailableServiceError, repo.initErr
+	}
+	if repo.db() == nil {
+		return studentSchema.RefreshTokenResponse{}, "02", status.StatusInternalServerError, errors.New("bad")
+	}
+	refreshToken, accessToken, err := repo.db().RefreshToken(ctx, req.Body)
+	if err != nil {
+		return studentSchema.RefreshTokenResponse{}, "03", status.UnAvailableServiceError, err
+	}
+	return studentSchema.RefreshTokenResponse{RefreshToken: refreshToken, AccessToken: accessToken}, "", status.StatusOK, nil
+}
+
 func (repo *Repository) db() userDataSourses.StudentDB {
 	return repo.dbDS
 }

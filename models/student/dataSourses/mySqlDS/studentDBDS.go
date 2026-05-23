@@ -250,7 +250,7 @@ func (ds *StudentDBDS) StudentEntry(ctx context.Context, req studentSchema.Login
 
 		return "", "", err
 	}
-	refresh, err := token.RefreshToken(ctx, req)
+	refresh, err := token.GenerateRefreshToken()
 	if err != nil {
 		return "", "", err
 	}
@@ -267,20 +267,73 @@ func (ds *StudentDBDS) StudentEntry(ctx context.Context, req studentSchema.Login
 
 }
 
-func (ds *StudentDBDS) RefreshToken(ctx context.Context, req studentSchema.RefreshTokenRequest) (studentSchema.RefreshTokenResponse, error) {
+func (ds *StudentDBDS) RefreshToken(ctx context.Context, req studentSchema.RefreshTokenRequest) (string, string, error) {
 	var rt studentDataModel.RefreshToken
-	if req.RefreshToken == "" {
-		return studentSchema.RefreshTokenResponse{}, errors.New("this is not empty")
-	}
-	checkToken := fmt.Sprintf("SELECT * FROM refreshs WHERE token = ? AND rekoved = false")
-	err := ds.db.QueryRowContext(ctx, checkToken, req.RefreshToken).Scan(&rt)
+	tx, err := ds.db.BeginTx(ctx, nil)
 	if err != nil {
-		return studentSchema.RefreshTokenResponse{}, err
-	} else if time.Now().In(myLocation()).After(rt.ExpiresAt) {
-		return studentSchema.RefreshTokenResponse{}, errors.New("token expired")
-	} else if rt.Token != req.RefreshToken || rt.RevokedAt == true {
-		return studentSchema.RefreshTokenResponse{}, errors.New("Refresh token is invalid")
+		return "", "", err
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			return
+		}
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+	}()
+	if req.RefreshToken == "" {
+		return "", "", errors.New("this is not empty")
+	}
+	checkToken := fmt.Sprintf("SELECT * FROM refreshs WHERE token = ? AND rekoved_at = false")
+	err = tx.QueryRowContext(ctx, checkToken, req.RefreshToken).Scan(&rt.StudentID, &rt.Token, &rt.ExpiresAt, &rt.RevokedAt)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) == true {
+			return "", "", errors.New("Refresh token is invalid")
+		}
+		return "", "", err
+
+	} else if time.Now().In(myLocation()).After(rt.ExpiresAt) {
+		return "", "", errors.New("token expired")
+	}
+
+	student, err := ds.readTaskByID(ctx, rt.StudentID)
+	if err != nil {
+		return "", "", err
+	}
+	newToken, err := token.GenerateRefreshToken()
+	if err != nil {
+		return "", "", err
+	}
+	rt.RevokedAt = true
+	updated := fmt.Sprintf("UPDATE refreshs SET rekoved_at = ? WHERE token = ?")
+	rows, err := tx.PrepareContext(ctx, updated)
+	if err != nil {
+		return "", "", err
+	}
+	defer rows.Close()
+	_, err = rows.ExecContext(ctx, rt.RevokedAt, rt.Token)
+	if err != nil {
+		return "", "", err
+	}
+
+	expiresAt := time.Now().In(myLocation()).Add(constants.RefreshTokenExpiry)
+
+	insertQuery := fmt.Sprintf("INSERT INTO refreshs (student_id, token, expires_at , rekoved_at) VALUES (?, ?, ? , ?)")
+	_, err = tx.ExecContext(ctx, insertQuery, rt.StudentID, newToken, expiresAt, false)
+	if err != nil {
+		return "", "", err
+	}
+
+	accessToken, err := token.GenerateAccessToken(student.ID, student.RoleID)
+	if err != nil {
+		return "", "", err
+	}
+	if err = tx.Commit(); err != nil {
+		return "", "", err
+	}
+	return newToken, accessToken, nil
 
 }
 

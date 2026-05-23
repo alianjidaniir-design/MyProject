@@ -1,11 +1,9 @@
 package token
 
 import (
-	"MyProject/apiSchema/studentSchema"
 	studentDataModel "MyProject/models/student/dataModel"
 	"MyProject/statics/configs"
 	"MyProject/statics/constants"
-	"context"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -41,7 +39,7 @@ func GenerateAccessToken(userID int64, roleID int64) (string, error) {
 
 }
 
-func RefreshToken(ctx context.Context, req studentSchema.LoginStudent) (string, error) {
+func GenerateRefreshToken() (string, error) {
 	exp := time.Now().In(myLocation()).Add(constants.AccessTokenExpiry)
 	var jwtSecret = []byte(configs.AccessTokenSecret)
 
