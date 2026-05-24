@@ -2,13 +2,14 @@ package authz
 
 import (
 	"MyProject/models/student/dataModel"
+	"MyProject/statics/configs"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var jwtSecretKey = []byte("your-super-secret-key") // <--- **این را با کلید واقعی خود جایگزین کنید**
+var jwtSecret = []byte(configs.AccessTokenSecret)
 
 func AuthMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
@@ -20,24 +21,30 @@ func AuthMiddleware() fiber.Handler {
 			})
 		}
 
-		tokenStr := strings.TrimPrefix(authHeader, "Bearer")
+		tokenStr := strings.Split(authHeader, " ")
+		if len(tokenStr) != 2 || tokenStr[0] != "Bearer" {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"code":    fiber.StatusUnauthorized,
+				"message": "len token header is invalid",
+			})
+		}
 
 		claim := &dataModel.AccessToken{}
 
-		token, err := jwt.ParseWithClaims(tokenStr, claim, func(token *jwt.Token) (interface{}, error) {
-			return jwtSecretKey, nil
+		token, err := jwt.ParseWithClaims(tokenStr[1], claim, func(token *jwt.Token) (interface{}, error) {
+			return jwtSecret, nil
 		})
 		if err != nil || !token.Valid {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"code":    fiber.StatusUnauthorized,
-				"message": "token is invalid",
+				"message": "token is invalid " + err.Error(),
 			})
 		}
 
-		userIDInt, ok1 := token.Claims.(jwt.MapClaims)["user_id"].(int64)
-		roleIDInt, ok2 := token.Claims.(jwt.MapClaims)["role_id"].(int64)
-		scope, ok3 := token.Claims.(jwt.MapClaims)["scope"].(string)
-		if !ok1 || !ok2 || !ok3 || scope != "access" {
+		userIDInt := token.Claims.(*dataModel.AccessToken).UserID
+		roleIDInt := token.Claims.(*dataModel.AccessToken).RoleID
+		scope := token.Claims.(*dataModel.AccessToken).Scope
+		if scope != "access" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"code":    fiber.StatusUnauthorized,
 				"message": "token is invalid",

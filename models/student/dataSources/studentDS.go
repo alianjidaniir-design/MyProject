@@ -15,5 +15,5 @@ type StudentDB interface {
 	SoftDeleteStudent(ctx context.Context, req studentSchema.SoftDeleteRequest) (studentDataModel.Student, error)
 	StudentEntry(ctx context.Context, req studentSchema.LoginStudent) (string, string, error)
 	RefreshToken(ctx context.Context, req string) (string, string, error)
-	RevokedRefreshToken(ctx context.Context, req string) error
+	RevokedRefreshToken(ctx context.Context, req studentSchema.LogoutRequest, tok string) error
 }

@@ -30,7 +30,7 @@ func FinishSpan(ctx *fiber.Ctx) {
 
 func ParseBody(ctx *fiber.Ctx, req any) (string, int, error) {
 	if err := ctx.BodyParser(req); err != nil {
-		return "01", status.StatusBadRequest, err
+		return "01", status.UnProcessableEntity, err
 	}
 	fillHeaders(ctx, req)
 

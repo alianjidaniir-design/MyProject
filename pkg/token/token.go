@@ -42,7 +42,7 @@ func GenerateAccessToken(userID int64, roleID int64) (string, error) {
 
 func GenerateRefreshToken() (string, error) {
 	exp := time.Now().In(myLocation()).Add(constants.AccessTokenExpiry)
-	var jwtSecret = []byte(configs.AccessTokenSecret)
+	var jwtSecret = []byte(configs.RefreshTokenSecret)
 
 	claim := studentDataModel.AccessToken{
 		Scope: "refresh",

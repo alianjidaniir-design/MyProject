@@ -41,5 +41,5 @@ type RefreshTokenRequest struct {
 }
 
 type LogoutRequest struct {
-	RefreshToken string `json:"refresh_token"`
+	IsLogout bool `json:"is_logout"`
 }

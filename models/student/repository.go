@@ -198,20 +198,20 @@ func (repo *Repository) RefreshToken(ctx context.Context, c *fiber.Ctx) (res stu
 	return studentSchema.RefreshTokenResponse{RefreshToken: refresh, AccessToken: accessToken}, "", status.StatusOK, nil
 }
 
-func (repo *Repository) Logout(ctx context.Context, c *fiber.Ctx) (res string, errStr string, code int, err error) {
+func (repo *Repository) Logout(ctx context.Context, req commonSchema.BaseRequest[studentSchema.LogoutRequest], c *fiber.Ctx) (res string, errStr string, code int, err error) {
 	if repo.initErr != nil {
-		return "", "", status.StatusUnauthorized, repo.initErr
+		return "", "01", status.StatusUnauthorized, repo.initErr
 	}
 	if repo.db() == nil {
-		return "", "", status.StatusInternalServerError, errors.New("bad")
+		return "", "02", status.StatusInternalServerError, errors.New("bad")
 	}
 	ref, err := repo.cookies(c)
 	if err != nil {
-		return "", "", status.UnAvailableServiceError, err
+		return "", "03", status.UnAvailableServiceError, err
 	}
-	err = repo.db().RevokedRefreshToken(ctx, ref)
+	err = repo.db().RevokedRefreshToken(ctx, req.Body, ref)
 	if err != nil {
-		return "", "", status.UnAvailableServiceError, err
+		return "", "04", status.UnAvailableServiceError, err
 	}
 	c.Cookie(&fiber.Cookie{
 		Name:     "refresh_token",
@@ -223,11 +223,11 @@ func (repo *Repository) Logout(ctx context.Context, c *fiber.Ctx) (res string, e
 	})
 	jtiStr, expTime, err := repo.blist(c)
 	if err != nil {
-		return "", "", status.UnAvailableServiceError, err
+		return "", "05", status.UnAvailableServiceError, err
 	}
 	err = repo.cache().Logout(ctx, jtiStr, expTime)
 	if err != nil {
-		return "", "", status.UnAvailableServiceError, err
+		return "", "06", status.UnAvailableServiceError, err
 	}
 	return jtiStr, "logout successfully", status.StatusOK, nil
 
@@ -242,7 +242,7 @@ func (repo *Repository) cache() userDataSourses.RedisDS {
 }
 
 func (repo *Repository) cookies(c *fiber.Ctx) (string, error) {
-	refreshToken := c.Cookies("refresh_token")
+	refreshToken := c.Cookies("refreshToken")
 	if refreshToken == "" {
 		return "", errors.New("no refresh_token")
 	}

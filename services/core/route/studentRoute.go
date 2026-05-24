@@ -2,6 +2,7 @@ package route
 
 import (
 	. "MyProject/controllers/student"
+	"MyProject/midddleware/authz"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -15,6 +16,7 @@ var studentRoute = map[string]string{
 	"studentDelete2": "/student/delete2",
 	"studentLogin":   "/student/login",
 	"studentRefresh": "/student/refresh",
+	"studentLogout":  "/student/logout",
 }
 
 func SetupUserRoute(app *fiber.App) map[string]string {
@@ -26,5 +28,6 @@ func SetupUserRoute(app *fiber.App) map[string]string {
 	app.Post(studentRoute["studentDelete2"], SoftDelete)
 	app.Post(studentRoute["studentLogin"], Login)
 	app.Post(studentRoute["studentRefresh"], Refresh)
+	app.Post(studentRoute["studentLogout"], authz.AuthMiddleware(), Logout)
 	return studentRoute
 }

@@ -11,4 +11,5 @@ const (
 	StatusInternalServerError = 500
 	UnAvailableServiceError   = 503
 	RedirectPermanently       = 301
+	UnProcessableEntity       = 422
 )

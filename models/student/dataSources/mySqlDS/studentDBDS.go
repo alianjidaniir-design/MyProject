@@ -251,7 +251,7 @@ func (ds *StudentDBDS) StudentEntry(ctx context.Context, req studentSchema.Login
 	expiresAt := time.Now().In(TimeLoc.MyLocation()).Add(constants.RefreshTokenExpiry)
 
 	insert := fmt.Sprintf("INSERT INTO refreshs (student_id , token , expires_at , rekoved_at ) VALUES (?, ?, ? , ?)")
-	if _, err = ds.db.ExecContext(ctx, insert, student.ID, tok, expiresAt, false); err != nil {
+	if _, err = ds.db.ExecContext(ctx, insert, student.ID, refresh, expiresAt, false); err != nil {
 		fmt.Println("s4")
 		return "", "", err
 	}
@@ -389,7 +389,7 @@ func (ds *StudentDBDS) checkingStudent(scode string) (data studentDataModel.Stud
 	return students, nil
 }
 
-func (ds *StudentDBDS) RevokedRefreshToken(ctx context.Context, req string) error {
+func (ds *StudentDBDS) RevokedRefreshToken(ctx context.Context, req studentSchema.LogoutRequest, tok string) error {
 	var rt studentDataModel.RefreshToken
 	tx, err := ds.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -405,13 +405,17 @@ func (ds *StudentDBDS) RevokedRefreshToken(ctx context.Context, req string) erro
 			return
 		}
 	}()
-	if req == "" {
-		return errors.New("this is not empty")
+	if req.IsLogout == false {
+		return errors.New("request is canceled")
+	}
+	if tok == "" {
+		return errors.New("token is empty")
 	}
 	checkToken := fmt.Sprintf("SELECT * FROM refreshs WHERE token = ? AND rekoved_at = false")
-	err = tx.QueryRowContext(ctx, checkToken, req).Scan(&rt.StudentID, &rt.Token, &rt.ExpiresAt, &rt.RevokedAt)
+	err = tx.QueryRowContext(ctx, checkToken, tok).Scan(&rt.StudentID, &rt.Token, &rt.ExpiresAt, &rt.RevokedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) == true {
+			fmt.Println(tok)
 			return errors.New("Refresh token is invalid")
 		}
 		return err
