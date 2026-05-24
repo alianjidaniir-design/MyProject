@@ -5,6 +5,7 @@ import (
 	"MyProject/models/tuition/dataModels"
 	tuitionDataSourses "MyProject/models/tuition/dataSources"
 	"MyProject/pkg/pagination"
+	TimeLoc "MyProject/pkg/timeLoc"
 	"context"
 	"database/sql"
 	"errors"
@@ -15,14 +16,6 @@ import (
 type TuitionDBDS struct {
 	tableName string
 	db        *sql.DB
-}
-
-func myLocation() *time.Location {
-	loc, err := time.LoadLocation("Asia/Tehran")
-	if err != nil {
-		return time.FixedZone("Asia/Tehran", 3*3600+30*60)
-	}
-	return loc
 }
 
 func NewTuitionDBDS(tableName string, db *sql.DB) (tuitionDataSourses.TuitionDS, error) {
@@ -89,7 +82,7 @@ CASE WHEN EXISTS (SELECT 1 FROM registration WHERE offering_row = ? AND status =
 
 	newID := lastID + 1
 	insertQuery := fmt.Sprintf("INSERT INTO %s (row , student_id, offering_row , fixed_tuition , course_tuition , extra_option , debit_amount  , created_At , updated_at) VALUES (?, ? , ? , ? , ? , ?  , ? , ? , ?)", ds.tableName)
-	now := time.Now().In(myLocation())
+	now := time.Now().In(TimeLoc.MyLocation())
 	var totalDebit int
 
 	switch {
@@ -157,7 +150,7 @@ func (ds *TuitionDBDS) UpdateTuition(ctx context.Context, req tuitionSchema.Upda
 		}
 	}()
 
-	now := time.Now().In(myLocation())
+	now := time.Now().In(TimeLoc.MyLocation())
 	currentTuition, err := ds.selectTuitionByID(ctx, req.Row)
 	if err != nil {
 		return dataModels.Tuition{}, err
@@ -393,18 +386,18 @@ func (ds *TuitionDBDS) selectTuitionByID(ctx context.Context, ID int64) (res dat
 		tuition.CourseTuition = 0
 	}
 	if createdAt.Valid {
-		tuition.CreatedAt = createdAt.Time.In(myLocation())
+		tuition.CreatedAt = createdAt.Time.In(TimeLoc.MyLocation())
 	} else {
 		tuition.CreatedAt = time.Time{}
 	}
 
 	if updatedAt.Valid {
-		tuition.UpdatedAt = updatedAt.Time.In(myLocation())
+		tuition.UpdatedAt = updatedAt.Time.In(TimeLoc.MyLocation())
 	} else {
 		tuition.UpdatedAt = time.Time{}
 	}
 	if deletedAt.Valid {
-		tuition.DeletedAt = deletedAt.Time.In(myLocation())
+		tuition.DeletedAt = deletedAt.Time.In(TimeLoc.MyLocation())
 	} else {
 		tuition.DeletedAt = time.Time{}
 	}

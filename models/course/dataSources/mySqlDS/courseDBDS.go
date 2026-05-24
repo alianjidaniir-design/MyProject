@@ -5,6 +5,7 @@ import (
 	courseDataModle "MyProject/models/course/dataModels"
 	courseDataSources "MyProject/models/course/dataSources"
 	"MyProject/pkg/pagination"
+	TimeLoc "MyProject/pkg/timeLoc"
 	"context"
 	"database/sql"
 	"errors"
@@ -17,14 +18,6 @@ type CourseDBDS struct {
 	db       *sql.DB
 }
 
-func myLocation() *time.Location {
-	loc, err := time.LoadLocation("Asia/Tehran")
-	if err != nil {
-		fmt.Println(err)
-	}
-	return loc
-}
-
 func NewCourseDBDS(tableName string, db *sql.DB) (courseDataSources.CourseDB, error) {
 	ff := &CourseDBDS{
 		tableSQL: tableName,
@@ -33,7 +26,7 @@ func NewCourseDBDS(tableName string, db *sql.DB) (courseDataSources.CourseDB, er
 	return ff, nil
 }
 func (ds *CourseDBDS) CreateCourse(ctx context.Context, req courseSchema.RequestCourse) (courseDataModle.Course, error) {
-	now := time.Now().In(myLocation())
+	now := time.Now().In(TimeLoc.MyLocation())
 	var check bool
 	search := `
 SELECT
@@ -63,7 +56,7 @@ CASE WHEN EXISTS (SELECT 1 FROM departments WHERE ID = ?) THEN 1 ELSE 0 END
 }
 func (ds *CourseDBDS) UpdateCourse(ctx context.Context, req courseSchema.UpdateCourseRequest) (courseDataModle.Course, error) {
 	var course courseDataModle.Course
-	now := time.Now().In(myLocation())
+	now := time.Now().In(TimeLoc.MyLocation())
 	err := ds.chackCourse(ctx, req.ID)
 	if err != nil {
 		return courseDataModle.Course{}, errors.New("there is not course")
@@ -123,13 +116,13 @@ func (ds *CourseDBDS) ListCourse(ctx context.Context, req courseSchema.CoursesLi
 			return []courseDataModle.Course{}, 0, err
 		}
 		if createdAt.Valid {
-			course.CreatedAt = createdAt.Time.In(myLocation())
+			course.CreatedAt = createdAt.Time.In(TimeLoc.MyLocation())
 		}
 		if updatedAt.Valid {
-			course.UpdatedAt = updatedAt.Time.In(myLocation())
+			course.UpdatedAt = updatedAt.Time.In(TimeLoc.MyLocation())
 		}
 		if deletedAt.Valid {
-			course.DeletedAt = deletedAt.Time.In(myLocation())
+			course.DeletedAt = deletedAt.Time.In(TimeLoc.MyLocation())
 		}
 		courses = append(courses, course)
 
@@ -174,13 +167,13 @@ func (ds *CourseDBDS) ListDepartmentsCourse(ctx context.Context, req courseSchem
 			return nil, 0, err
 		}
 		if createdAt.Valid {
-			course.CreatedAt = createdAt.Time.In(myLocation())
+			course.CreatedAt = createdAt.Time.In(TimeLoc.MyLocation())
 		}
 		if updatedAt.Valid {
-			course.UpdatedAt = updatedAt.Time.In(myLocation())
+			course.UpdatedAt = updatedAt.Time.In(TimeLoc.MyLocation())
 		}
 		if deletedAt.Valid {
-			course.DeletedAt = deletedAt.Time.In(myLocation())
+			course.DeletedAt = deletedAt.Time.In(TimeLoc.MyLocation())
 		}
 		courses = append(courses, course)
 	}
@@ -231,7 +224,7 @@ func (ds *CourseDBDS) DeleteCourse(ctx context.Context, req courseSchema.HardDel
 
 func (ds *CourseDBDS) SoftDelete(ctx context.Context, req courseSchema.SoftDeleteCourseRequest) (courseDataModle.Course, error) {
 	var course courseDataModle.Course
-	now := time.Now().In(myLocation())
+	now := time.Now().In(TimeLoc.MyLocation())
 	err := ds.chackCourse(ctx, req.ID)
 	if err != nil {
 		return courseDataModle.Course{}, errors.New("Course Not Found")

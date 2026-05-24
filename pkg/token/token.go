@@ -20,6 +20,7 @@ func myLocation() *time.Location {
 
 func GenerateAccessToken(userID int64, roleID int64) (string, error) {
 	var jwtSecret = []byte(configs.AccessTokenSecret)
+	jti := uuid.NewString()
 
 	exp := time.Now().In(myLocation()).Add(constants.AccessTokenExpiry)
 
@@ -30,7 +31,7 @@ func GenerateAccessToken(userID int64, roleID int64) (string, error) {
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(exp),
 			IssuedAt:  jwt.NewNumericDate(time.Now().In(myLocation())),
-			ID:        uuid.NewString(),
+			ID:        jti,
 		},
 	}
 

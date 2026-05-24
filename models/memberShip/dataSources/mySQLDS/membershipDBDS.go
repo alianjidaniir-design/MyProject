@@ -4,6 +4,7 @@ import (
 	"MyProject/apiSchema/membershipSchema"
 	"MyProject/models/memberShip/dataModel"
 	"MyProject/pkg/pagination"
+	TimeLoc "MyProject/pkg/timeLoc"
 	"MyProject/statics/constants"
 	"context"
 	"database/sql"
@@ -15,14 +16,6 @@ import (
 type MembershipDBDS struct {
 	tableName string
 	db        *sql.DB
-}
-
-func myLocation() *time.Location {
-	loc, err := time.LoadLocation("Asia/Tehran")
-	if err != nil {
-		return time.FixedZone("Asia/Tehran", 3*60*60+30*60)
-	}
-	return loc
 }
 
 func NewMembershipDBDS(tableName string, db *sql.DB) (*MembershipDBDS, error) {
@@ -57,7 +50,7 @@ CASE WHEN EXISTS (SELECT 1 FROM programs WHERE row = ? )THEN 1 ELSE 0 END`
 		return dataModel.Membership{}, errors.New("program does not exist")
 	}
 	var lastTime *time.Time
-	now := time.Now().In(myLocation())
+	now := time.Now().In(TimeLoc.MyLocation())
 	if req.StatusMembership == constants.Approved {
 		lastTime = &now
 	} else if req.StatusMembership == constants.Rejected || req.StatusMembership == constants.Review {
@@ -80,7 +73,7 @@ CASE WHEN EXISTS (SELECT 1 FROM programs WHERE row = ? )THEN 1 ELSE 0 END`
 
 func (ds *MembershipDBDS) DeleteMembership(ctx context.Context, req membershipSchema.GetIDMembership) (dataModel.Membership, error) {
 	err := ds.checkID(ctx, req.ID)
-	now := time.Now().In(myLocation())
+	now := time.Now().In(TimeLoc.MyLocation())
 	if err != nil {
 		return dataModel.Membership{}, err
 	}
@@ -107,7 +100,7 @@ func (ds *MembershipDBDS) UpdateMembership(ctx context.Context, req membershipSc
 	if err != nil {
 		return dataModel.Membership{}, err
 	}
-	now := time.Now().In(myLocation())
+	now := time.Now().In(TimeLoc.MyLocation())
 	var createMembershipAt *time.Time
 	var status string
 	detailMembership, err := ds.selectMembership(ctx, req.ID)
@@ -166,7 +159,7 @@ func (ds *MembershipDBDS) DeActiveMembership(ctx context.Context, req membership
 	} else if membership.FinishMemberShipAt != nil {
 		return membership, errors.New("membership finished before")
 	}
-	now := time.Now().In(myLocation())
+	now := time.Now().In(TimeLoc.MyLocation())
 	update := fmt.Sprintf("UPDATE `%s` SET updated_at = ? , finish_membership_at = ? WHERE ID = ?", ds.tableName)
 	row, err := ds.db.PrepareContext(ctx, update)
 	if err != nil {

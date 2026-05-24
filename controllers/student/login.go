@@ -20,7 +20,7 @@ func Login(ctx *fiber.Ctx) error {
 	if err != nil {
 		return mainController.Error(ctx, controllerbaseErrCode.UserErrCode, "01", errStr, code, err)
 	}
-	res, errStr, code, err := repositories.StudentRepo.Entry(spanCtx, req)
+	res, errStr, code, err := repositories.StudentRepo.Entry(spanCtx, req, ctx)
 	if err != nil {
 		return mainController.Error(ctx, controllerbaseErrCode.UserErrCode, "02", errStr, code, err)
 	}

@@ -3,6 +3,7 @@ package mysqlDS
 import (
 	"MyProject/apiSchema/teacherSchema"
 	"MyProject/pkg/pagination"
+	TimeLoc "MyProject/pkg/timeLoc"
 	"fmt"
 
 	"MyProject/models/teachers/dataModels"
@@ -16,14 +17,6 @@ import (
 type TeacherDBDS struct {
 	tableName string
 	db        *sql.DB
-}
-
-func myLocation() *time.Location {
-	location, err := time.LoadLocation("Asia/Tehran")
-	if err != nil {
-		return time.FixedZone("Asia/Tehran", 3*3600+30*60)
-	}
-	return location
 }
 
 func NewTeacherDBDS(tableName string, db *sql.DB) (dataSources.TeacherDS, error) {
@@ -41,7 +34,7 @@ func NewTeacherDBDS(tableName string, db *sql.DB) (dataSources.TeacherDS, error)
 
 func (ds *TeacherDBDS) CreateTeacher(ctx context.Context, req teacherSchema.InformationSchema) (res dataModels.Teacher, err error) {
 	var teacher dataModels.Teacher
-	now := time.Now().In(myLocation())
+	now := time.Now().In(TimeLoc.MyLocation())
 	checkQueryEmail := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE email=? ", ds.tableName)
 	var emailCount, phoneCount int
 	err = ds.db.QueryRowContext(ctx, checkQueryEmail, req.Email).Scan(&emailCount)
@@ -139,7 +132,7 @@ func (ds *TeacherDBDS) SoftDeleteTeachers(ctx context.Context, req teacherSchema
 	if err != nil {
 		return dataModels.Teacher{}, err
 	}
-	now := time.Now().In(myLocation())
+	now := time.Now().In(TimeLoc.MyLocation())
 	updateQuery := fmt.Sprintf("UPDATE %s SET deleted_at=? , updated_at = ? WHERE id=?", ds.tableName)
 	_, err = ds.db.ExecContext(ctx, updateQuery, now, now, req.ID)
 	if err != nil {
@@ -149,7 +142,7 @@ func (ds *TeacherDBDS) SoftDeleteTeachers(ctx context.Context, req teacherSchema
 	return ds.readQuery(ctx, req.ID)
 }
 func (ds *TeacherDBDS) UpdateTeachers(ctx context.Context, req teacherSchema.SelectTeacherSchema) (res dataModels.Teacher, err error) {
-	now := time.Now().In(myLocation())
+	now := time.Now().In(TimeLoc.MyLocation())
 	err = ds.chackTeacher(ctx, req.ID)
 	if err != nil {
 		return dataModels.Teacher{}, err

@@ -3,8 +3,9 @@ package mySqlDS
 import (
 	"MyProject/apiSchema/studentSchema"
 	studentDataModel "MyProject/models/student/dataModel"
-	studentDataSourses "MyProject/models/student/dataSourses"
+	studentDataSources "MyProject/models/student/dataSources"
 	"MyProject/pkg/pagination"
+	TimeLoc "MyProject/pkg/timeLoc"
 	"MyProject/pkg/token"
 	Val "MyProject/pkg/val"
 	"MyProject/statics/constants"
@@ -23,15 +24,7 @@ type StudentDBDS struct {
 	db        *sql.DB
 }
 
-func myLocation() *time.Location {
-	loc, err := time.LoadLocation("Asia/ُTehran")
-	if err != nil {
-		return time.FixedZone("Asia/Tehran", 3*3600+30*60)
-	}
-	return loc
-}
-
-func NewStudentDBDS(db *sql.DB, tableName string) (studentDataSourses.StudentDB, error) {
+func NewStudentDBDS(db *sql.DB, tableName string) (studentDataSources.StudentDB, error) {
 
 	userDBInstance := &StudentDBDS{
 		tableName: tableName,
@@ -46,7 +39,7 @@ func (ds *StudentDBDS) SoftDeleteStudent(ctx context.Context, req studentSchema.
 	if err != nil {
 		return studentDataModel.Student{}, err
 	}
-	now := time.Now().In(myLocation())
+	now := time.Now().In(TimeLoc.MyLocation())
 	err = ds.chackStudent(ctx, req.ID)
 	if err != nil {
 		return studentDataModel.Student{}, errors.New(err.Error())
@@ -103,7 +96,7 @@ CASE WHEN EXISTS (SELECT 1 FROM roles WHERE ID = ?) THEN 1 ELSE 0 END`
 	if !check {
 		return studentDataModel.Student{}, errors.New("Invalid role")
 	}
-	now := time.Now().In(myLocation())
+	now := time.Now().In(TimeLoc.MyLocation())
 	insertQuery := fmt.Sprintf("INSERT INTO %s (name , family, phone ,national_code, major,student_code,user_name ,password, role_id , created_at , updated_at , deleted_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)", ds.tableSQL)
 	insertResult, err := ds.db.ExecContext(ctx, insertQuery, req.Name, req.Family, req.Phone, req.NationalCode, req.Major, req.StudentCode, code, hash, req.RoleID, now, now, nil)
 	if err != nil {
@@ -187,13 +180,13 @@ func (ds *StudentDBDS) RenameStudent(ctx context.Context, req studentSchema.Upda
 	if rows == 0 {
 		return studentDataModel.Student{}, fmt.Errorf("rows == 0")
 	}
-	updatedAt = updatedAt.In(myLocation())
+	updatedAt = updatedAt.In(TimeLoc.MyLocation())
 	return students, nil
 
 }
 
 func (ds *StudentDBDS) UpdateStudent(ctx context.Context, req studentSchema.UpdateUserRequest) (studentDataModel.Student, error) {
-	now := time.Now().In(myLocation())
+	now := time.Now().In(TimeLoc.MyLocation())
 	err := ds.chackStudent(ctx, req.ID)
 	if err != nil {
 		return studentDataModel.Student{}, errors.New("Found Not student")
@@ -255,7 +248,7 @@ func (ds *StudentDBDS) StudentEntry(ctx context.Context, req studentSchema.Login
 		return "", "", err
 	}
 
-	expiresAt := time.Now().In(myLocation()).Add(constants.RefreshTokenExpiry)
+	expiresAt := time.Now().In(TimeLoc.MyLocation()).Add(constants.RefreshTokenExpiry)
 
 	insert := fmt.Sprintf("INSERT INTO refreshs (student_id , token , expires_at , rekoved_at ) VALUES (?, ?, ? , ?)")
 	if _, err = ds.db.ExecContext(ctx, insert, student.ID, tok, expiresAt, false); err != nil {
@@ -267,7 +260,7 @@ func (ds *StudentDBDS) StudentEntry(ctx context.Context, req studentSchema.Login
 
 }
 
-func (ds *StudentDBDS) RefreshToken(ctx context.Context, req studentSchema.RefreshTokenRequest) (string, string, error) {
+func (ds *StudentDBDS) RefreshToken(ctx context.Context, req string) (string, string, error) {
 	var rt studentDataModel.RefreshToken
 	tx, err := ds.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -283,18 +276,18 @@ func (ds *StudentDBDS) RefreshToken(ctx context.Context, req studentSchema.Refre
 			return
 		}
 	}()
-	if req.RefreshToken == "" {
+	if req == "" {
 		return "", "", errors.New("this is not empty")
 	}
 	checkToken := fmt.Sprintf("SELECT * FROM refreshs WHERE token = ? AND rekoved_at = false")
-	err = tx.QueryRowContext(ctx, checkToken, req.RefreshToken).Scan(&rt.StudentID, &rt.Token, &rt.ExpiresAt, &rt.RevokedAt)
+	err = tx.QueryRowContext(ctx, checkToken, req).Scan(&rt.StudentID, &rt.Token, &rt.ExpiresAt, &rt.RevokedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) == true {
 			return "", "", errors.New("Refresh token is invalid")
 		}
 		return "", "", err
 
-	} else if time.Now().In(myLocation()).After(rt.ExpiresAt) {
+	} else if time.Now().In(TimeLoc.MyLocation()).After(rt.ExpiresAt) {
 		return "", "", errors.New("token expired")
 	}
 
@@ -318,7 +311,7 @@ func (ds *StudentDBDS) RefreshToken(ctx context.Context, req studentSchema.Refre
 		return "", "", err
 	}
 
-	expiresAt := time.Now().In(myLocation()).Add(constants.RefreshTokenExpiry)
+	expiresAt := time.Now().In(TimeLoc.MyLocation()).Add(constants.RefreshTokenExpiry)
 
 	insertQuery := fmt.Sprintf("INSERT INTO refreshs (student_id, token, expires_at , rekoved_at) VALUES (?, ?, ? , ?)")
 	_, err = tx.ExecContext(ctx, insertQuery, rt.StudentID, newToken, expiresAt, false)
@@ -394,4 +387,51 @@ func (ds *StudentDBDS) checkingStudent(scode string) (data studentDataModel.Stud
 		return studentDataModel.Student{}, err
 	}
 	return students, nil
+}
+
+func (ds *StudentDBDS) RevokedRefreshToken(ctx context.Context, req string) error {
+	var rt studentDataModel.RefreshToken
+	tx, err := ds.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			return
+		}
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+	}()
+	if req == "" {
+		return errors.New("this is not empty")
+	}
+	checkToken := fmt.Sprintf("SELECT * FROM refreshs WHERE token = ? AND rekoved_at = false")
+	err = tx.QueryRowContext(ctx, checkToken, req).Scan(&rt.StudentID, &rt.Token, &rt.ExpiresAt, &rt.RevokedAt)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) == true {
+			return errors.New("Refresh token is invalid")
+		}
+		return err
+
+	} else if time.Now().In(TimeLoc.MyLocation()).After(rt.ExpiresAt) {
+		return errors.New("token expired")
+	}
+
+	rt.RevokedAt = true
+	updated := fmt.Sprintf("UPDATE refreshs SET rekoved_at = ? WHERE token = ?")
+	rows, err := tx.PrepareContext(ctx, updated)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	_, err = rows.ExecContext(ctx, rt.RevokedAt, rt.Token)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
 }

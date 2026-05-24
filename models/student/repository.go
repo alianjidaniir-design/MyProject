@@ -3,18 +3,24 @@ package student
 import (
 	"MyProject/apiSchema/commonSchema"
 	"MyProject/apiSchema/studentSchema"
-	userDataSourses "MyProject/models/student/dataSourses"
-	"MyProject/models/student/dataSourses/mySqlDS"
+	userDataSourses "MyProject/models/student/dataSources"
+	"MyProject/models/student/dataSources/mySqlDS"
+	"MyProject/pkg/timeLoc"
+	"MyProject/statics/constants"
 	"MyProject/statics/constants/status"
 	"context"
 	"errors"
 	"fmt"
 	"log"
 	"sync"
+	"time"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 type Repository struct {
 	dbDS    userDataSourses.StudentDB
+	redisDS userDataSourses.RedisDS
 	initErr error
 }
 
@@ -140,7 +146,7 @@ func (repo *Repository) Delete(ctx context.Context, req commonSchema.BaseRequest
 	return studentSchema.DeleteResponse{User: deletedUser}, "", status.StatusOK, nil
 }
 
-func (repo *Repository) Entry(ctx context.Context, req commonSchema.BaseRequest[studentSchema.LoginStudent]) (res studentSchema.StudentEntry, errStr string, code int, err error) {
+func (repo *Repository) Entry(ctx context.Context, req commonSchema.BaseRequest[studentSchema.LoginStudent], c *fiber.Ctx) (res studentSchema.StudentEntry, errStr string, code int, err error) {
 	if repo.initErr != nil {
 		return studentSchema.StudentEntry{}, "01", status.UnAvailableServiceError, repo.initErr
 	}
@@ -151,24 +157,104 @@ func (repo *Repository) Entry(ctx context.Context, req commonSchema.BaseRequest[
 	if err != nil {
 		return studentSchema.StudentEntry{}, "03", status.UnAvailableServiceError, err
 	}
+	c.Cookie(&fiber.Cookie{
+		Name:     "refreshToken",
+		Value:    refresh,
+		HTTPOnly: true,
+		Secure:   false,
+		SameSite: "Strict",
+		Path:     "/",
+		Expires:  time.Now().Add(constants.RefreshTokenExpiry),
+	})
+
 	return studentSchema.StudentEntry{Massage: "login successfully", AccessToken: access, RefreshToken: refresh}, "", status.StatusOK, nil
 
 }
 
-func (repo *Repository) RefreshToken(ctx context.Context, req commonSchema.BaseRequest[studentSchema.RefreshTokenRequest]) (res studentSchema.RefreshTokenResponse, errStr string, code int, err error) {
+func (repo *Repository) RefreshToken(ctx context.Context, c *fiber.Ctx) (res studentSchema.RefreshTokenResponse, errStr string, code int, err error) {
 	if repo.initErr != nil {
 		return studentSchema.RefreshTokenResponse{}, "01", status.UnAvailableServiceError, repo.initErr
 	}
 	if repo.db() == nil {
 		return studentSchema.RefreshTokenResponse{}, "02", status.StatusInternalServerError, errors.New("bad")
 	}
-	refreshToken, accessToken, err := repo.db().RefreshToken(ctx, req.Body)
+	refresh, err := repo.cookies(c)
 	if err != nil {
 		return studentSchema.RefreshTokenResponse{}, "03", status.UnAvailableServiceError, err
 	}
-	return studentSchema.RefreshTokenResponse{RefreshToken: refreshToken, AccessToken: accessToken}, "", status.StatusOK, nil
+	refresh, accessToken, err := repo.db().RefreshToken(ctx, refresh)
+	if err != nil {
+		return studentSchema.RefreshTokenResponse{}, "04", status.UnAvailableServiceError, err
+	}
+	c.Cookie(&fiber.Cookie{
+		Name:     "refreshToken",
+		Value:    refresh,
+		HTTPOnly: true,
+		Secure:   false,
+		SameSite: "Strict",
+		Path:     "/",
+		Expires:  time.Now().Add(constants.RefreshTokenExpiry),
+	})
+	return studentSchema.RefreshTokenResponse{RefreshToken: refresh, AccessToken: accessToken}, "", status.StatusOK, nil
+}
+
+func (repo *Repository) Logout(ctx context.Context, c *fiber.Ctx) (res string, errStr string, code int, err error) {
+	if repo.initErr != nil {
+		return "", "", status.StatusUnauthorized, repo.initErr
+	}
+	if repo.db() == nil {
+		return "", "", status.StatusInternalServerError, errors.New("bad")
+	}
+	ref, err := repo.cookies(c)
+	if err != nil {
+		return "", "", status.UnAvailableServiceError, err
+	}
+	err = repo.db().RevokedRefreshToken(ctx, ref)
+	if err != nil {
+		return "", "", status.UnAvailableServiceError, err
+	}
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Expires:  time.Now().In(timeLoc.MyLocation()).Add(-time.Hour),
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "Strict",
+	})
+	jtiStr, expTime, err := repo.blist(c)
+	if err != nil {
+		return "", "", status.UnAvailableServiceError, err
+	}
+	err = repo.cache().Logout(ctx, jtiStr, expTime)
+	if err != nil {
+		return "", "", status.UnAvailableServiceError, err
+	}
+	return jtiStr, "logout successfully", status.StatusOK, nil
+
 }
 
 func (repo *Repository) db() userDataSourses.StudentDB {
 	return repo.dbDS
+}
+
+func (repo *Repository) cache() userDataSourses.RedisDS {
+	return repo.redisDS
+}
+
+func (repo *Repository) cookies(c *fiber.Ctx) (string, error) {
+	refreshToken := c.Cookies("refresh_token")
+	if refreshToken == "" {
+		return "", errors.New("no refresh_token")
+	}
+	return refreshToken, nil
+}
+
+func (repo *Repository) blist(c *fiber.Ctx) (string, time.Time, error) {
+	jti, ok := c.Locals("jti").(string)
+	exp, ok2 := c.Locals("exp").(time.Time)
+	if !ok || !ok2 {
+		return "", time.Time{}, errors.New("no jti")
+	}
+	return jti, exp, nil
+
 }

@@ -44,8 +44,27 @@ func AuthMiddleware() fiber.Handler {
 			})
 		}
 
+		claims := token.Claims.(*dataModel.AccessToken)
+
+		jti := claims.ID
+		if jti == "" {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"code":    fiber.StatusUnauthorized,
+				"message": "jti is empty",
+			})
+		}
+		if claim.ExpiresAt == nil {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"code":    fiber.StatusUnauthorized,
+				"message": "token expire invalid",
+			})
+		}
+
 		c.Locals("userID", userIDInt)
 		c.Locals("roleID", roleIDInt)
+
+		c.Locals("jti", jti)
+		c.Locals("exp", claims.ExpiresAt.Time)
 
 		return c.Next()
 	}

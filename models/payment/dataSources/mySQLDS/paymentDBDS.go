@@ -4,6 +4,7 @@ import (
 	"MyProject/apiSchema/paymentSchema"
 	"MyProject/models/payment/dataModels"
 	"MyProject/models/payment/dataSources"
+	TimeLoc "MyProject/pkg/timeLoc"
 	"MyProject/statics/constants"
 	"context"
 	"database/sql"
@@ -17,14 +18,6 @@ import (
 type PaymentDBDS struct {
 	tableName string
 	db        *sql.DB
-}
-
-func myLocation() *time.Location {
-	loc, err := time.LoadLocation("Asia/Tehran")
-	if err != nil {
-		return time.FixedZone("Asia/Tehran", 3*3600+30*60)
-	}
-	return loc
 }
 
 func NewPaymentDBDS(tableName string, db *sql.DB) (dataSources.PaymentDS, error) {
@@ -98,7 +91,7 @@ CASE WHEN EXISTS (SELECT 1 FROM tuition WHERE row = ? AND deleted_at IS NULL) TH
 		credited = 0
 	}
 
-	now := time.Now().In(myLocation())
+	now := time.Now().In(TimeLoc.MyLocation())
 	insertQuery := fmt.Sprintf("INSERT INTO %s (tuition_row , payment_type , number_installment , installment_total , installment_amount , cash_amount , bank , Operation , created_at , updated_at) VALUES (?, ?, ?, ? , ? , ? ,? , ? , ? , ?)", ds.tableName)
 
 	row, err := tx.ExecContext(ctx, insertQuery, req.TuitionRow, req.PaymentType, payment.NumberInstallment.Val, payment.InstallmentTotal.Val, payment.InstallmentAmount.Val, payment.CashAmount.Val, req.Bank, req.Operation, now, now)
@@ -145,7 +138,7 @@ func (ds *PaymentDBDS) DeletePayment(ctx context.Context, req paymentSchema.Dele
 	if pay.Operation == true {
 		return dataModels.Payment{}, errors.New("You cannot delete this successful payment ")
 	}
-	now := time.Now().In(myLocation())
+	now := time.Now().In(TimeLoc.MyLocation())
 	deleteQuery := fmt.Sprintf("UPDATE %s SET deleted_at = ? , updated_at = ? WHERE ID = ?", ds.tableName)
 	row, err := ds.db.PrepareContext(ctx, deleteQuery)
 	if err != nil {

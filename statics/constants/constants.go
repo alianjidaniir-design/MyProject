@@ -8,6 +8,11 @@ const (
 )
 
 const (
+	AccessToken  = "access_token"
+	RefreshToken = "refresh_token"
+)
+
+const (
 	StatusEnrolled     = "enrolled"
 	StatusCanceled     = "canceled"
 	StatusReserveation = "reserveation"

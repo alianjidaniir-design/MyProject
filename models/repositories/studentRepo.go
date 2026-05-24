@@ -5,6 +5,8 @@ import (
 	"MyProject/apiSchema/studentSchema"
 	"MyProject/models/student"
 	"context"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 type StudentRepository interface {
@@ -27,9 +29,11 @@ type StudentRepository interface {
 
 	SoftDelete(ctx context.Context, req commonSchema.BaseRequest[studentSchema.SoftDeleteRequest]) (res studentSchema.SoftDeleteResponse, errStr string, code int, err error)
 
-	Entry(ctx context.Context, req commonSchema.BaseRequest[studentSchema.LoginStudent]) (res studentSchema.StudentEntry, errStr string, code int, err error)
+	Entry(ctx context.Context, req commonSchema.BaseRequest[studentSchema.LoginStudent], c *fiber.Ctx) (res studentSchema.StudentEntry, errStr string, code int, err error)
 
-	RefreshToken(ctx context.Context, req commonSchema.BaseRequest[studentSchema.RefreshTokenRequest]) (res studentSchema.RefreshTokenResponse, errStr string, code int, err error)
+	RefreshToken(ctx context.Context, c *fiber.Ctx) (res studentSchema.RefreshTokenResponse, errStr string, code int, err error)
+
+	Logout(ctx context.Context, c *fiber.Ctx) (res string, errStr string, code int, err error)
 }
 
 var StudentRepo StudentRepository = student.GetRepoIns()

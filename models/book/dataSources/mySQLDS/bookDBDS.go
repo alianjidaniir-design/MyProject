@@ -5,6 +5,7 @@ import (
 	"MyProject/models/book/dataModel"
 	"MyProject/models/book/dataSources"
 	"MyProject/pkg/pagination"
+	TimeLoc "MyProject/pkg/timeLoc"
 	Val "MyProject/pkg/val"
 	"context"
 	"database/sql"
@@ -25,14 +26,6 @@ func NewBookDBDS(tableName string, db *sql.DB) (dataSources.BookDS, error) {
 		db:        db,
 	}
 	return ff, nil
-}
-
-func myLocation() *time.Location {
-	loc, err := time.LoadLocation("Asia/Tehran")
-	if err != nil {
-		fmt.Println(err)
-	}
-	return loc
 }
 
 func (ds *BookDBDS) RegisterBook(ctx context.Context, req bookSchema.RegistrationBook) (res dataModel.Book, err error) {
@@ -72,7 +65,7 @@ SELECT
 		return dataModel.Book{}, errors.New("there is not translator")
 	}
 	insertQuery := fmt.Sprintf("INSERT INTO %s (name , author_id , translator_id , publisher_id , publication_year , pages , edition , subject_id , created_at , updated_at ) VALUES (? , ? ,? , ? , ? , ? , ? , ? , ? , ?)", ds.tableName)
-	now := time.Now().In(myLocation())
+	now := time.Now().In(TimeLoc.MyLocation())
 	result, err := ds.db.ExecContext(ctx, insertQuery, req.Name, req.AuthorID, req.TranslatorID, req.PublisherID, req.PublicationYear, req.Pages, req.Editions, req.SubjectID, now, now)
 	if err != nil {
 		return dataModel.Book{}, err
@@ -94,7 +87,7 @@ func (ds *BookDBDS) DeleteBook(ctx context.Context, req bookSchema.GetCodeBook) 
 	if err != nil {
 		return dataModel.Book{}, err
 	}
-	now := time.Now().In(myLocation())
+	now := time.Now().In(TimeLoc.MyLocation())
 	deleted := fmt.Sprintf("UPDATE %s SET deleted_at = ? , updated_at = ? WHERE ID = ?", ds.tableName)
 	rows, err := ds.db.PrepareContext(ctx, deleted)
 	if err != nil {

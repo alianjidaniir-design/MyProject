@@ -1,8 +1,6 @@
 package student
 
 import (
-	"MyProject/apiSchema/commonSchema"
-	"MyProject/apiSchema/studentSchema"
 	"MyProject/controllers/mainController"
 	"MyProject/models/repositories"
 	"MyProject/statics/constants/controllerbaseErrCode"
@@ -15,12 +13,11 @@ func Refresh(ctx *fiber.Ctx) error {
 
 	defer mainController.FinishSpan(ctx)
 
-	req := commonSchema.BaseRequest[studentSchema.RefreshTokenRequest]{}
-	errStr, code, err := mainController.ParseBody(ctx, &req)
+	errStr, code, err := mainController.ParseBody(ctx, &ctx)
 	if err != nil {
 		return mainController.Error(ctx, controllerbaseErrCode.UserErrCode, "01", errStr, code, err)
 	}
-	res, errStr, code, err := repositories.StudentRepo.RefreshToken(spanCtx, req)
+	res, errStr, code, err := repositories.StudentRepo.RefreshToken(spanCtx, ctx)
 	if err != nil {
 		return mainController.Error(ctx, controllerbaseErrCode.UserErrCode, "02", errStr, code, err)
 	}

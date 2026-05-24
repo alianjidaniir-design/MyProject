@@ -5,6 +5,7 @@ import (
 	"MyProject/models/Registrations/dataModels"
 	"MyProject/models/Registrations/dataSources"
 	"MyProject/pkg/pagination"
+	TimeLoc "MyProject/pkg/timeLoc"
 	"MyProject/statics/constants"
 	"context"
 	"database/sql"
@@ -18,14 +19,6 @@ type RegistrationDBDS struct {
 	db        *sql.DB
 }
 
-func myLocation() *time.Location {
-	location, err := time.LoadLocation("Asia/Tehran")
-	if err != nil {
-		return time.FixedZone("Asia/Tehran", 3*3600+30*60)
-	}
-	return location
-}
-
 func NewEnrollmentDBDS(tableName string, db *sql.DB) (dataSources.RegistrationDS, error) {
 	ff := &RegistrationDBDS{
 		tableName: tableName,
@@ -37,7 +30,7 @@ func NewEnrollmentDBDS(tableName string, db *sql.DB) (dataSources.RegistrationDS
 }
 
 func (ds *RegistrationDBDS) RegistrationsStudent(ctx context.Context, req registrationSchema.RegisterStudentRequest) (res dataModels.Registration, err error) {
-	now := time.Now().In(myLocation())
+	now := time.Now().In(TimeLoc.MyLocation())
 	var add int64
 	tx, err := ds.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -135,7 +128,7 @@ func (ds *RegistrationDBDS) UpdateRegisterStudent(ctx context.Context, req regis
 	if err != nil {
 		return dataModels.Registration{}, err
 	}
-	now := time.Now().In(myLocation())
+	now := time.Now().In(TimeLoc.MyLocation())
 	updateQuery := fmt.Sprintf("UPDATE %s SET updated_at = ? WHERE ID = ? ", ds.tableName)
 	result, err := ds.db.PrepareContext(ctx, updateQuery)
 	if err != nil {
@@ -154,7 +147,7 @@ func (ds *RegistrationDBDS) DeleteRegisterStudent(ctx context.Context, req regis
 	if err != nil {
 		return dataModels.Registration{}, err
 	}
-	now := time.Now().In(myLocation())
+	now := time.Now().In(TimeLoc.MyLocation())
 	deleteQuery := fmt.Sprintf("UPDATE %s SET deleted_at = ? WHERE ID = ? AND deleted_at IS NULL ", ds.tableName)
 	result, err := ds.db.PrepareContext(ctx, deleteQuery)
 	if err != nil {
@@ -218,7 +211,7 @@ func (ds *RegistrationDBDS) ListAllRegisterStudent(ctx context.Context, req regi
 }
 
 func (ds *RegistrationDBDS) CancelRegisterStudent(ctx context.Context, req registrationSchema.GetRegisteredStudentsRequest) (res dataModels.Registration, err error) {
-	now := time.Now().In(myLocation())
+	now := time.Now().In(TimeLoc.MyLocation())
 	tx, err := ds.db.BeginTx(ctx, nil)
 	defer func() {
 		if r := recover(); r != nil {
@@ -381,21 +374,21 @@ func (ds *RegistrationDBDS) readQuery(ctx context.Context, ID int64) (dataModels
 	}
 
 	if canceledAt.Valid {
-		register.CanceledAt = canceledAt.Time.In(myLocation())
+		register.CanceledAt = canceledAt.Time.In(TimeLoc.MyLocation())
 	}
 	if createdAt.Valid {
-		register.CreatedAt = createdAt.Time.In(myLocation())
+		register.CreatedAt = createdAt.Time.In(TimeLoc.MyLocation())
 	} else {
 		register.CreatedAt = time.Time{}
 	}
 
 	if updatedAt.Valid {
-		register.UpdatedAt = updatedAt.Time.In(myLocation())
+		register.UpdatedAt = updatedAt.Time.In(TimeLoc.MyLocation())
 	} else {
 		register.UpdatedAt = time.Time{}
 	}
 	if deletedAt.Valid {
-		register.DeletedAt = deletedAt.Time.In(myLocation())
+		register.DeletedAt = deletedAt.Time.In(TimeLoc.MyLocation())
 	} else {
 		register.DeletedAt = time.Time{}
 	}
