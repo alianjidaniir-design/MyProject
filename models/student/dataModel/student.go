@@ -2,8 +2,6 @@ package dataModel
 
 import (
 	"time"
-
-	"github.com/golang-jwt/jwt/v5"
 )
 
 type Student struct {
@@ -20,18 +18,4 @@ type Student struct {
 	CreatedAt    time.Time  `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt    time.Time  `gorm:"column:updated_at" json:"updated_at"`
 	DeletedAt    *time.Time `gorm:"column:deleted_at" json:"deleted_at"`
-}
-
-type AccessToken struct {
-	UserID int64  `json:"user_id"`
-	RoleID int64  `json:"role_id"`
-	Scope  string `json:"scope"`
-	jwt.RegisteredClaims
-}
-
-type RefreshToken struct {
-	StudentID int64     `gorm:"column:student_id"`
-	Token     string    `gorm:"column:token,unique;not null"`
-	ExpiresAt time.Time `gorm:"column:expires_at"`
-	RevokedAt bool      `gorm:"default:false"`
 }

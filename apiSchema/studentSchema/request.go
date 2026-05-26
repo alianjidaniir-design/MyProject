@@ -36,10 +36,6 @@ type SoftDeleteRequest struct {
 	ID int64 `json:"ID"`
 }
 
-type RefreshTokenRequest struct {
-	RefreshToken string `json:"refresh_token"`
-}
-
 type LogoutRequest struct {
 	IsLogout bool `json:"is_logout"`
 }

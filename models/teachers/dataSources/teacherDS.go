@@ -13,4 +13,5 @@ type TeacherDS interface {
 	HardDeleteTeachers(ctx context.Context, req teacherSchema.SelectTeacherSchema) (res string, err error)
 	SoftDeleteTeachers(ctx context.Context, req teacherSchema.SelectTeacherSchema) (res dataModels.Teacher, err error)
 	UpdateTeachers(ctx context.Context, req teacherSchema.SelectTeacherSchema) (res dataModels.Teacher, err error)
+	LoginTeachers(ctx context.Context, req teacherSchema.LoginTeacherRequest) (res string, err error)
 }

@@ -1,8 +1,9 @@
 package authz
 
 import (
-	"MyProject/models/student/dataModel"
+	"MyProject/models/token/dataModel"
 	"MyProject/statics/configs"
+	"errors"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -32,18 +33,45 @@ func AuthMiddleware() fiber.Handler {
 		claim := &dataModel.AccessToken{}
 
 		token, err := jwt.ParseWithClaims(tokenStr[1], claim, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, errors.New("unexpected signing method")
+
+			}
 			return jwtSecret, nil
 		})
-		if err != nil || !token.Valid {
+		if err != nil {
+			// اگر خطا مربوط به اتمام زمان توکن باشد
+			if errors.Is(err, jwt.ErrTokenExpired) {
+				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+					"code":    fiber.StatusUnauthorized,
+					"message": "token has expired",
+				})
+			}
+			// برای خطاهای دیگر توکن
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"code":    fiber.StatusUnauthorized,
-				"message": "token is invalid " + err.Error(),
+				"message": "invalid token: " + err.Error(),
 			})
 		}
 
-		userIDInt := token.Claims.(*dataModel.AccessToken).UserID
-		roleIDInt := token.Claims.(*dataModel.AccessToken).RoleID
-		scope := token.Claims.(*dataModel.AccessToken).Scope
+		// اگر توکن معتبر نباشد (این شرط بعد از بررسی err چک می‌شود)
+		if !token.Valid {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"code":    fiber.StatusUnauthorized,
+				"message": "token validation failed",
+			})
+		}
+
+		if claim == nil {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"code":    fiber.StatusUnauthorized,
+				"message": "failed to get claims",
+			})
+		}
+
+		userIDInt := claim.UserID
+		roleIDInt := claim.RoleID
+		scope := claim.Scope
 		if scope != "access" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"code":    fiber.StatusUnauthorized,
@@ -51,9 +79,7 @@ func AuthMiddleware() fiber.Handler {
 			})
 		}
 
-		claims := token.Claims.(*dataModel.AccessToken)
-
-		jti := claims.ID
+		jti := claim.ID
 		if jti == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"code":    fiber.StatusUnauthorized,
@@ -62,16 +88,17 @@ func AuthMiddleware() fiber.Handler {
 		}
 		if claim.ExpiresAt == nil {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+
 				"code":    fiber.StatusUnauthorized,
 				"message": "token expire invalid",
 			})
 		}
 
-		c.Locals("userID", userIDInt)
-		c.Locals("roleID", roleIDInt)
+		c.Locals("user_id", userIDInt)
+		c.Locals("role_id", roleIDInt)
 
 		c.Locals("jti", jti)
-		c.Locals("exp", claims.ExpiresAt.Time)
+		c.Locals("exp", claim.ExpiresAt.Time)
 
 		return c.Next()
 	}
@@ -79,7 +106,7 @@ func AuthMiddleware() fiber.Handler {
 
 // ای پی ای محافظت شده
 func GetUserID(c *fiber.Ctx) int64 {
-	if k, ok := c.Locals("userID").(int64); ok {
+	if k, ok := c.Locals("user_id").(int64); ok {
 		return k
 	}
 	return 0
@@ -87,7 +114,7 @@ func GetUserID(c *fiber.Ctx) int64 {
 
 // ای پی ای رول پرمیشن
 func GetRoleID(c *fiber.Ctx) int64 {
-	if k, ok := c.Locals("roleID").(int64); ok {
+	if k, ok := c.Locals("role_id").(int64); ok {
 		return k
 	}
 	return 0

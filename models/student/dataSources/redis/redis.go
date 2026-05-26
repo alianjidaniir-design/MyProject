@@ -4,6 +4,7 @@ import (
 	"MyProject/models/student/dataSources"
 	"MyProject/pkg/timeLoc"
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -15,9 +16,10 @@ type redisDS struct {
 	client *redis.Client
 }
 
-func NewRedisDS(addr string) (dataSources.RedisDS, error) {
+func NewRedisDS(addr string, password string) (dataSources.RedisDS, error) {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:         addr,
+		Password:     password,
 		DialTimeout:  5 * time.Second,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
@@ -34,7 +36,7 @@ func NewRedisDS(addr string) (dataSources.RedisDS, error) {
 func (red *redisDS) Logout(ctx context.Context, req string, tim time.Time) error {
 	if req == "" || time.Now().In(timeLoc.MyLocation()).After(tim) {
 		log.Println("jti یا exp نامعتبر است، توکن access به لیست سیاه اضافه نشد.")
-		return nil
+		return errors.New("1234")
 	}
 	blKey := "bl:access:" + req // کلید blacklist برای access token
 	ttl := time.Until(tim)
@@ -46,7 +48,7 @@ func (red *redisDS) Logout(ctx context.Context, req string, tim time.Time) error
 		}
 		log.Printf("Access token '%s' blacklisted until %s\n", req, time.Now().In(timeLoc.MyLocation()))
 	} else {
-		log.Printf("Access Token already expired\n")
+		log.Printf("Access token already expired\n")
 	}
 	return nil
 }

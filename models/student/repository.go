@@ -5,7 +5,9 @@ import (
 	"MyProject/apiSchema/studentSchema"
 	userDataSourses "MyProject/models/student/dataSources"
 	"MyProject/models/student/dataSources/mySqlDS"
+	"MyProject/models/student/dataSources/redis"
 	"MyProject/pkg/timeLoc"
+	"MyProject/statics/configs"
 	"MyProject/statics/constants"
 	"MyProject/statics/constants/status"
 	"context"
@@ -50,11 +52,18 @@ func initRepoIns() {
 		log.Printf("Error opening DB connection: %v", err)
 		return
 	}
+	red, err := redis.NewRedisDS(configs.Addr, configs.Password)
+	if err != nil {
+		log.Printf("Warning: Failed to connect to Redis: %v", err)
+		log.Printf("Warning: Continuing without Redis - blacklist feature will be disabled")
+		repoIns = &Repository{dbDS: userDNInstance, redisDS: nil, initErr: nil}
+	} else {
 
-	repoIns = &Repository{dbDS: userDNInstance}
+		repoIns = &Repository{dbDS: userDNInstance, redisDS: red, initErr: nil}
+	}
 	log.Println("repository init success")
-}
 
+}
 func GetRepoIns() *Repository {
 	once.Do(initRepoIns)
 	return repoIns
@@ -178,11 +187,11 @@ func (repo *Repository) RefreshToken(ctx context.Context, c *fiber.Ctx) (res stu
 	if repo.db() == nil {
 		return studentSchema.RefreshTokenResponse{}, "02", status.StatusInternalServerError, errors.New("bad")
 	}
-	refresh, err := repo.cookies(c)
+	oldRefresh, err := repo.cookies(c)
 	if err != nil {
 		return studentSchema.RefreshTokenResponse{}, "03", status.UnAvailableServiceError, err
 	}
-	refresh, accessToken, err := repo.db().RefreshToken(ctx, refresh)
+	refresh, accessToken, err := repo.db().RefreshToken(ctx, oldRefresh)
 	if err != nil {
 		return studentSchema.RefreshTokenResponse{}, "04", status.UnAvailableServiceError, err
 	}
@@ -193,7 +202,7 @@ func (repo *Repository) RefreshToken(ctx context.Context, c *fiber.Ctx) (res stu
 		Secure:   false,
 		SameSite: "Strict",
 		Path:     "/",
-		Expires:  time.Now().Add(constants.RefreshTokenExpiry),
+		Expires:  time.Now().In(timeLoc.MyLocation()).Add(constants.RefreshTokenExpiry),
 	})
 	return studentSchema.RefreshTokenResponse{RefreshToken: refresh, AccessToken: accessToken}, "", status.StatusOK, nil
 }
@@ -214,14 +223,14 @@ func (repo *Repository) Logout(ctx context.Context, req commonSchema.BaseRequest
 		return "", "04", status.UnAvailableServiceError, err
 	}
 	c.Cookie(&fiber.Cookie{
-		Name:     "refresh_token",
+		Name:     "refreshToken",
 		Value:    "",
 		Expires:  time.Now().In(timeLoc.MyLocation()).Add(-time.Hour),
 		HTTPOnly: true,
-		Secure:   true,
+		Secure:   false,
 		SameSite: "Strict",
 	})
-	jtiStr, expTime, err := repo.blist(c)
+	jtiStr, expTime, err := repo.bList(c)
 	if err != nil {
 		return "", "05", status.UnAvailableServiceError, err
 	}
@@ -229,7 +238,7 @@ func (repo *Repository) Logout(ctx context.Context, req commonSchema.BaseRequest
 	if err != nil {
 		return "", "06", status.UnAvailableServiceError, err
 	}
-	return jtiStr, "logout successfully", status.StatusOK, nil
+	return "logout successfully", "", status.StatusOK, nil
 
 }
 
@@ -238,6 +247,10 @@ func (repo *Repository) db() userDataSourses.StudentDB {
 }
 
 func (repo *Repository) cache() userDataSourses.RedisDS {
+	if repo.redisDS == nil {
+		log.Println("WARNING: redisDS is nil in cache()")
+		// می‌توانید یک mock یا nil返回 دهید
+	}
 	return repo.redisDS
 }
 
@@ -249,7 +262,8 @@ func (repo *Repository) cookies(c *fiber.Ctx) (string, error) {
 	return refreshToken, nil
 }
 
-func (repo *Repository) blist(c *fiber.Ctx) (string, time.Time, error) {
+func (repo *Repository) bList(c *fiber.Ctx) (string, time.Time, error) {
+	fmt.Println(c.Locals("jti"), c.Locals("exp"))
 	jti, ok := c.Locals("jti").(string)
 	exp, ok2 := c.Locals("exp").(time.Time)
 	if !ok || !ok2 {

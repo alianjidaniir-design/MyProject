@@ -4,6 +4,8 @@ import (
 	"MyProject/apiSchema/studentSchema"
 	studentDataModel "MyProject/models/student/dataModel"
 	studentDataSources "MyProject/models/student/dataSources"
+	tokenDataModel "MyProject/models/token/dataModel"
+	"MyProject/pkg/hash"
 	"MyProject/pkg/pagination"
 	TimeLoc "MyProject/pkg/timeLoc"
 	"MyProject/pkg/token"
@@ -14,8 +16,6 @@ import (
 	"errors"
 	"fmt"
 	"time"
-
-	"golang.org/x/crypto/bcrypt"
 )
 
 type StudentDBDS struct {
@@ -82,7 +82,7 @@ func (ds *StudentDBDS) CreateStudent(ctx context.Context, req studentSchema.Sign
 	if err != nil {
 		return studentDataModel.Student{}, err
 	}
-	hash, err := hashingPassword(req.Password)
+	ha, err := hash.HashingPassword(req.Password)
 	code := &req.StudentCode
 	req.UserName = code
 	var check bool
@@ -98,7 +98,7 @@ CASE WHEN EXISTS (SELECT 1 FROM roles WHERE ID = ?) THEN 1 ELSE 0 END`
 	}
 	now := time.Now().In(TimeLoc.MyLocation())
 	insertQuery := fmt.Sprintf("INSERT INTO %s (name , family, phone ,national_code, major,student_code,user_name ,password, role_id , created_at , updated_at , deleted_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)", ds.tableSQL)
-	insertResult, err := ds.db.ExecContext(ctx, insertQuery, req.Name, req.Family, req.Phone, req.NationalCode, req.Major, req.StudentCode, code, hash, req.RoleID, now, now, nil)
+	insertResult, err := ds.db.ExecContext(ctx, insertQuery, req.Name, req.Family, req.Phone, req.NationalCode, req.Major, req.StudentCode, code, ha, req.RoleID, now, now, nil)
 	if err != nil {
 		return studentDataModel.Student{}, err
 	}
@@ -231,7 +231,7 @@ func (ds *StudentDBDS) StudentEntry(ctx context.Context, req studentSchema.Login
 
 		return "", "", err
 	}
-	err = checkPassword(req.Password, student.Password)
+	err = hash.CheckPassword(req.Password, student.Password)
 	if err != nil {
 		fmt.Println(req.Password, student.Password, 12)
 
@@ -243,15 +243,15 @@ func (ds *StudentDBDS) StudentEntry(ctx context.Context, req studentSchema.Login
 
 		return "", "", err
 	}
-	refresh, err := token.GenerateRefreshToken()
+	refresh, err := token.GenerateRefreshToken(student.RoleID, student.ID)
 	if err != nil {
 		return "", "", err
 	}
 
 	expiresAt := time.Now().In(TimeLoc.MyLocation()).Add(constants.RefreshTokenExpiry)
 
-	insert := fmt.Sprintf("INSERT INTO refreshs (student_id , token , expires_at , rekoved_at ) VALUES (?, ?, ? , ?)")
-	if _, err = ds.db.ExecContext(ctx, insert, student.ID, refresh, expiresAt, false); err != nil {
+	insert := fmt.Sprintf("INSERT INTO refreshs (user_id,role_id , token , expires_at , rekoved_at ) VALUES (?, ?, ? ,?, ?)")
+	if _, err = ds.db.ExecContext(ctx, insert, student.ID, student.RoleID, refresh, expiresAt, false); err != nil {
 		fmt.Println("s4")
 		return "", "", err
 	}
@@ -261,7 +261,7 @@ func (ds *StudentDBDS) StudentEntry(ctx context.Context, req studentSchema.Login
 }
 
 func (ds *StudentDBDS) RefreshToken(ctx context.Context, req string) (string, string, error) {
-	var rt studentDataModel.RefreshToken
+	var rt tokenDataModel.RefreshToken
 	tx, err := ds.db.BeginTx(ctx, nil)
 	if err != nil {
 		return "", "", err
@@ -277,10 +277,10 @@ func (ds *StudentDBDS) RefreshToken(ctx context.Context, req string) (string, st
 		}
 	}()
 	if req == "" {
-		return "", "", errors.New("this is not empty")
+		return "", "", errors.New("refresh token cannot be empty")
 	}
-	checkToken := fmt.Sprintf("SELECT * FROM refreshs WHERE token = ? AND rekoved_at = false")
-	err = tx.QueryRowContext(ctx, checkToken, req).Scan(&rt.StudentID, &rt.Token, &rt.ExpiresAt, &rt.RevokedAt)
+	checkToken := "SELECT user_id, role_id, token, expires_at, rekoved_at FROM refreshs WHERE token = ? AND rekoved_at = false"
+	err = tx.QueryRowContext(ctx, checkToken, req).Scan(&rt.UserID, &rt.RoleID, &rt.Token, &rt.ExpiresAt, &rt.RevokedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) == true {
 			return "", "", errors.New("Refresh token is invalid")
@@ -291,30 +291,29 @@ func (ds *StudentDBDS) RefreshToken(ctx context.Context, req string) (string, st
 		return "", "", errors.New("token expired")
 	}
 
-	student, err := ds.readTaskByID(ctx, rt.StudentID)
+	student, err := ds.readTaskByID(ctx, rt.UserID)
 	if err != nil {
 		return "", "", err
 	}
-	newToken, err := token.GenerateRefreshToken()
+	newToken, err := token.GenerateRefreshToken(student.RoleID, student.ID)
 	if err != nil {
 		return "", "", err
 	}
-	rt.RevokedAt = true
-	updated := fmt.Sprintf("UPDATE refreshs SET rekoved_at = ? WHERE token = ?")
+	updated := fmt.Sprintf("UPDATE refreshs SET rekoved_at = true WHERE token = ?")
 	rows, err := tx.PrepareContext(ctx, updated)
 	if err != nil {
 		return "", "", err
 	}
 	defer rows.Close()
-	_, err = rows.ExecContext(ctx, rt.RevokedAt, rt.Token)
+	_, err = rows.ExecContext(ctx, rt.Token)
 	if err != nil {
 		return "", "", err
 	}
 
 	expiresAt := time.Now().In(TimeLoc.MyLocation()).Add(constants.RefreshTokenExpiry)
 
-	insertQuery := fmt.Sprintf("INSERT INTO refreshs (student_id, token, expires_at , rekoved_at) VALUES (?, ?, ? , ?)")
-	_, err = tx.ExecContext(ctx, insertQuery, rt.StudentID, newToken, expiresAt, false)
+	insertQuery := fmt.Sprintf("INSERT INTO refreshs (user_id , role_id , token , expires_at , rekoved_at) VALUES (?, ?, ? , ? , ?)")
+	_, err = tx.ExecContext(ctx, insertQuery, rt.UserID, rt.RoleID, newToken, expiresAt, false)
 	if err != nil {
 		return "", "", err
 	}
@@ -359,30 +358,11 @@ CASE WHEN EXISTS (SELECT 1 FROM student WHERE ID = ?) THEN 1 ELSE 0 END
 	return nil
 }
 
-func hashingPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword(
-		[]byte(password),
-		bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
-	}
-	return string(bytes), nil
-}
-
-func checkPassword(password, hash string) error {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	if err != nil {
-		return errors.New("invalid password")
-	}
-	return nil
-
-}
-
-func (ds *StudentDBDS) checkingStudent(scode string) (data studentDataModel.Student, err error) {
+func (ds *StudentDBDS) checkingStudent(s string) (data studentDataModel.Student, err error) {
 
 	var students studentDataModel.Student
 	selectQuery := fmt.Sprintf("SELECT ID , student_code , password , role_id FROM student WHERE student_code = ?")
-	err = ds.db.QueryRow(selectQuery, scode).Scan(&students.ID, &students.StudentCode, &students.Password, &students.RoleID)
+	err = ds.db.QueryRow(selectQuery, s).Scan(&students.ID, &students.StudentCode, &students.Password, &students.RoleID)
 	if err != nil {
 		return studentDataModel.Student{}, err
 	}
@@ -390,7 +370,7 @@ func (ds *StudentDBDS) checkingStudent(scode string) (data studentDataModel.Stud
 }
 
 func (ds *StudentDBDS) RevokedRefreshToken(ctx context.Context, req studentSchema.LogoutRequest, tok string) error {
-	var rt studentDataModel.RefreshToken
+	var rt tokenDataModel.RefreshToken
 	tx, err := ds.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -412,7 +392,7 @@ func (ds *StudentDBDS) RevokedRefreshToken(ctx context.Context, req studentSchem
 		return errors.New("token is empty")
 	}
 	checkToken := fmt.Sprintf("SELECT * FROM refreshs WHERE token = ? AND rekoved_at = false")
-	err = tx.QueryRowContext(ctx, checkToken, tok).Scan(&rt.StudentID, &rt.Token, &rt.ExpiresAt, &rt.RevokedAt)
+	err = tx.QueryRowContext(ctx, checkToken, tok).Scan(&rt.UserID, &rt.RoleID, &rt.Token, &rt.ExpiresAt, &rt.RevokedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) == true {
 			fmt.Println(tok)
@@ -431,11 +411,20 @@ func (ds *StudentDBDS) RevokedRefreshToken(ctx context.Context, req studentSchem
 		return err
 	}
 	defer rows.Close()
-	_, err = rows.ExecContext(ctx, rt.RevokedAt, rt.Token)
+	row, err := rows.ExecContext(ctx, rt.RevokedAt, rt.Token)
 	if err != nil {
 		return err
 	}
-
+	rowsAffected, err := row.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return errors.New("no rows updated, token may not exist")
+	}
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
 	return nil
-
 }

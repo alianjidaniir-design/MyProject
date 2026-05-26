@@ -13,7 +13,7 @@ func Refresh(ctx *fiber.Ctx) error {
 
 	defer mainController.FinishSpan(ctx)
 
-	errStr, code, err := mainController.ParseBody(ctx, &ctx)
+	errStr, code, err := mainController.ParseBody(ctx, nil)
 	if err != nil {
 		return mainController.Error(ctx, controllerbaseErrCode.UserErrCode, "01", errStr, code, err)
 	}
