@@ -4,7 +4,6 @@ import (
 	"MyProject/models/token/dataModel"
 	"MyProject/statics/configs"
 	"errors"
-	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
@@ -14,7 +13,7 @@ var jwtSecret = []byte(configs.AccessTokenSecret)
 
 func AuthMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		authHeader := c.Get("Authorization")
+		authHeader := c.Cookies("accessToken")
 		if authHeader == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"code":    fiber.StatusUnauthorized,
@@ -22,17 +21,9 @@ func AuthMiddleware() fiber.Handler {
 			})
 		}
 
-		tokenStr := strings.Split(authHeader, " ")
-		if len(tokenStr) != 2 || tokenStr[0] != "Bearer" {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"code":    fiber.StatusUnauthorized,
-				"message": "len token header is invalid",
-			})
-		}
-
 		claim := &dataModel.AccessToken{}
 
-		token, err := jwt.ParseWithClaims(tokenStr[1], claim, func(token *jwt.Token) (interface{}, error) {
+		token, err := jwt.ParseWithClaims(authHeader, claim, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, errors.New("unexpected signing method")
 

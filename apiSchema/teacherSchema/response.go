@@ -29,6 +29,5 @@ type UpdateTeacherSchema struct {
 }
 
 type EntryStudentSchema struct {
-	Massage     string `json:"massage"`
-	AccessToken string `json:"access_token"`
+	Massage string `json:"massage"`
 }

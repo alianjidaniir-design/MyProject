@@ -287,8 +287,14 @@ func (ds *StudentDBDS) RefreshToken(ctx context.Context, req string) (string, st
 		}
 		return "", "", err
 
-	} else if time.Now().In(TimeLoc.MyLocation()).After(rt.ExpiresAt) {
-		return "", "", errors.New("token expired")
+	}
+	after := time.Now().In(TimeLoc.MyLocation()).After(rt.ExpiresAt)
+	if after {
+		deleted := "DELETE FROM refreshs"
+		_, err = ds.db.ExecContext(ctx, deleted)
+		if err != nil {
+			return "", "", err
+		}
 	}
 
 	student, err := ds.readTaskByID(ctx, rt.UserID)

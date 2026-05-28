@@ -6,7 +6,7 @@ type Teacher struct {
 	ID             int64      `json:"id"`
 	Name           string     `json:"name"`
 	LastName       string     `json:"last_name"`
-	RoleName       string     `json:"role_name"`
+	RoleID         int64      `json:"role_id"`
 	NationalCode   string     `json:"national_code"`
 	Email          string     `json:"email"`
 	Phone          string     `json:"phone"`

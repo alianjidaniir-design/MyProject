@@ -3,6 +3,7 @@ package route
 import (
 	. "MyProject/controllers/student"
 	"MyProject/midddleware/authz"
+	"MyProject/statics/constants/permissions"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -20,9 +21,10 @@ var studentRoute = map[string]string{
 }
 
 func SetupUserRoute(app *fiber.App) map[string]string {
+	api := app.Group("/api", authz.AuthMiddleware())
 	app.Post(studentRoute["studentCreate"], Create)
 	app.Post(studentRoute["studentList"], List)
-	app.Post(studentRoute["studentGet"], Get)
+	api.Post(studentRoute["studentGet"], authz.RequirePermission(permissions.ViewDetailStudent), Get)
 	app.Post(studentRoute["studentUpdate"], Update)
 	app.Post(studentRoute["studentDelete"], Delete)
 	app.Post(studentRoute["studentDelete2"], SoftDelete)

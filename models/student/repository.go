@@ -6,6 +6,7 @@ import (
 	userDataSourses "MyProject/models/student/dataSources"
 	"MyProject/models/student/dataSources/mySqlDS"
 	"MyProject/models/student/dataSources/redis"
+	"MyProject/models/token/dataSource"
 	"MyProject/pkg/timeLoc"
 	"MyProject/statics/configs"
 	"MyProject/statics/constants"
@@ -187,7 +188,7 @@ func (repo *Repository) RefreshToken(ctx context.Context, c *fiber.Ctx) (res stu
 	if repo.db() == nil {
 		return studentSchema.RefreshTokenResponse{}, "02", status.StatusInternalServerError, errors.New("bad")
 	}
-	oldRefresh, err := repo.cookies(c)
+	oldRefresh, err := dataSource.Cookies(c)
 	if err != nil {
 		return studentSchema.RefreshTokenResponse{}, "03", status.UnAvailableServiceError, err
 	}
@@ -214,7 +215,7 @@ func (repo *Repository) Logout(ctx context.Context, req commonSchema.BaseRequest
 	if repo.db() == nil {
 		return "", "02", status.StatusInternalServerError, errors.New("bad")
 	}
-	ref, err := repo.cookies(c)
+	ref, err := dataSource.Cookies(c)
 	if err != nil {
 		return "", "03", status.UnAvailableServiceError, err
 	}
@@ -230,7 +231,7 @@ func (repo *Repository) Logout(ctx context.Context, req commonSchema.BaseRequest
 		Secure:   false,
 		SameSite: "Strict",
 	})
-	jtiStr, expTime, err := repo.bList(c)
+	jtiStr, expTime, err := dataSource.BList(c)
 	if err != nil {
 		return "", "05", status.UnAvailableServiceError, err
 	}
@@ -252,23 +253,4 @@ func (repo *Repository) cache() userDataSourses.RedisDS {
 		// می‌توانید یک mock یا nil返回 دهید
 	}
 	return repo.redisDS
-}
-
-func (repo *Repository) cookies(c *fiber.Ctx) (string, error) {
-	refreshToken := c.Cookies("refreshToken")
-	if refreshToken == "" {
-		return "", errors.New("no refresh_token")
-	}
-	return refreshToken, nil
-}
-
-func (repo *Repository) bList(c *fiber.Ctx) (string, time.Time, error) {
-	fmt.Println(c.Locals("jti"), c.Locals("exp"))
-	jti, ok := c.Locals("jti").(string)
-	exp, ok2 := c.Locals("exp").(time.Time)
-	if !ok || !ok2 {
-		return "", time.Time{}, errors.New("no jti")
-	}
-	return jti, exp, nil
-
 }

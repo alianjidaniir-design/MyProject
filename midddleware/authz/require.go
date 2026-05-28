@@ -2,7 +2,6 @@ package authz
 
 import (
 	"MyProject/models/rolePermission/dataSources/mySQLDS"
-	"errors"
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
@@ -42,10 +41,10 @@ func RequirePermission(permissionName string) fiber.Handler {
 			})
 		}
 
-		joinQuery := fmt.Sprintf("SELECT COUNT(*) FROM rolepermissions JOIN permissions ON permissions.id = role_permissions.permission_id WHERE role_id = ? AND permission.name = ?")
+		joinQuery := fmt.Sprintf("SELECT COUNT(*) FROM rolepermissions JOIN permissions ON permissions.id = rolepermissions.permission_id WHERE role_id = ? AND permissions.name = ?")
 		err = DB.QueryRow(joinQuery, roleID, permissionName).Scan(&count)
 		if err != nil {
-			return errors.New("123,d,sd")
+			return err
 		}
 		if count == 0 {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
