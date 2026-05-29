@@ -72,7 +72,7 @@ func (ds *StudentDBDS) DeleteStudent(ctx context.Context, req studentSchema.Dele
 func (ds *StudentDBDS) GetStudent(ctx context.Context, req studentSchema.GetRequest) (studentDataModel.Student, error) {
 	err := ds.chackStudent(ctx, req.ID)
 	if err != nil {
-		return studentDataModel.Student{}, errors.New("Found Not student")
+		return studentDataModel.Student{}, err
 	}
 	return ds.readTaskByID(ctx, req.ID)
 }

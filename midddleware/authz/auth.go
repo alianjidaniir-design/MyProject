@@ -17,7 +17,7 @@ func AuthMiddleware() fiber.Handler {
 		if authHeader == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"code":    fiber.StatusUnauthorized,
-				"message": "token header is missing",
+				"message": "token is missing or expired",
 			})
 		}
 

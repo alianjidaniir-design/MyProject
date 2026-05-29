@@ -115,15 +115,15 @@ func (repo *Repository) Update(ctx context.Context, req commonSchema.BaseRequest
 
 func (repo *Repository) Get(ctx context.Context, req commonSchema.BaseRequest[studentSchema.GetRequest]) (res studentSchema.GetResponse, errStr string, code int, err error) {
 	if repo.initErr != nil {
-		return studentSchema.GetResponse{}, "10", status.UnAvailableServiceError, repo.initErr
+		return studentSchema.GetResponse{}, "01", status.UnAvailableServiceError, repo.initErr
 	}
 	if repo.db() == nil {
-		return studentSchema.GetResponse{}, "11", status.StatusInternalServerError, errors.New("bad")
+		return studentSchema.GetResponse{}, "02", status.StatusInternalServerError, errors.New("bad")
 	}
 
 	getIng, err := repo.db().GetStudent(ctx, req.Body)
 	if err != nil {
-		return studentSchema.GetResponse{}, "04", status.UnAvailableServiceError, err
+		return studentSchema.GetResponse{}, "03", status.UnAvailableServiceError, err
 	}
 	return studentSchema.GetResponse{User: getIng}, "", status.StatusOK, nil
 }

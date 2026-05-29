@@ -1,6 +1,7 @@
 package controllerbaseErrCode
 
 const (
+	AdminErrCode          = "2000"
 	UserErrCode           = "2001"
 	CourseErrCode         = "2002"
 	TeacherErrCode        = "2004"
