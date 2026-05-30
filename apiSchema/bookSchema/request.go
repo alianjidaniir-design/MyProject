@@ -16,12 +16,10 @@ type GetCodeBook struct {
 }
 
 type PaginationBook struct {
-	Page            int    `json:"page" validate:"required"`
-	PageSize        int    `json:"page_size" validate:"required"`
-	AuthorID        *int64 `json:"author_id" validate:"omitempty"`
-	TranslatorID    *int64 `json:"translator_id" validate:"omitempty"`
-	PublisherID     *int64 `json:"publisher_id" validate:"omitempty"`
-	SubjectID       *int64 `json:"subject_id" validate:"omitempty"`
-	PublicationYear int    `json:"publication_year" validate:"omitempty,min=1000,max=9999"`
-	Editions        int    `json:"editions" validate:"required"`
+	Page         int    `json:"page" validate:"required"`
+	PageSize     int    `json:"page_size" validate:"required"`
+	AuthorID     *int64 `json:"author_id" validate:"omitempty"`
+	TranslatorID *int64 `json:"translator_id" validate:"omitempty"`
+	PublisherID  *int64 `json:"publisher_id" validate:"omitempty"`
+	SubjectID    *int64 `json:"subject_id" validate:"omitempty"`
 }

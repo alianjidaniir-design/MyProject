@@ -22,14 +22,14 @@ var studentRoute = map[string]string{
 
 func SetupUserRoute(app *fiber.App) map[string]string {
 	api := app.Group("/api", authz.AuthMiddleware())
-	api.Post(studentRoute["studentCreate"], authz.RequirePermission(permissions.CreateUser), Create)
-	api.Post(studentRoute["studentList"], List)
+	api.Post(studentRoute["studentCreate"], authz.RequirePermission(permissions.CreateStudent), Create)
+	api.Post(studentRoute["studentList"], authz.RequirePermission(permissions.ListStudent), List)
 	api.Post(studentRoute["studentGet"], authz.RequirePermission(permissions.ViewDetailStudent), Get)
-	api.Post(studentRoute["studentUpdate"], Update)
-	api.Post(studentRoute["studentDelete"], Delete)
-	api.Post(studentRoute["studentDelete2"], SoftDelete)
+	api.Post(studentRoute["studentUpdate"], authz.RequirePermission(permissions.UpdateStudent), Update)
+	api.Post(studentRoute["studentDelete"], authz.RequirePermission(permissions.DeleteStudent), Delete)
+	api.Post(studentRoute["studentDelete2"], authz.RequirePermission(permissions.DeleteStudent), SoftDelete)
 	app.Post(studentRoute["studentLogin"], Login)
 	app.Post(studentRoute["studentRefresh"], Refresh)
-	api.Post(studentRoute["studentLogout"], authz.AuthMiddleware(), Logout)
+	api.Post(studentRoute["studentLogout"], Logout)
 	return studentRoute
 }

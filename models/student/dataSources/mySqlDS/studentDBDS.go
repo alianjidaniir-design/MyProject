@@ -97,7 +97,7 @@ CASE WHEN EXISTS (SELECT 1 FROM roles WHERE ID = ?) THEN 1 ELSE 0 END`
 		return studentDataModel.Student{}, errors.New("Invalid role")
 	}
 	now := time.Now().In(TimeLoc.MyLocation())
-	insertQuery := fmt.Sprintf("INSERT INTO %s (name , family, phone ,national_code, major,student_code,user_name ,password, role_id , created_at , updated_at , deleted_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)", ds.tableSQL)
+	insertQuery := fmt.Sprintf("INSERT INTO %s (name , family, phone ,national_code, major,student_code,user_name ,password, role_id , created_at , updated_at , deleted_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", ds.tableSQL)
 	insertResult, err := ds.db.ExecContext(ctx, insertQuery, req.Name, req.Family, req.Phone, req.NationalCode, req.Major, req.StudentCode, code, ha, req.RoleID, now, now, nil)
 	if err != nil {
 		return studentDataModel.Student{}, err
@@ -218,34 +218,31 @@ func (ds *StudentDBDS) UpdateStudent(ctx context.Context, req studentSchema.Upda
 
 }
 
-func (ds *StudentDBDS) StudentEntry(ctx context.Context, req studentSchema.LoginStudent) (string, string, error) {
+func (ds *StudentDBDS) StudentEntry(ctx context.Context, req studentSchema.LoginStudent) (string, string, string, error) {
 	err := Val.CheckValidation(req)
 	if err != nil {
-		fmt.Println("s1")
-		return "", "", err
+		return "", "", "", err
 	}
 	student, err := ds.checkingStudent(req.UserName)
 	if err != nil {
 
-		fmt.Println("s2")
-
-		return "", "", err
+		return "", "", "", err
 	}
 	err = hash.CheckPassword(req.Password, student.Password)
 	if err != nil {
 		fmt.Println(req.Password, student.Password, 12)
 
-		return "", "", err
+		return "", "", "", err
 	}
 	tok, err := token.GenerateAccessToken(student.ID, student.RoleID)
 	if err != nil {
 		fmt.Println("s4")
 
-		return "", "", err
+		return "", "", "", err
 	}
 	refresh, err := token.GenerateRefreshToken(student.RoleID, student.ID)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
 	expiresAt := time.Now().In(TimeLoc.MyLocation()).Add(constants.RefreshTokenExpiry)
@@ -253,10 +250,10 @@ func (ds *StudentDBDS) StudentEntry(ctx context.Context, req studentSchema.Login
 	insert := fmt.Sprintf("INSERT INTO refreshs (user_id,role_id , token , expires_at , rekoved_at ) VALUES (?, ?, ? ,?, ?)")
 	if _, err = ds.db.ExecContext(ctx, insert, student.ID, student.RoleID, refresh, expiresAt, false); err != nil {
 		fmt.Println("s4")
-		return "", "", err
+		return "", "", "", err
 	}
-
-	return tok, refresh, nil
+	massage := fmt.Sprintf("Welcome %s", student.Name)
+	return tok, refresh, massage, nil
 
 }
 
@@ -338,9 +335,9 @@ func (ds *StudentDBDS) RefreshToken(ctx context.Context, req string) (string, st
 func (ds *StudentDBDS) readTaskByID(ctx context.Context, userID int64) (studentDataModel.Student, error) {
 	var students studentDataModel.Student
 
-	readQuery := fmt.Sprintf("SELECT id , name , family,phone,national_code,major,student_code,user_name , password , created_at , updated_at , deleted_at FROM %s WHERE id = ?", ds.tableSQL)
+	readQuery := fmt.Sprintf("SELECT id , name , family,phone,national_code,major,student_code,user_name , password,role_id , created_at , updated_at , deleted_at FROM %s WHERE id = ?", ds.tableSQL)
 
-	if err := ds.db.QueryRowContext(ctx, readQuery, userID).Scan(&students.ID, &students.Name, &students.Family, &students.Phone, &students.NationalCode, &students.Major, &students.StudentCode, &students.UserName, &students.Password, &students.CreatedAt, &students.UpdatedAt, &students.DeletedAt); err != nil {
+	if err := ds.db.QueryRowContext(ctx, readQuery, userID).Scan(&students.ID, &students.Name, &students.Family, &students.Phone, &students.NationalCode, &students.Major, &students.StudentCode, &students.UserName, &students.Password, &students.RoleID, &students.CreatedAt, &students.UpdatedAt, &students.DeletedAt); err != nil {
 		return studentDataModel.Student{}, err
 	}
 
@@ -367,8 +364,8 @@ CASE WHEN EXISTS (SELECT 1 FROM student WHERE ID = ?) THEN 1 ELSE 0 END
 func (ds *StudentDBDS) checkingStudent(s string) (data studentDataModel.Student, err error) {
 
 	var students studentDataModel.Student
-	selectQuery := fmt.Sprintf("SELECT ID , student_code , password , role_id FROM student WHERE student_code = ?")
-	err = ds.db.QueryRow(selectQuery, s).Scan(&students.ID, &students.StudentCode, &students.Password, &students.RoleID)
+	selectQuery := fmt.Sprintf("SELECT ID , name , student_code , password , role_id FROM student WHERE student_code = ?")
+	err = ds.db.QueryRow(selectQuery, s).Scan(&students.ID, &students.Name, &students.StudentCode, &students.Password, &students.RoleID)
 	if err != nil {
 		return studentDataModel.Student{}, err
 	}

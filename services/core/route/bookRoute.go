@@ -2,6 +2,8 @@ package route
 
 import (
 	. "MyProject/controllers/book"
+	"MyProject/midddleware/authz"
+	"MyProject/statics/constants/permissions"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -14,9 +16,10 @@ var bookRoute = map[string]string{
 }
 
 func SetupBookRoute(app *fiber.App) map[string]string {
-	app.Post(bookRoute["bookCreate"], Create)
-	app.Post(bookRoute["bookDelete"], Delete)
-	app.Post(bookRoute["bookDetail"], Get)
-	app.Post(bookRoute["bookList"], List)
+	api := app.Group("/api", authz.AuthMiddleware())
+	api.Post(bookRoute["bookCreate"], Create)
+	api.Post(bookRoute["bookDelete"], Delete)
+	api.Post(bookRoute["bookDetail"], Get)
+	api.Post(bookRoute["bookList"], authz.RequirePermission(permissions.ListBooks), List)
 	return bookRoute
 }

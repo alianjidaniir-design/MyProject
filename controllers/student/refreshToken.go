@@ -17,9 +17,9 @@ func Refresh(ctx *fiber.Ctx) error {
 	if err != nil {
 		return mainController.Error(ctx, controllerbaseErrCode.UserErrCode, "01", errStr, code, err)
 	}
-	res, errStr, code, err := repositories.StudentRepo.RefreshToken(spanCtx, ctx)
+	errStr, code, err = repositories.StudentRepo.RefreshToken(spanCtx, ctx)
 	if err != nil {
 		return mainController.Error(ctx, controllerbaseErrCode.UserErrCode, "02", errStr, code, err)
 	}
-	return mainController.Response(ctx, res)
+	return mainController.Response(ctx, nil)
 }

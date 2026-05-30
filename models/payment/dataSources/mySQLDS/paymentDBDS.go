@@ -217,7 +217,7 @@ func (ds *PaymentDBDS) ListPayment(ctx context.Context, req paymentSchema.ListPa
 func (ds *PaymentDBDS) filterQuery(req paymentSchema.Filter) (string, []interface{}, error) {
 	query := fmt.Sprintf("SELECT * FROM %s WHERE ", ds.tableName)
 	var args []interface{}
-	condition := []string{}
+	var condition []string
 
 	if req.PaymentType == "cash" || req.PaymentType == "installment" {
 		condition = append(condition, "payment_type = ?")

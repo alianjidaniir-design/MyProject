@@ -2,6 +2,8 @@ package route
 
 import (
 	. "MyProject/controllers/registration"
+	"MyProject/midddleware/authz"
+	"MyProject/statics/constants/permissions"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -18,13 +20,14 @@ var registerRoute = map[string]string{
 }
 
 func SetupRegistrationRoute(app *fiber.App) map[string]string {
-	app.Post(registerRoute["registrationCreate"], Create)
-	app.Post(registerRoute["registrationGet"], Get)
-	app.Post(registerRoute["registrationUpdate"], Update)
-	app.Post(registerRoute["registrationDelete"], Delete)
-	app.Post(registerRoute["registrationList"], List)
-	app.Post(registerRoute["registrationCancel"], Cancel)
-	app.Post(registerRoute["registrationListStudent"], ListStudent)
-	app.Post(registerRoute["registrationListOffering"], ListOffering)
+	api := app.Group("/api", authz.AuthMiddleware())
+	api.Post(registerRoute["registrationCreate"], authz.RequirePermission(permissions.CreateRegister), Create)
+	api.Post(registerRoute["registrationGet"], authz.RequirePermission(permissions.ViewRegister), Get)
+	api.Post(registerRoute["registrationUpdate"], authz.RequirePermission(permissions.UpdateRegister), Update)
+	api.Post(registerRoute["registrationDelete"], authz.RequirePermission(permissions.DeleteRegister), Delete)
+	api.Post(registerRoute["registrationList"], authz.RequirePermission(permissions.ListRegisters), List)
+	api.Post(registerRoute["registrationCancel"], authz.RequirePermission(permissions.CancelRegister), Cancel)
+	api.Post(registerRoute["registrationListStudent"], authz.RequirePermission(permissions.ListStudentRegisters), ListStudent)
+	api.Post(registerRoute["registrationListOffering"], authz.RequirePermission(permissions.ListOfferingRegisters), ListOffering)
 	return registerRoute
 }
