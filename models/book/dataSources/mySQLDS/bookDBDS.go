@@ -4,13 +4,13 @@ import (
 	"MyProject/apiSchema/bookSchema"
 	"MyProject/models/book/dataModel"
 	"MyProject/models/book/dataSources"
+	"MyProject/pkg/filter"
 	"MyProject/pkg/pagination"
 	Val "MyProject/pkg/val"
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 )
 
@@ -126,26 +126,32 @@ func (ds *BookDBDS) ListBooks(ctx context.Context, req bookSchema.PaginationBook
 	limit := pageSize
 	offset := (page - 1) * limit
 	var tot int
-	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s ", ds.tableName)
-	err = ds.db.QueryRowContext(ctx, countQuery).Scan(&tot)
+	fil := []filter.Filter{
+		{Con: "author_id", Value: req.AuthorID},
+		{Con: "translator_id", Value: req.TranslatorID},
+		{Con: "publisher_id", Value: req.PublisherID},
+		{Con: "subject_id", Value: req.SubjectID},
+	}
+
+	cond, args := filter.Filtering(fil...)
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE %s", ds.tableName, cond)
+	if len(args) > 0 {
+		err = ds.db.QueryRowContext(ctx, countQuery, args...).Scan(&tot)
+		fmt.Println(ds.db.QueryRowContext(ctx, countQuery, args...).Scan(&tot), tot)
+	} else {
+		err = ds.db.QueryRowContext(ctx, countQuery).Scan(&tot)
+	}
 	if err != nil {
 		return nil, 0, err
 	}
-	if req.AuthorID == nil && req.PublisherID == nil && req.SubjectID == nil && req.TranslatorID == nil {
-		selectQuery := fmt.Sprintf("SELECT * FROM %s LIMIT ? OFFSET ? ", ds.tableName)
-		rows, err = ds.db.QueryContext(ctx, selectQuery, limit, offset)
-		if err != nil {
-			return nil, 0, err
-		}
-	} else {
-		filter := filters(req.AuthorID, req.PublisherID, req.SubjectID, req.TranslatorID)
-		fmt.Sprintf("SELECT * FROM %s WHERE %s LIMIT ? OFFSET ?", ds.tableName)
-		rows, err = ds.db.QueryContext(ctx, filter, limit, offset)
-		if err != nil {
-			return nil, 0, err
-		}
 
+	selectQuery := fmt.Sprintf("SELECT * FROM %s WHERE %s LIMIT ? OFFSET ?", ds.tableName, cond)
+	queryArgs := append(args, limit, offset)
+	rows, err = ds.db.QueryContext(ctx, selectQuery, queryArgs...)
+	if err != nil {
+		return nil, 0, err
 	}
+
 	defer rows.Close()
 	for rows.Next() {
 		var book dataModel.Book
@@ -185,38 +191,4 @@ CASE WHEN EXISTS (SELECT 1 FROM books WHERE ID = ?)THEN 1 ELSE 0 END`
 		return errors.New("the book does not exist")
 	}
 	return nil
-}
-
-func filters(f1 any, f2 any, f3 any, f4 any) string {
-
-	var conditions []string
-	var args []interface{}
-	var query string
-
-	if f1 != "" {
-		conditions = append(conditions, fmt.Sprintf("%s = ?", f1))
-		args = append(args, f1)
-	}
-
-	if f2 != nil {
-		conditions = append(conditions, fmt.Sprintf("%s = ?", f2))
-		args = append(args, f2)
-	}
-
-	if f3 != nil {
-		conditions = append(conditions, fmt.Sprintf("%s = ?", f3))
-		args = append(args, f3)
-	}
-
-	if f4 != nil {
-		conditions = append(conditions, fmt.Sprintf("%s = ?", f4))
-		args = append(args, f4)
-	}
-
-	if len(conditions) > 0 {
-		query += strings.Join(conditions, " AND ")
-	}
-
-	return query
-
 }

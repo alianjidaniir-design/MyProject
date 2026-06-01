@@ -18,16 +18,16 @@ func myLocation() *time.Location {
 	return loc
 }
 
-func GenerateAccessToken(userID int64, roleID int64) (string, error) {
+func GenerateAccessToken(userID int64, roleName string) (string, error) {
 	var jwtSecret = []byte(configs.AccessTokenSecret)
 	jti := uuid.NewString()
 
 	exp := time.Now().In(myLocation()).Add(constants.AccessTokenExpiry)
 
 	claim := tokenDataModel.AccessToken{
-		UserID: userID,
-		RoleID: roleID,
-		Scope:  "access",
+		UserID:   userID,
+		RoleName: roleName,
+		Scope:    "access",
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(exp),
 			IssuedAt:  jwt.NewNumericDate(time.Now().In(myLocation())),
@@ -40,16 +40,16 @@ func GenerateAccessToken(userID int64, roleID int64) (string, error) {
 
 }
 
-func GenerateRefreshToken(roleID int64, UserID int64) (string, error) {
+func GenerateRefreshToken(roleName string, UserID int64) (string, error) {
 	exp := time.Now().In(myLocation()).Add(constants.RefreshTokenExpiry)
 	var jwtSecret = []byte(configs.RefreshTokenSecret)
 
 	claim := jwt.MapClaims{
-		"role_id": roleID,
-		"user_id": UserID,
-		"scope":   "refresh",
-		"exp":     jwt.NewNumericDate(exp),
-		"iat":     jwt.NewNumericDate(time.Now().In(myLocation())),
+		"role_name": roleName,
+		"user_id":   UserID,
+		"scope":     "refresh",
+		"exp":       jwt.NewNumericDate(exp),
+		"iat":       jwt.NewNumericDate(time.Now().In(myLocation())),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claim)
 	return token.SignedString(jwtSecret)

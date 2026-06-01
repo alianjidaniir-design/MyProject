@@ -9,8 +9,8 @@ import (
 
 func RequirePermission(permissionName string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		roleID := GetRoleID(c)
-		if roleID == 0 {
+		roleID := GetRoleName(c)
+		if roleID == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"code":    fiber.StatusUnauthorized,
 				"message": "role not exist",

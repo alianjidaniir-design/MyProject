@@ -3,7 +3,7 @@ package teacherSchema
 type InformationSchema struct {
 	Name           string `json:"name" validate:"required,max=20,alpha"`
 	LastName       string `json:"last_name" validate:"required,max=63,alpha"`
-	RoleID         int64  `json:"role_id" validate:"required"`
+	RoleName       string `json:"role_name" validate:"required"`
 	NationalCode   string `json:"national_code" validate:"required,len=10,numeric"`
 	Email          string `json:"email" validate:"required,email"`
 	Phone          string `json:"phone" validate:"required,len=11,numeric"`

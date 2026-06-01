@@ -4,7 +4,7 @@ import "time"
 
 type CreateOfferingRequest struct {
 	GroupNumber    int       `json:"group_number"`
-	CourseId       int64     `json:"course_id"`
+	CourseNumber   int64     `json:"course_number"`
 	TeacherId      int64     `json:"teacher_id"`
 	Capacity       int       `json:"capacity"`
 	IsActive       bool      `json:"is_active"`

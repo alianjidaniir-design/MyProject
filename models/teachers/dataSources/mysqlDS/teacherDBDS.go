@@ -49,8 +49,8 @@ func (ds *TeacherDBDS) CreateTeacher(ctx context.Context, req teacherSchema.Info
 	var check bool
 	checkRole := `
 SELECT
-CASE WHEN EXISTS (SELECT 1 FROM roles WHERE ID = ?) THEN 1 ELSE 0 END`
-	err = ds.db.QueryRowContext(ctx, checkRole, req.RoleID).Scan(&check)
+CASE WHEN EXISTS (SELECT 1 FROM roles WHERE name = ?) THEN 1 ELSE 0 END`
+	err = ds.db.QueryRowContext(ctx, checkRole, req.RoleName).Scan(&check)
 	if err != nil {
 		return dataModels.Teacher{}, err
 	}
@@ -75,8 +75,8 @@ CASE WHEN EXISTS (SELECT 1 FROM roles WHERE ID = ?) THEN 1 ELSE 0 END`
 	if count > 0 {
 		return dataModels.Teacher{}, errors.New("national code exists")
 	}
-	insert := fmt.Sprintf("INSERT INTO %s (name , last_name , role_id , national_code , email , phone , work_experience , password, created_at , updated_at ) VALUES (?, ?, ?, ?, ?, ?, ? , ? , ? , ?)", ds.tableName)
-	insertQuery, err := ds.db.ExecContext(ctx, insert, req.Name, req.LastName, req.RoleID, req.NationalCode, req.Email, req.Phone, req.WorkExperience, hashing, now, now)
+	insert := fmt.Sprintf("INSERT INTO %s (name , last_name , role_name , national_code , email , phone , work_experience , password, created_at , updated_at ) VALUES (?, ?, ?, ?, ?, ?, ? , ? , ? , ?)", ds.tableName)
+	insertQuery, err := ds.db.ExecContext(ctx, insert, req.Name, req.LastName, req.RoleName, req.NationalCode, req.Email, req.Phone, req.WorkExperience, hashing, now, now)
 	if err != nil {
 		return dataModels.Teacher{}, err
 	}
@@ -103,7 +103,7 @@ func (ds *TeacherDBDS) ListTeachers(ctx context.Context, req teacherSchema.Pagin
 	if err != nil {
 		return []dataModels.Teacher{}, 0, errors.New("there is an error in total the page and page size")
 	}
-	selectQuery := fmt.Sprintf("SELECT ID , name , last_name ,role_id,national_code, email , phone , work_experience ,password, created_at , updated_at , deleted_at FROM %s  LIMIT ? OFFSET ? ", ds.tableName)
+	selectQuery := fmt.Sprintf("SELECT ID , name , last_name ,role_name,national_code, email , phone , work_experience ,password, created_at , updated_at , deleted_at FROM %s  LIMIT ? OFFSET ? ", ds.tableName)
 	rows, err := ds.db.QueryContext(ctx, selectQuery, limit, offset)
 	if err != nil {
 		return []dataModels.Teacher{}, 0, errors.New("there is an error in pagination")
@@ -112,7 +112,7 @@ func (ds *TeacherDBDS) ListTeachers(ctx context.Context, req teacherSchema.Pagin
 	for rows.Next() {
 		var teacher dataModels.Teacher
 		var createdAt, updatedAt, deletedAt sql.NullTime
-		err = rows.Scan(&teacher.ID, &teacher.Name, &teacher.LastName, &teacher.RoleID, &teacher.NationalCode, &teacher.Email, &teacher.Phone, &teacher.WorkExperience, &teacher.Password, &createdAt, &updatedAt, &deletedAt)
+		err = rows.Scan(&teacher.ID, &teacher.Name, &teacher.LastName, &teacher.RoleName, &teacher.NationalCode, &teacher.Email, &teacher.Phone, &teacher.WorkExperience, &teacher.Password, &createdAt, &updatedAt, &deletedAt)
 		if err != nil {
 			return []dataModels.Teacher{}, 0, errors.New("there is an error for scanning the rows")
 		}
@@ -192,17 +192,17 @@ func (ds *TeacherDBDS) LoginTeachers(ctx context.Context, req teacherSchema.Logi
 	if err != nil {
 		return "", "", "", err
 	}
-	tokenAccess, err := token.GenerateAccessToken(student.ID, student.RoleID)
+	tokenAccess, err := token.GenerateAccessToken(student.ID, student.RoleName)
 	if err != nil {
 		return "", "", "", err
 	}
-	RefreshToken, err := token.GenerateRefreshToken(student.ID, student.RoleID)
+	RefreshToken, err := token.GenerateRefreshToken(student.RoleName, student.ID)
 	if err != nil {
 		return "", "", "", err
 	}
 	expires := time.Now().In(TimeLoc.MyLocation()).Add(constants.RefreshTokenExpiry)
-	insertQuery := fmt.Sprintf("INSERT INTO refreshs (user_id , role_id , token , expires_at , rekoved_at) VALUES (?, ?, ?, ?, ?)")
-	_, err = ds.db.QueryContext(ctx, insertQuery, student.ID, student.RoleID, RefreshToken, expires, false)
+	insertQuery := fmt.Sprintf("INSERT INTO refreshs (user_id , role_name , token , expires_at , rekoved_at) VALUES (?, ?, ?, ?, ?)")
+	_, err = ds.db.QueryContext(ctx, insertQuery, student.ID, student.RoleName, RefreshToken, expires, false)
 	if err != nil {
 		return "", "", "", err
 	}
@@ -228,9 +228,9 @@ CASE WHEN EXISTS (SELECT 1 FROM teachers WHERE ID = ?) THEN 1 ELSE 0 END
 
 func (ds *TeacherDBDS) readQuery(ctx context.Context, ID int64) (dataModels.Teacher, error) {
 	var teacher dataModels.Teacher
-	read := fmt.Sprintf("SELECT ID , name , last_name , role_id , national_code , email , phone , work_experience , password , created_at , updated_at , deleted_at  FROM %s WHERE ID=? ", ds.tableName)
+	read := fmt.Sprintf("SELECT ID , name , last_name , role_name , national_code , email , phone , work_experience , password , created_at , updated_at , deleted_at  FROM %s WHERE ID=? ", ds.tableName)
 
-	err := ds.db.QueryRowContext(ctx, read, ID).Scan(&teacher.ID, &teacher.Name, &teacher.LastName, &teacher.RoleID, &teacher.NationalCode, &teacher.Email, &teacher.Phone, &teacher.WorkExperience, &teacher.Password, &teacher.CreatedAt, &teacher.UpdatedAt, &teacher.DeletedAt)
+	err := ds.db.QueryRowContext(ctx, read, ID).Scan(&teacher.ID, &teacher.Name, &teacher.LastName, &teacher.RoleName, &teacher.NationalCode, &teacher.Email, &teacher.Phone, &teacher.WorkExperience, &teacher.Password, &teacher.CreatedAt, &teacher.UpdatedAt, &teacher.DeletedAt)
 	if err != nil {
 		return teacher, err
 	}
@@ -240,8 +240,8 @@ func (ds *TeacherDBDS) readQuery(ctx context.Context, ID int64) (dataModels.Teac
 
 func (ds *TeacherDBDS) checkingTeacher(ctx context.Context, email string, code string) (dataModels.Teacher, error) {
 	var teacher dataModels.Teacher
-	checkQuery := "SELECT * FROM teachers WHERE email = ? AND national_code = ?"
-	err := ds.db.QueryRowContext(ctx, checkQuery, email, code).Scan(&teacher.ID, &teacher.Name, &teacher.LastName, &teacher.RoleID, &teacher.NationalCode, &teacher.Email, &teacher.Phone, &teacher.WorkExperience, &teacher.Password, &teacher.CreatedAt, &teacher.UpdatedAt, &teacher.DeletedAt)
+	checkQuery := "SELECT ID , name , last_name , role_name , national_code , email , phone , work_experience , password , created_at , updated_at , deleted_at  FROM teachers WHERE email = ? AND national_code = ?"
+	err := ds.db.QueryRowContext(ctx, checkQuery, email, code).Scan(&teacher.ID, &teacher.Name, &teacher.LastName, &teacher.RoleName, &teacher.NationalCode, &teacher.Email, &teacher.Phone, &teacher.WorkExperience, &teacher.Password, &teacher.CreatedAt, &teacher.UpdatedAt, &teacher.DeletedAt)
 	if err != nil {
 		return teacher, err
 	}
@@ -267,8 +267,8 @@ func (ds *TeacherDBDS) Refresh(ctx context.Context, req string) (access string, 
 	if req == "" {
 		return "", "", errors.New("refresh Token Required")
 	}
-	checkToken := "SELECT user_id, role_id, token, expires_at, rekoved_at FROM refreshs WHERE token = ? AND rekoved_at = false"
-	err = tx.QueryRowContext(ctx, checkToken, req).Scan(&rt.UserID, &rt.RoleID, &rt.Token, &rt.ExpiresAt, &rt.RevokedAt)
+	checkToken := "SELECT user_id, role_name, token, expires_at, rekoved_at FROM refreshs WHERE token = ? AND rekoved_at = false"
+	err = tx.QueryRowContext(ctx, checkToken, req).Scan(&rt.UserID, &rt.RoleName, &rt.Token, &rt.ExpiresAt, &rt.RevokedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) == true {
 			return "", "", errors.New("Refresh token is invalid")
@@ -286,7 +286,7 @@ func (ds *TeacherDBDS) Refresh(ctx context.Context, req string) (access string, 
 	if err != nil {
 		return "", "", err
 	}
-	newToken, err := token.GenerateRefreshToken(student.RoleID, student.ID)
+	newToken, err := token.GenerateRefreshToken(student.RoleName, student.ID)
 	if err != nil {
 		return "", "", err
 	}
@@ -303,8 +303,8 @@ func (ds *TeacherDBDS) Refresh(ctx context.Context, req string) (access string, 
 
 	expiresAt := time.Now().In(TimeLoc.MyLocation()).Add(constants.RefreshTokenExpiry)
 
-	insertQuery := fmt.Sprintf("INSERT INTO refreshs (user_id , role_id , token , expires_at , rekoved_at) VALUES (?, ?, ? , ? , ?)")
-	result, err := tx.ExecContext(ctx, insertQuery, rt.UserID, rt.RoleID, newToken, expiresAt, false)
+	insertQuery := fmt.Sprintf("INSERT INTO refreshs (user_id , role_name , token , expires_at , rekoved_at) VALUES (?, ?, ? , ? , ?)")
+	result, err := tx.ExecContext(ctx, insertQuery, rt.UserID, rt.RoleName, newToken, expiresAt, false)
 	if err != nil {
 		return "", "", err
 	}
@@ -313,7 +313,7 @@ func (ds *TeacherDBDS) Refresh(ctx context.Context, req string) (access string, 
 		return "", "", errors.New("failed to revoke old token")
 	}
 
-	accessToken, err := token.GenerateAccessToken(student.ID, student.RoleID)
+	accessToken, err := token.GenerateAccessToken(student.ID, student.RoleName)
 	if err != nil {
 		return "", "", err
 	}
@@ -345,8 +345,8 @@ func (ds *TeacherDBDS) Logout(ctx context.Context, req teacherSchema.LogoutSchem
 	if refresh == "" {
 		return errors.New("token is empty")
 	}
-	checkToken := fmt.Sprintf("SELECT * FROM refreshs WHERE token = ? AND rekoved_at = false")
-	err = tx.QueryRowContext(ctx, checkToken, refresh).Scan(&rt.UserID, &rt.RoleID, &rt.Token, &rt.ExpiresAt, &rt.RevokedAt)
+	checkToken := fmt.Sprintf("SELECT user_id, role_name, token, expires_at, rekoved_at FROM refreshs WHERE token = ? AND rekoved_at = false")
+	err = tx.QueryRowContext(ctx, checkToken, refresh).Scan(&rt.UserID, &rt.RoleName, &rt.Token, &rt.ExpiresAt, &rt.RevokedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) == true {
 			return errors.New("Refresh token is invalid")

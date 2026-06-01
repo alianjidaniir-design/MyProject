@@ -1,7 +1,7 @@
 package courseSchema
 
 type RequestCourse struct {
-	CourseNumber string `json:"course_number"`
+	CourseNumber int64  `json:"course_number"`
 	Title        string `json:"title"`
 	Unit         int    `json:"unit"`
 	DepartmentID int64  `json:"department_id"`
@@ -15,27 +15,27 @@ type CoursesListRequest struct {
 
 type DepartmentListRequest struct {
 	DepartmentID int64 `json:"department_id"`
-	Page         int `json:"page"`
-	PageSize     int `json:"page_size"`
+	Page         int   `json:"page"`
+	PageSize     int   `json:"page_size"`
 }
 
 type GetCoursesRequest struct {
-	ID int64 `json:"ID"`
+	CourseNumber int64 `json:"course_number"`
 }
 
 type UpdateCourseRequest struct {
-	ID int64 `json:"ID"`
+	CourseNumber int64 `json:"course_number"`
 }
 
 type HardDeleteCourseRequest struct {
-	ID int64 `json:"ID"`
+	CourseNumber int64 `json:"course_number"`
 }
 
 type SoftDeleteCourseRequest struct {
-	ID int64 `json:"ID"`
+	CourseNumber int64 `json:"course_number"`
 }
 
 type DeActiveCourseRequest struct {
-	ID         int64 `json:"ID"`
-	Deactivate bool  `json:"deactivate"`
+	CourseNumber int64 `json:"course_number"`
+	Deactivate   bool  `json:"deactivate"`
 }

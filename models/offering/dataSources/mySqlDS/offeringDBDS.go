@@ -39,9 +39,9 @@ func (ds *OfferingDBDS) CreateOffering(ctx context.Context, req offeringSchema.C
 	var checkCourse bool
 	courseQuery := `
 SELECT
-CASE WHEN EXISTS (SELECT 1 FROM courses WHERE ID = ? ) THEN 1 ELSE 0 END
+CASE WHEN EXISTS (SELECT 1 FROM courses WHERE course_number = ? ) THEN 1 ELSE 0 END
 `
-	err = tx.QueryRowContext(ctx, courseQuery, req.CourseId).Scan(&checkCourse)
+	err = tx.QueryRowContext(ctx, courseQuery, req.CourseNumber).Scan(&checkCourse)
 	if err != nil {
 		return dataModels.Offering{}, err
 	}
@@ -93,8 +93,8 @@ CASE WHEN EXISTS (SELECT 1 FROM terms WHERE id = ?) THEN 1 ELSE 0 END`
 	}
 
 	newID := lastID + 1
-	insertQuery := fmt.Sprintf("INSERT INTO %s (row , group_number , course_id , teacher_id , capacity , isActive ,term_id, class_start_time , class_end_time, exam_start_time, exam_finish_time ) VALUES (?,?,?,?,?,?,?,?,?,?,?)", ds.tableName)
-	_, err = tx.ExecContext(ctx, insertQuery, newID, req.GroupNumber, req.CourseId, req.TeacherId, req.Capacity, req.IsActive, req.TermId, req.ClassStartTime, req.ClassEndTime, req.ExamStartTime, req.ExamEndTime)
+	insertQuery := fmt.Sprintf("INSERT INTO %s (row , group_number , course_number , teacher_id , capacity , isActive ,term_id, class_start_time , class_end_time, exam_start_time, exam_finish_time ) VALUES (?,?,?,?,?,?,?,?,?,?,?)", ds.tableName)
+	_, err = tx.ExecContext(ctx, insertQuery, newID, req.GroupNumber, req.CourseNumber, req.TeacherId, req.Capacity, req.IsActive, req.TermId, req.ClassStartTime, req.ClassEndTime, req.ExamStartTime, req.ExamEndTime)
 	if err != nil {
 		tx.Rollback()
 	}
@@ -128,7 +128,7 @@ func (ds *OfferingDBDS) ListOffering(ctx context.Context, req offeringSchema.Lis
 	defer rows.Close()
 	for rows.Next() {
 		var offering dataModels.Offering
-		err = rows.Scan(&offering.Row, &offering.GroupNumber, &offering.CourseID, &offering.TeacherID, &offering.Capacity, &offering.EnrolledCount, &offering.IsActive, &offering.Reservation, &offering.TermID, &offering.ClassStartTime, &offering.ClassEndTime, &offering.ExamStartTime, &offering.ExamEndTime)
+		err = rows.Scan(&offering.Row, &offering.GroupNumber, &offering.CourseNumber, &offering.TeacherID, &offering.Capacity, &offering.EnrolledCount, &offering.IsActive, &offering.Reservation, &offering.TermID, &offering.ClassStartTime, &offering.ClassEndTime, &offering.ExamStartTime, &offering.ExamEndTime)
 		if err != nil {
 			return nil, 0, fmt.Errorf("Error scanning row", err.Error())
 		}
@@ -180,8 +180,8 @@ CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND isActive = true ) TH
 
 func (ds *OfferingDBDS) readOfferingByID(ctx context.Context, row int64) (res dataModels.Offering, err error) {
 	var offering dataModels.Offering
-	readQuery := fmt.Sprintf("SELECT row , group_number , course_id , teacher_id , capacity , enrolled_count , isActive , reserveation , term_id , class_start_time , class_end_time , exam_start_time , exam_finish_time FROM %s WHERE row = ? ", ds.tableName)
-	err = ds.db.QueryRowContext(ctx, readQuery, row).Scan(&offering.Row, &offering.GroupNumber, &offering.CourseID, &offering.TeacherID, &offering.Capacity, &offering.EnrolledCount, &offering.IsActive, &offering.Reservation, &offering.TermID, &offering.ClassStartTime, &offering.ClassEndTime, &offering.ExamStartTime, &offering.ExamEndTime)
+	readQuery := fmt.Sprintf("SELECT row , group_number , course_number , teacher_id , capacity , enrolled_count , isActive , reserveation , term_id , class_start_time , class_end_time , exam_start_time , exam_finish_time FROM %s WHERE row = ? ", ds.tableName)
+	err = ds.db.QueryRowContext(ctx, readQuery, row).Scan(&offering.Row, &offering.GroupNumber, &offering.CourseNumber, &offering.TeacherID, &offering.Capacity, &offering.EnrolledCount, &offering.IsActive, &offering.Reservation, &offering.TermID, &offering.ClassStartTime, &offering.ClassEndTime, &offering.ExamStartTime, &offering.ExamEndTime)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return dataModels.Offering{}, errors.New(sql.ErrNoRows.Error())

@@ -7,7 +7,7 @@ import (
 )
 
 type RegistrationDS interface {
-	RegistrationsStudent(ctx context.Context, req registrationSchema.RegisterStudentRequest) (res dataModels.Registration, err error)
+	RegistrationsStudent(ctx context.Context, req registrationSchema.RegisterStudentRequest, role string, ID int64) (res dataModels.Registration, err error)
 	GetRegisterStudent(ctx context.Context, req registrationSchema.GetRegisteredStudentsRequest) (res dataModels.Registration, err error)
 	UpdateRegisterStudent(ctx context.Context, req registrationSchema.GetRegisteredStudentsRequest) (res dataModels.Registration, err error)
 	DeleteRegisterStudent(ctx context.Context, req registrationSchema.GetRegisteredStudentsRequest) (res dataModels.Registration, err error)

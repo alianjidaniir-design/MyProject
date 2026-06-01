@@ -42,32 +42,29 @@ CASE WHEN EXISTS (SELECT 1 FROM departments WHERE ID = ?) THEN 1 ELSE 0 END
 	}
 
 	insertQuery := fmt.Sprintf("INSERT INTO %s (course_number, title, unit ,department_id , description , created_at , updated_at ) VALUES (?, ?, ?, ?, ?, ?, ?)", ds.tableSQL)
-	insertResult, err := ds.db.ExecContext(ctx, insertQuery, req.CourseNumber, req.Title, req.Unit, req.DepartmentID, req.Description, now, now)
+	_, err = ds.db.ExecContext(ctx, insertQuery, req.CourseNumber, req.Title, req.Unit, req.DepartmentID, req.Description, now, now)
 
 	if err != nil {
 		return courseDataModle.Course{}, fmt.Errorf("there are a problem in top query", err)
 	}
-	insertID, err := insertResult.LastInsertId()
-	if err != nil {
-		return courseDataModle.Course{}, err
-	}
-	return ds.readCourseByID(ctx, insertID)
+
+	return ds.readCourseByID(ctx, req.CourseNumber)
 
 }
 func (ds *CourseDBDS) UpdateCourse(ctx context.Context, req courseSchema.UpdateCourseRequest) (courseDataModle.Course, error) {
 	var course courseDataModle.Course
 	now := time.Now().In(TimeLoc.MyLocation())
-	err := ds.chackCourse(ctx, req.ID)
+	err := ds.chackCourse(ctx, req.CourseNumber)
 	if err != nil {
 		return courseDataModle.Course{}, errors.New("there is not course")
 	}
-	updateQuery := fmt.Sprintf("UPDATE %s SET updated_at = ? WHERE id = ?", ds.tableSQL)
+	updateQuery := fmt.Sprintf("UPDATE %s SET updated_at = ? WHERE course_number = ?", ds.tableSQL)
 	update, err := ds.db.PrepareContext(ctx, updateQuery)
 	if err != nil {
 		return course, err
 	}
 	defer update.Close()
-	result, err := update.ExecContext(ctx, now, req.ID)
+	result, err := update.ExecContext(ctx, now, req.CourseNumber)
 	if err != nil {
 		return course, err
 	}
@@ -76,15 +73,15 @@ func (ds *CourseDBDS) UpdateCourse(ctx context.Context, req courseSchema.UpdateC
 		return courseDataModle.Course{}, err
 	}
 
-	return ds.readCourseByID(ctx, req.ID)
+	return ds.readCourseByID(ctx, req.CourseNumber)
 }
 
 func (ds *CourseDBDS) GetCourse(ctx context.Context, req courseSchema.GetCoursesRequest) (courseDataModle.Course, error) {
-	err := ds.chackCourse(ctx, req.ID)
+	err := ds.chackCourse(ctx, req.CourseNumber)
 	if err != nil {
 		return courseDataModle.Course{}, errors.New("Course not found")
 	}
-	return ds.readCourseByID(ctx, req.ID)
+	return ds.readCourseByID(ctx, req.CourseNumber)
 
 }
 
@@ -102,7 +99,7 @@ func (ds *CourseDBDS) ListCourse(ctx context.Context, req courseSchema.CoursesLi
 	if err != nil {
 		return courses, 0, err
 	}
-	selectQuery := fmt.Sprintf("SELECT id , course_number , title , unit , department_id , description ,  created_at, updated_at, deleted_at FROM %s LIMIT ? OFFSET ?", ds.tableSQL)
+	selectQuery := fmt.Sprintf("SELECT course_number , title , unit , department_id , description ,  created_at, updated_at, deleted_at FROM %s LIMIT ? OFFSET ?", ds.tableSQL)
 	rows, err := ds.db.QueryContext(ctx, selectQuery, limit, offset)
 	if err != nil {
 		return []courseDataModle.Course{}, 0, err
@@ -111,7 +108,7 @@ func (ds *CourseDBDS) ListCourse(ctx context.Context, req courseSchema.CoursesLi
 	for rows.Next() {
 		var course courseDataModle.Course
 		var createdAt, updatedAt, deletedAt sql.NullTime
-		err = rows.Scan(&course.ID, &course.CourseNumber, &course.Title, &course.Unit, &course.DepartmentID, &course.Description, &createdAt, &updatedAt, &deletedAt)
+		err = rows.Scan(&course.CourseNumber, &course.Title, &course.Unit, &course.DepartmentID, &course.Description, &createdAt, &updatedAt, &deletedAt)
 		if err != nil {
 			return []courseDataModle.Course{}, 0, err
 		}
@@ -154,7 +151,7 @@ func (ds *CourseDBDS) ListDepartmentsCourse(ctx context.Context, req courseSchem
 	if totalPage == 0 {
 		return nil, 0, errors.New("there is no department or this is a a problem in counter")
 	}
-	selectQuery := fmt.Sprintf("SELECT * FROM %s WHERE department_id = ? LIMIT ? OFFSET ?", ds.tableSQL)
+	selectQuery := fmt.Sprintf("SELECT course_number , title , unit , department_id , description ,  created_at, updated_at, deleted_at FROM %s WHERE department_id = ? LIMIT ? OFFSET ?", ds.tableSQL)
 	rows, err := ds.db.QueryContext(ctx, selectQuery, req.DepartmentID, limit, offset)
 	if err != nil {
 		return nil, 0, errors.New("the pagination query failed")
@@ -163,7 +160,7 @@ func (ds *CourseDBDS) ListDepartmentsCourse(ctx context.Context, req courseSchem
 	for rows.Next() {
 		var course courseDataModle.Course
 		var createdAt, updatedAt, deletedAt sql.NullTime
-		if err = rows.Scan(&course.ID, &course.CourseNumber, &course.Title, &course.Unit, &course.DepartmentID, &course.Description, &createdAt, &updatedAt, &deletedAt); err != nil {
+		if err = rows.Scan(&course.CourseNumber, &course.Title, &course.Unit, &course.DepartmentID, &course.Description, &createdAt, &updatedAt, &deletedAt); err != nil {
 			return nil, 0, err
 		}
 		if createdAt.Valid {
@@ -185,9 +182,9 @@ func (ds *CourseDBDS) ListDepartmentsCourse(ctx context.Context, req courseSchem
 
 func (ds *CourseDBDS) readCourseByID(ctx context.Context, id int64) (courseDataModle.Course, error) {
 	var course courseDataModle.Course
-	readQuery := fmt.Sprintf("SELECT id , course_number , title , unit , department_id , description, created_at , updated_at , deleted_at FROM %s WHERE id = ? ORDER BY id ", ds.tableSQL)
+	readQuery := fmt.Sprintf("SELECT course_number , title , unit , department_id , description, created_at , updated_at , deleted_at FROM %s WHERE id = ? ORDER BY id ", ds.tableSQL)
 	var createdAt, updatedAt, deletedAt sql.NullTime
-	if err := ds.db.QueryRowContext(ctx, readQuery, id).Scan(&course.ID, &course.CourseNumber, &course.Title, &course.Unit, &course.DepartmentID, &course.Description, &createdAt, &updatedAt, &deletedAt); err != nil {
+	if err := ds.db.QueryRowContext(ctx, readQuery, id).Scan(&course.CourseNumber, &course.Title, &course.Unit, &course.DepartmentID, &course.Description, &createdAt, &updatedAt, &deletedAt); err != nil {
 		return courseDataModle.Course{}, err
 	}
 	if createdAt.Valid {
@@ -210,12 +207,12 @@ func (ds *CourseDBDS) readCourseByID(ctx context.Context, id int64) (courseDataM
 
 func (ds *CourseDBDS) DeleteCourse(ctx context.Context, req courseSchema.HardDeleteCourseRequest) (courseDataModle.Course, error) {
 	var course courseDataModle.Course
-	err := ds.chackCourse(ctx, req.ID)
+	err := ds.chackCourse(ctx, req.CourseNumber)
 	if err != nil {
 		return course, errors.New("Course Found not")
 	}
-	deleteQuery := fmt.Sprintf("DELETE FROM %s WHERE id=?", ds.tableSQL)
-	_, err = ds.db.ExecContext(ctx, deleteQuery, req.ID)
+	deleteQuery := fmt.Sprintf("DELETE FROM %s WHERE course_number = ?", ds.tableSQL)
+	_, err = ds.db.ExecContext(ctx, deleteQuery, req.CourseNumber)
 	if err != nil {
 		return course, err
 	}
@@ -225,25 +222,25 @@ func (ds *CourseDBDS) DeleteCourse(ctx context.Context, req courseSchema.HardDel
 func (ds *CourseDBDS) SoftDelete(ctx context.Context, req courseSchema.SoftDeleteCourseRequest) (courseDataModle.Course, error) {
 	var course courseDataModle.Course
 	now := time.Now().In(TimeLoc.MyLocation())
-	err := ds.chackCourse(ctx, req.ID)
+	err := ds.chackCourse(ctx, req.CourseNumber)
 	if err != nil {
 		return courseDataModle.Course{}, errors.New("Course Not Found")
 	}
-	update := fmt.Sprintf("UPDATE %s SET deleted_at=? WHERE id=?", ds.tableSQL)
-	_, err = ds.db.ExecContext(ctx, update, now, req.ID)
+	update := fmt.Sprintf("UPDATE %s SET deleted_at=? WHERE course_number = ?", ds.tableSQL)
+	_, err = ds.db.ExecContext(ctx, update, now, req.CourseNumber)
 	if err != nil {
 		return course, err
 	}
-	return ds.readCourseByID(ctx, req.ID)
+	return ds.readCourseByID(ctx, req.CourseNumber)
 }
 
-func (ds *CourseDBDS) chackCourse(ctx context.Context, ID int64) error {
+func (ds *CourseDBDS) chackCourse(ctx context.Context, number int64) error {
 	var check bool
 	search := `
 SELECT
-CASE WHEN EXISTS (SELECT 1 FROM courses WHERE ID = ?) THEN 1 ELSE 0 END
+CASE WHEN EXISTS (SELECT 1 FROM courses WHERE course_number = ?) THEN 1 ELSE 0 END
 `
-	err := ds.db.QueryRowContext(ctx, search, ID).Scan(&check)
+	err := ds.db.QueryRowContext(ctx, search, number).Scan(&check)
 
 	if err != nil {
 		return err

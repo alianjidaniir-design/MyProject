@@ -1,9 +1,9 @@
 package registrationSchema
 
 type RegisterStudentRequest struct {
-	StudentID  int64 `json:"student_id"`
-	CourseID   int64 `json:"course_id"`
-	OfferingID int64 `json:"offering_row"`
+	StudentID    int64 `json:"student_id" validate:"omitempty"`
+	CourseNumber int64 `json:"course_number" validate:"required"`
+	OfferingID   int64 `json:"offering_row" validate:"required"`
 }
 
 type GetRegisteredStudentsRequest struct {

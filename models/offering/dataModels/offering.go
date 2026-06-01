@@ -5,7 +5,7 @@ import "time"
 type Offering struct {
 	Row            int64     `json:"row"`
 	GroupNumber    int       `json:"group_number"`
-	CourseID       int64     `json:"course_id"`
+	CourseNumber   int64     `json:"course_number"`
 	TeacherID      int64     `json:"teacher_id"`
 	Capacity       int       `json:"capacity"`
 	EnrolledCount  int64     `json:"enrolled_count"`

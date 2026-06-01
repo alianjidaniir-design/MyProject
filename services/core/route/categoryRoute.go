@@ -2,6 +2,8 @@ package route
 
 import (
 	. "MyProject/controllers/category"
+	"MyProject/midddleware/authz"
+	"MyProject/statics/constants/permissions"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -14,9 +16,10 @@ var categoryRoute = map[string]string{
 }
 
 func SetupCategoryRoute(app *fiber.App) map[string]string {
-	app.Post(categoryRoute["categoryCreate"], Create)
-	app.Post(categoryRoute["categoryDelete"], Delete)
-	app.Post(categoryRoute["categoryGet"], Get)
-	app.Post(categoryRoute["categoryList"], List)
+	api := app.Group("/api", authz.AuthMiddleware())
+	api.Post(categoryRoute["categoryCreate"], authz.RequirePermission(permissions.CreateCategory), Create)
+	api.Post(categoryRoute["categoryDelete"], authz.RequirePermission(permissions.DeleteCategory), Delete)
+	api.Post(categoryRoute["categoryGet"], authz.RequirePermission(permissions.ViewCategory), Get)
+	api.Post(categoryRoute["categoryList"], authz.RequirePermission(permissions.ListCategory), List)
 	return categoryRoute
 }

@@ -61,7 +61,7 @@ func AuthMiddleware() fiber.Handler {
 		}
 
 		userIDInt := claim.UserID
-		roleIDInt := claim.RoleID
+		roleNameInt := claim.RoleName
 		scope := claim.Scope
 		if scope != "access" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -86,7 +86,7 @@ func AuthMiddleware() fiber.Handler {
 		}
 
 		c.Locals("user_id", userIDInt)
-		c.Locals("role_id", roleIDInt)
+		c.Locals("role_id", roleNameInt)
 
 		c.Locals("jti", jti)
 		c.Locals("exp", claim.ExpiresAt.Time)
@@ -104,9 +104,9 @@ func GetUserID(c *fiber.Ctx) int64 {
 }
 
 // ای پی ای رول پرمیشن
-func GetRoleID(c *fiber.Ctx) int64 {
-	if k, ok := c.Locals("role_id").(int64); ok {
+func GetRoleName(c *fiber.Ctx) string {
+	if k, ok := c.Locals("role_name").(string); ok {
 		return k
 	}
-	return 0
+	return ""
 }

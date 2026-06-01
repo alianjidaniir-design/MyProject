@@ -124,7 +124,7 @@ func (ds *AdminDBDS) Refresh(ctx context.Context, req string) (access string, re
 		return "", "", errors.New("refresh Token Required")
 	}
 	checkToken := "SELECT user_id, role_id, token, expires_at, rekoved_at FROM refreshs WHERE token = ? AND rekoved_at = false"
-	err = tx.QueryRowContext(ctx, checkToken, req).Scan(&rt.UserID, &rt.RoleID, &rt.Token, &rt.ExpiresAt, &rt.RevokedAt)
+	err = tx.QueryRowContext(ctx, checkToken, req).Scan(&rt.UserID, &rt.RoleName, &rt.Token, &rt.ExpiresAt, &rt.RevokedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) == true {
 			return "", "", errors.New("Refresh token is invalid")
@@ -160,7 +160,7 @@ func (ds *AdminDBDS) Refresh(ctx context.Context, req string) (access string, re
 	expiresAt := time.Now().In(TimeLoc.MyLocation()).Add(constants.RefreshTokenExpiry)
 
 	insertQuery := fmt.Sprintf("INSERT INTO refreshs (user_id , role_id , token , expires_at , rekoved_at) VALUES (?, ?, ? , ? , ?)")
-	result, err := tx.ExecContext(ctx, insertQuery, rt.UserID, rt.RoleID, newToken, expiresAt, false)
+	result, err := tx.ExecContext(ctx, insertQuery, rt.UserID, rt.RoleName, newToken, expiresAt, false)
 	if err != nil {
 		return "", "", err
 	}
@@ -206,7 +206,7 @@ func (ds *AdminDBDS) Logout(ctx context.Context, req adminSchema.LogoutSchema, r
 		return errors.New("token is empty")
 	}
 	checkToken := fmt.Sprintf("SELECT * FROM refreshs WHERE token = ? AND rekoved_at = false")
-	err = tx.QueryRowContext(ctx, checkToken, ref).Scan(&rt.UserID, &rt.RoleID, &rt.Token, &rt.ExpiresAt, &rt.RevokedAt)
+	err = tx.QueryRowContext(ctx, checkToken, ref).Scan(&rt.UserID, &rt.RoleName, &rt.Token, &rt.ExpiresAt, &rt.RevokedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) == true {
 			return errors.New("Refresh token is invalid")
@@ -266,7 +266,7 @@ func (ds *AdminDBDS) readQuery(ctx context.Context, ID int64) (adminDataModels.A
 func (ds *AdminDBDS) checkingAdmin(ctx context.Context, email string, code string) (dataModels.Teacher, error) {
 	var teacher dataModels.Teacher
 	checkQuery := "SELECT * FROM teachers WHERE email = ? AND national_code = ?"
-	err := ds.db.QueryRowContext(ctx, checkQuery, email, code).Scan(&teacher.ID, &teacher.Name, &teacher.LastName, &teacher.RoleID, &teacher.NationalCode, &teacher.Email, &teacher.Phone, &teacher.WorkExperience, &teacher.Password, &teacher.CreatedAt, &teacher.UpdatedAt, &teacher.DeletedAt)
+	err := ds.db.QueryRowContext(ctx, checkQuery, email, code).Scan(&teacher.ID, &teacher.Name, &teacher.LastName, &teacher.RoleName, &teacher.NationalCode, &teacher.Email, &teacher.Phone, &teacher.WorkExperience, &teacher.Password, &teacher.CreatedAt, &teacher.UpdatedAt, &teacher.DeletedAt)
 	if err != nil {
 		return teacher, err
 	}
