@@ -15,6 +15,13 @@ type Registration struct {
 	DeletedAt    *time.Time `json:"deleted_at"`
 }
 
+type ListSelectOfferingResponse struct {
+	CourseNumber int64 `json:"course_number"`
+	OfferingRow  int64 `json:"offering_row"`
+	Res          Registration
+	Err          string
+}
+
 type Student struct {
 	StudentID int64  `json:"student_id"`
 	Status    string `json:"status"`
