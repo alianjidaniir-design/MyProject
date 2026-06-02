@@ -9,8 +9,8 @@ import (
 
 func RequirePermission(permissionName string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		roleID := GetRoleName(c)
-		if roleID == "" {
+		roleName := GetRoleName(c)
+		if roleName == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"code":    fiber.StatusUnauthorized,
 				"message": "role not exist",
@@ -41,8 +41,11 @@ func RequirePermission(permissionName string) fiber.Handler {
 			})
 		}
 
-		joinQuery := fmt.Sprintf("SELECT COUNT(*) FROM rolepermissions JOIN permissions ON permissions.id = rolepermissions.permission_id WHERE role_id = ? AND permissions.name = ?")
-		err = DB.QueryRow(joinQuery, roleID, permissionName).Scan(&count)
+		joinQuery := `SELECT COUNT(*) FROM rolepermissions 
+        JOIN permissions ON permissions.id = rolepermissions.permission_id 
+        JOIN roles ON roles.id = rolepermissions.role_id       
+        WHERE roles.name = ? AND permissions.name = ?`
+		err = DB.QueryRow(joinQuery, roleName, permissionName).Scan(&count)
 		if err != nil {
 			return err
 		}

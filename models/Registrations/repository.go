@@ -3,12 +3,15 @@ package Registrations
 import (
 	"MyProject/apiSchema/commonSchema"
 	"MyProject/apiSchema/registrationSchema"
+	"MyProject/midddleware/authz"
 	"MyProject/models/Registrations/dataSources"
 	"MyProject/models/Registrations/dataSources/mysqlDS"
 	"MyProject/statics/constants/status"
 	"context"
 	"errors"
 	"sync"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 type Repository struct {
@@ -33,7 +36,7 @@ func instance() {
 		return
 	}
 
-	newEnr, err := mysqlDS.NewEnrollmentDBDS(dsn.RegistrationTableName, db)
+	newEnr, err := mysqlDS.NewRegisterDBDS(dsn.RegistrationTableName, db)
 	if err != nil {
 		repo = &Repository{initRepo: err}
 		return
@@ -48,46 +51,48 @@ func GetRepo() *Repository {
 	return repo
 }
 
-func (repo *Repository) CreateRegistration(ctx context.Context, req commonSchema.BaseRequest[registrationSchema.RegisterStudentRequest]) (res registrationSchema.RegisterStudentResponse, errStr string, code int, err error) {
+func (repo *Repository) CreateRegistration(ctx context.Context, req commonSchema.BaseRequest[registrationSchema.RegisterStudentRequest], c *fiber.Ctx) (res registrationSchema.RegisterStudentResponse, errStr string, code int, err error) {
 	if repo.initRepo != nil {
 		return registrationSchema.RegisterStudentResponse{}, "01", status.UnAvailableServiceError, repo.initRepo
 	}
 	if repo.DBDS == nil {
 		return registrationSchema.RegisterStudentResponse{}, "02", status.StatusBadRequest, errors.New("DB DS not initialized")
 	}
-	create, err := repo.db().RegistrationsStudent(ctx, req.Body)
+	role := authz.GetRoleName(c)
+	studentID := authz.GetUserID(c)
+	create, err := repo.db().RegistrationsStudent(ctx, req.Body, role, studentID)
 	if err != nil {
 		return registrationSchema.RegisterStudentResponse{}, "03", status.StatusInternalServerError, err
 	}
 	return registrationSchema.RegisterStudentResponse{Information: create}, "", status.StatusOK, nil
 }
 
-func (repo *Repository) Get(ctx context.Context, req commonSchema.BaseRequest[registrationSchema.GetRegisteredStudentsRequest]) (res registrationSchema.RegisterStudentResponse, errStr string, code int, err error) {
+func (repo *Repository) Get(ctx context.Context, req commonSchema.BaseRequest[registrationSchema.GetRegisteredStudentsRequest]) (res registrationSchema.DetailStudentResponse, errStr string, code int, err error) {
 	if repo.initRepo != nil {
-		return registrationSchema.RegisterStudentResponse{}, "05", status.UnAvailableServiceError, repo.initRepo
+		return registrationSchema.DetailStudentResponse{}, "05", status.UnAvailableServiceError, repo.initRepo
 	}
 	if repo.DBDS == nil {
-		return registrationSchema.RegisterStudentResponse{}, "06", status.StatusBadRequest, errors.New("DB DS not initialized")
+		return registrationSchema.DetailStudentResponse{}, "06", status.StatusBadRequest, errors.New("DB DS not initialized")
 	}
 	get, err := repo.db().GetRegisterStudent(ctx, req.Body)
 	if err != nil {
-		return registrationSchema.RegisterStudentResponse{}, "07", status.StatusInternalServerError, err
+		return registrationSchema.DetailStudentResponse{}, "07", status.StatusInternalServerError, err
 	}
-	return registrationSchema.RegisterStudentResponse{Information: get}, "", status.StatusOK, nil
+	return registrationSchema.DetailStudentResponse{Information: get}, "", status.StatusOK, nil
 }
 
-func (repo *Repository) Update(ctx context.Context, req commonSchema.BaseRequest[registrationSchema.GetRegisteredStudentsRequest]) (res registrationSchema.RegisterStudentResponse, errStr string, code int, err error) {
+func (repo *Repository) Update(ctx context.Context, req commonSchema.BaseRequest[registrationSchema.GetRegisteredStudentsRequest]) (res registrationSchema.DetailStudentResponse, errStr string, code int, err error) {
 	if repo.initRepo != nil {
-		return registrationSchema.RegisterStudentResponse{}, "01", status.StatusUnauthorized, repo.initRepo
+		return registrationSchema.DetailStudentResponse{}, "01", status.StatusUnauthorized, repo.initRepo
 	}
 	if repo.DBDS == nil {
-		return registrationSchema.RegisterStudentResponse{}, "02", status.StatusBadRequest, errors.New("DB DS not initialized")
+		return registrationSchema.DetailStudentResponse{}, "02", status.StatusBadRequest, errors.New("DB DS not initialized")
 	}
 	update, err := repo.db().UpdateRegisterStudent(ctx, req.Body)
 	if err != nil {
-		return registrationSchema.RegisterStudentResponse{}, "03", status.StatusInternalServerError, err
+		return registrationSchema.DetailStudentResponse{}, "03", status.StatusInternalServerError, err
 	}
-	return registrationSchema.RegisterStudentResponse{Information: update}, "", status.StatusOK, nil
+	return registrationSchema.DetailStudentResponse{Information: update}, "", status.StatusOK, nil
 }
 func (repo *Repository) Delete(ctx context.Context, req commonSchema.BaseRequest[registrationSchema.GetRegisteredStudentsRequest]) (res registrationSchema.DeleteStudentResponse, errStr string, code int, err error) {
 	if repo.initRepo != nil {

@@ -4,6 +4,7 @@ import (
 	"MyProject/apiSchema/registrationSchema"
 	"MyProject/models/Registrations/dataModels"
 	"MyProject/models/Registrations/dataSources"
+	dataModels2 "MyProject/models/offering/dataModels"
 	"MyProject/pkg/pagination"
 	TimeLoc "MyProject/pkg/timeLoc"
 	"MyProject/statics/constants"
@@ -19,7 +20,7 @@ type RegistrationDBDS struct {
 	db        *sql.DB
 }
 
-func NewEnrollmentDBDS(tableName string, db *sql.DB) (dataSources.RegistrationDS, error) {
+func NewRegisterDBDS(tableName string, db *sql.DB) (dataSources.RegistrationDS, error) {
 	ff := &RegistrationDBDS{
 		tableName: tableName,
 		db:        db,
@@ -50,19 +51,32 @@ CASE WHEN EXISTS (SELECT 1 FROM student WHERE id = ? AND deleted_at IS NULL) THE
 		return nil, errors.New("this student doesn't exist")
 	}
 	for _, sel := range req.Selection {
+		total, err := ds.checkingTotalUnits(ctx, sel.OfferingID, studentID)
+		if err != nil {
+			register = append(register, dataModels.ListSelectOfferingResponse{
+				StudentID:    studentID,
+				OfferingRow:  sel.OfferingID,
+				CourseNumber: sel.CourseNumber,
+				Status:       "",
+				Err:          err.Error(),
+			})
+			continue
+		}
+		if total > constants.MaxNumberUnits {
+			return nil, errors.New("maximum number units exceeded")
+		}
 		err = ds.validateOfferingMatch(ctx, sel.OfferingID, sel.CourseNumber)
 		if err != nil {
-			register = append(register, dataModels.ListSelectOfferingResponse{OfferingRow: sel.OfferingID, CourseNumber: sel.CourseNumber, Err: err.Error()})
+			register = append(register, dataModels.ListSelectOfferingResponse{StudentID: studentID, OfferingRow: sel.OfferingID, CourseNumber: sel.CourseNumber, Status: "", Err: err.Error()})
 			continue
 		}
 		sin, err := ds.registerSingleCourse(ctx, studentID, sel.OfferingID, sel.CourseNumber)
 		if err != nil {
-			register = append(register, dataModels.ListSelectOfferingResponse{OfferingRow: sel.OfferingID, CourseNumber: sel.CourseNumber, Err: err.Error()})
-
+			register = append(register, dataModels.ListSelectOfferingResponse{StudentID: studentID, OfferingRow: sel.OfferingID, CourseNumber: sel.CourseNumber, Status: sin.Status, Err: err.Error()})
 			continue
 		}
 
-		register = append(register, dataModels.ListSelectOfferingResponse{Res: sin})
+		register = append(register, dataModels.ListSelectOfferingResponse{StudentID: studentID, OfferingRow: sel.OfferingID, CourseNumber: sel.CourseNumber, Status: sin.Status})
 	}
 	return register, nil
 }
@@ -351,12 +365,23 @@ CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND course_number = ? AN
 func (ds *RegistrationDBDS) registerSingleCourse(ctx context.Context, ID int64, offering int64, courseNumber int64) (res dataModels.Registration, err error) {
 	var add int64
 	now := time.Now().In(TimeLoc.MyLocation())
+	tx, err := ds.db.BeginTx(ctx, nil)
+	if err != nil {
+		return dataModels.Registration{}, err
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		} else if err != nil {
+			tx.Rollback()
+		}
+	}()
 	var alreadyRegistered bool
 	checkDuplicateQuery := `
 SELECT EXISTS (SELECT 1 FROM registration 
 WHERE student_id = ? AND offering_row = ? AND deleted_at IS NULL)
  `
-	err = ds.db.QueryRowContext(ctx, checkDuplicateQuery, ID, offering).Scan(&alreadyRegistered)
+	err = tx.QueryRowContext(ctx, checkDuplicateQuery, ID, offering).Scan(&alreadyRegistered)
 	if err != nil {
 		return dataModels.Registration{}, err
 	}
@@ -368,23 +393,23 @@ WHERE student_id = ? AND offering_row = ? AND deleted_at IS NULL)
 	studentQuery := `
 SELECT
 CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND capacity > enrolled_count ) THEN 1 ELSE 0 END`
-	err = ds.db.QueryRowContext(ctx, studentQuery, offering).Scan(&checkCapacity)
+	err = tx.QueryRowContext(ctx, studentQuery, offering).Scan(&checkCapacity)
 	if err != nil {
 		return dataModels.Registration{}, err
 	}
 	if !checkCapacity {
 		lockQuery := `SELECT row FROM offerings WHERE row = ? FOR UPDATE`
-		_, err = ds.db.ExecContext(ctx, lockQuery, offering)
+		_, err = tx.ExecContext(ctx, lockQuery, offering)
 		if err != nil {
 			return dataModels.Registration{}, err
 		}
 		var reserved = constants.StatusReserveation
 		reserve := fmt.Sprintf("UPDATE offerings SET reserveation = reserveation + 1  WHERE row = ?")
-		_, err = ds.db.ExecContext(ctx, reserve, offering)
+		_, err = tx.ExecContext(ctx, reserve, offering)
 		if err != nil {
 			return dataModels.Registration{}, err
 		}
-		result, err := ds.db.ExecContext(ctx, insertQuery, ID, courseNumber, offering, reserved, now, now, now, nil)
+		result, err := tx.ExecContext(ctx, insertQuery, ID, courseNumber, offering, reserved, now, now, now, nil)
 		if err != nil {
 			return dataModels.Registration{}, errors.New("you can't reserve the reservation")
 		}
@@ -396,16 +421,16 @@ CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND capacity > enrolled_
 	} else {
 		var enrolled = constants.StatusEnrolled
 		lockQuery := `SELECT row FROM offerings WHERE row = ? FOR UPDATE`
-		_, err = ds.db.ExecContext(ctx, lockQuery, offering)
+		_, err = tx.ExecContext(ctx, lockQuery, offering)
 		if err != nil {
 			return dataModels.Registration{}, err
 		}
 		enroll := fmt.Sprintf("UPDATE offerings SET enrolled_count = enrolled_count + 1 WHERE row = ?")
-		_, err = ds.db.ExecContext(ctx, enroll, offering)
+		_, err = tx.ExecContext(ctx, enroll, offering)
 		if err != nil {
 			return dataModels.Registration{}, err
 		}
-		sdd, err := ds.db.ExecContext(ctx, insertQuery, ID, courseNumber, offering, enrolled, now, now, now, nil)
+		sdd, err := tx.ExecContext(ctx, insertQuery, ID, courseNumber, offering, enrolled, now, now, now, nil)
 		if err != nil {
 			return dataModels.Registration{}, fmt.Errorf("you can't enroll the student", err)
 		}
@@ -414,5 +439,35 @@ CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND capacity > enrolled_
 			return dataModels.Registration{}, err
 		}
 	}
+	err = tx.Commit()
+	if err != nil {
+		return dataModels.Registration{}, err
+	}
 	return ds.readQuery(ctx, add)
+}
+
+func (ds *RegistrationDBDS) checkingTotalUnits(ctx context.Context, offeringRow int64, studentID int64) (tot int64, err error) {
+	var count int64
+	var rt dataModels2.Offering
+	term := `SELECT term_id FROM offerings WHERE row = ? `
+	err = ds.db.QueryRowContext(ctx, term, offeringRow).Scan(&rt.TermID)
+	if err != nil {
+		return 0, err
+	}
+	query := `
+        SELECT COALESCE(SUM(c.unit), 0)
+        FROM registration r
+        JOIN offerings o ON r.offering_row = o.row
+        JOIN courses c ON o.course_number = c.course_number
+        WHERE r.student_id = ? 
+          AND r.status = 'enrolled'OR'reserveation'
+          AND r.deleted_at IS NULL
+          AND o.term_id = ?`
+	err = ds.db.QueryRowContext(ctx, query, studentID, rt.TermID).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	fmt.Println(count)
+
+	return count, nil
 }

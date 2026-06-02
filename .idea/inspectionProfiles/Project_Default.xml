@@ -6,6 +6,7 @@
         <method importPath="database/sql" receiver="*DB" name="BeginTx" />
         <method importPath="database/sql" receiver="*DB" name="PrepareContext" />
         <method importPath="MyProject/models/memberShip/dataSources/mySQLDS" receiver="*MembershipDBDS" name="selectMembership" />
+        <method importPath="MyProject/models/Registrations/dataSources/mysqlDS" receiver="*RegistrationDBDS" name="registerSingleCourse" />
       </methods>
     </inspection_tool>
   </profile>

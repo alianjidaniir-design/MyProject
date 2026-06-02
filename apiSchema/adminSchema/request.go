@@ -6,7 +6,7 @@ type InformationSchema struct {
 	Name     string  `json:"name" validate:"required,max=31"`
 	Family   string  `json:"family" validate:"required,max=63"`
 	Email    *string `json:"email" validate:"omitempty,email,max=127"`
-	RoleID   int64   `json:"role_id" validate:"required"`
+	RoleName string  `json:"role_name" validate:"required"`
 }
 
 type LoginAdminRequest struct {

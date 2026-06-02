@@ -3,7 +3,11 @@ package registrationSchema
 import "MyProject/models/Registrations/dataModels"
 
 type RegisterStudentResponse struct {
-	Information dataModels.ListSelectOfferingResponse
+	Information []dataModels.ListSelectOfferingResponse
+}
+
+type DetailStudentResponse struct {
+	Information dataModels.Registration
 }
 
 type DeleteStudentResponse struct {

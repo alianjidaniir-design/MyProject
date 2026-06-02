@@ -16,10 +16,11 @@ type Registration struct {
 }
 
 type ListSelectOfferingResponse struct {
-	CourseNumber int64 `json:"course_number"`
-	OfferingRow  int64 `json:"offering_row"`
-	Res          Registration
-	Err          string
+	StudentID    int64  `json:"student_id"`
+	CourseNumber int64  `json:"course_number"`
+	OfferingRow  int64  `json:"offering_row"`
+	Status       string `json:"status"`
+	Err          string `json:"error"`
 }
 
 type Student struct {

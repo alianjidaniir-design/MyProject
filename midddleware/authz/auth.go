@@ -86,7 +86,7 @@ func AuthMiddleware() fiber.Handler {
 		}
 
 		c.Locals("user_id", userIDInt)
-		c.Locals("role_id", roleNameInt)
+		c.Locals("role_name", roleNameInt)
 
 		c.Locals("jti", jti)
 		c.Locals("exp", claim.ExpiresAt.Time)

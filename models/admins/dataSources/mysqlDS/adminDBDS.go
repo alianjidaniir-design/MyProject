@@ -49,8 +49,8 @@ func (ds *AdminDBDS) CreateAdmin(ctx context.Context, req adminSchema.Informatio
 	var check bool
 	checkRole := `
 SELECT
-CASE WHEN EXISTS (SELECT 1 FROM roles WHERE ID = ?) THEN 1 ELSE 0 END`
-	err = ds.db.QueryRowContext(ctx, checkRole, req.RoleID).Scan(&check)
+CASE WHEN EXISTS (SELECT 1 FROM roles WHERE name = ?) THEN 1 ELSE 0 END`
+	err = ds.db.QueryRowContext(ctx, checkRole, req.RoleName).Scan(&check)
 	if err != nil {
 		return adminDataModels.Admins{}, err
 	}
@@ -60,8 +60,8 @@ CASE WHEN EXISTS (SELECT 1 FROM roles WHERE ID = ?) THEN 1 ELSE 0 END`
 
 	now := time.Now().In(TimeLoc.MyLocation())
 
-	insert := fmt.Sprintf("INSERT INTO %s (user_name , password , name , family , email , role_id , created_at ) VALUES (?, ?, ?, ?, ?, ?, ?)", ds.tableName)
-	insertQuery, err := ds.db.ExecContext(ctx, insert, req.Username, hashing, req.Name, req.Family, req.Email, req.RoleID, now)
+	insert := fmt.Sprintf("INSERT INTO %s (user_name , password , name , family , email , role_name , created_at ) VALUES (?, ?, ?, ?, ?, ?, ?)", ds.tableName)
+	insertQuery, err := ds.db.ExecContext(ctx, insert, req.Username, hashing, req.Name, req.Family, req.Email, req.RoleName, now)
 	if err != nil {
 		return adminDataModels.Admins{}, err
 	}
@@ -79,7 +79,7 @@ func (ds *AdminDBDS) Login(ctx context.Context, req adminSchema.LoginAdminReques
 	if err != nil {
 		return "", "", "", err
 	}
-	student, err := ds.checkingTeacher(ctx, req.Username)
+	student, err := ds.checkAdmin(ctx, req.Username)
 	if err != nil {
 		return "", "", "", err
 	}
@@ -87,17 +87,17 @@ func (ds *AdminDBDS) Login(ctx context.Context, req adminSchema.LoginAdminReques
 	if err != nil {
 		return "", "", "", err
 	}
-	tokenAccess, err := token.GenerateAccessToken(student.ID, student.RoleID)
+	tokenAccess, err := token.GenerateAccessToken(student.ID, student.RoleName)
 	if err != nil {
 		return "", "", "", err
 	}
-	RefreshToken, err := token.GenerateRefreshToken(student.ID, student.RoleID)
+	RefreshToken, err := token.GenerateRefreshToken(student.RoleName, student.ID)
 	if err != nil {
 		return "", "", "", err
 	}
 	expires := time.Now().In(TimeLoc.MyLocation()).Add(constants.RefreshTokenExpiry)
-	insertQuery := fmt.Sprintf("INSERT INTO refreshs (user_id , role_id , token , expires_at , rekoved_at) VALUES (?, ?, ?, ?, ?)")
-	_, err = ds.db.QueryContext(ctx, insertQuery, student.ID, student.RoleID, RefreshToken, expires, false)
+	insertQuery := fmt.Sprintf("INSERT INTO refreshs (user_id , role_name , token , expires_at , rekoved_at) VALUES (?, ?, ?, ?, ?)")
+	_, err = ds.db.QueryContext(ctx, insertQuery, student.ID, student.RoleName, RefreshToken, expires, false)
 	if err != nil {
 		return "", "", "", err
 	}
@@ -123,7 +123,7 @@ func (ds *AdminDBDS) Refresh(ctx context.Context, req string) (access string, re
 	if req == "" {
 		return "", "", errors.New("refresh Token Required")
 	}
-	checkToken := "SELECT user_id, role_id, token, expires_at, rekoved_at FROM refreshs WHERE token = ? AND rekoved_at = false"
+	checkToken := fmt.Sprintf("SELECT user_id, role_name, token, expires_at, rekoved_at FROM refreshs WHERE token = ? AND rekoved_at = false")
 	err = tx.QueryRowContext(ctx, checkToken, req).Scan(&rt.UserID, &rt.RoleName, &rt.Token, &rt.ExpiresAt, &rt.RevokedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) == true {
@@ -142,7 +142,7 @@ func (ds *AdminDBDS) Refresh(ctx context.Context, req string) (access string, re
 	if err != nil {
 		return "", "", err
 	}
-	newToken, err := token.GenerateRefreshToken(student.RoleID, student.ID)
+	newToken, err := token.GenerateRefreshToken(student.RoleName, student.ID)
 	if err != nil {
 		return "", "", err
 	}
@@ -159,7 +159,7 @@ func (ds *AdminDBDS) Refresh(ctx context.Context, req string) (access string, re
 
 	expiresAt := time.Now().In(TimeLoc.MyLocation()).Add(constants.RefreshTokenExpiry)
 
-	insertQuery := fmt.Sprintf("INSERT INTO refreshs (user_id , role_id , token , expires_at , rekoved_at) VALUES (?, ?, ? , ? , ?)")
+	insertQuery := fmt.Sprintf("INSERT INTO refreshs (user_id , role_name , token , expires_at , rekoved_at) VALUES (?, ?, ? , ? , ?)")
 	result, err := tx.ExecContext(ctx, insertQuery, rt.UserID, rt.RoleName, newToken, expiresAt, false)
 	if err != nil {
 		return "", "", err
@@ -169,7 +169,7 @@ func (ds *AdminDBDS) Refresh(ctx context.Context, req string) (access string, re
 		return "", "", errors.New("failed to revoke old token")
 	}
 
-	accessToken, err := token.GenerateAccessToken(student.ID, student.RoleID)
+	accessToken, err := token.GenerateAccessToken(student.ID, student.RoleName)
 	if err != nil {
 		return "", "", err
 	}
@@ -205,7 +205,7 @@ func (ds *AdminDBDS) Logout(ctx context.Context, req adminSchema.LogoutSchema, r
 	if ref == "" {
 		return errors.New("token is empty")
 	}
-	checkToken := fmt.Sprintf("SELECT * FROM refreshs WHERE token = ? AND rekoved_at = false")
+	checkToken := fmt.Sprintf("SELECT user_id, role_name, token, expires_at, rekoved_at FROM refreshs WHERE token = ? AND rekoved_at = false")
 	err = tx.QueryRowContext(ctx, checkToken, ref).Scan(&rt.UserID, &rt.RoleName, &rt.Token, &rt.ExpiresAt, &rt.RevokedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) == true {
@@ -241,10 +241,10 @@ func (ds *AdminDBDS) Logout(ctx context.Context, req adminSchema.LogoutSchema, r
 	return nil
 }
 
-func (ds *AdminDBDS) checkingTeacher(ctx context.Context, userName string) (adminDataModels.Admins, error) {
+func (ds *AdminDBDS) checkAdmin(ctx context.Context, userName string) (adminDataModels.Admins, error) {
 	var admin adminDataModels.Admins
 	checkQuery := "SELECT * FROM admins WHERE user_name = ?"
-	err := ds.db.QueryRowContext(ctx, checkQuery, userName).Scan(&admin.ID, &admin.Username, &admin.Password, &admin.Name, &admin.Family, &admin.Email, &admin.RoleID, &admin.CreatedAt)
+	err := ds.db.QueryRowContext(ctx, checkQuery, userName).Scan(&admin.ID, &admin.Username, &admin.Password, &admin.Name, &admin.Family, &admin.Email, &admin.RoleName, &admin.CreatedAt)
 	if err != nil {
 		return admin, err
 	}
@@ -253,9 +253,9 @@ func (ds *AdminDBDS) checkingTeacher(ctx context.Context, userName string) (admi
 
 func (ds *AdminDBDS) readQuery(ctx context.Context, ID int64) (adminDataModels.Admins, error) {
 	var admin adminDataModels.Admins
-	read := fmt.Sprintf("SELECT ID , user_name , password , name, family , email , role_id ,  created_at FROM %s WHERE ID=? ", ds.tableName)
+	read := fmt.Sprintf("SELECT ID , user_name , password , name, family , email , role_name ,  created_at FROM %s WHERE ID=? ", ds.tableName)
 
-	err := ds.db.QueryRowContext(ctx, read, ID).Scan(&admin.ID, &admin.Username, &admin.Password, &admin.Name, &admin.Family, &admin.Email, &admin.RoleID, &admin.CreatedAt)
+	err := ds.db.QueryRowContext(ctx, read, ID).Scan(&admin.ID, &admin.Username, &admin.Password, &admin.Name, &admin.Family, &admin.Email, &admin.RoleName, &admin.CreatedAt)
 	if err != nil {
 		return admin, err
 	}

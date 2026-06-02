@@ -72,6 +72,9 @@ CASE WHEN EXISTS (SELECT 1 FROM roles WHERE name = ?) THEN 1 ELSE 0 END`
 	if err != nil {
 		return dataModels.Teacher{}, err
 	}
+	if req.Password != "0"+req.NationalCode {
+		return dataModels.Teacher{}, errors.New("password and national code do not match")
+	}
 	if count > 0 {
 		return dataModels.Teacher{}, errors.New("national code exists")
 	}

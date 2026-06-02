@@ -9,6 +9,6 @@ type Admins struct {
 	Name      string    `json:"name"`
 	Family    string    `json:"family"`
 	Email     *string   `json:"email"`
-	RoleID    int64     `json:"role_id"`
+	RoleName  string    `json:"role_name"`
 	CreatedAt time.Time `json:"created_at"`
 }
