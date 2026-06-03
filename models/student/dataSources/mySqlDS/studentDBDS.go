@@ -85,7 +85,7 @@ func (ds *StudentDBDS) CreateStudent(ctx context.Context, req studentSchema.Sign
 	ha, err := hash.HashingPassword(req.Password)
 	code := &req.StudentCode
 	req.UserName = code
-	var check bool
+	var check, check2 bool
 	checkRole := `
 SELECT
 CASE WHEN EXISTS (SELECT 1 FROM roles WHERE name = ?) THEN 1 ELSE 0 END`
@@ -96,9 +96,19 @@ CASE WHEN EXISTS (SELECT 1 FROM roles WHERE name = ?) THEN 1 ELSE 0 END`
 	if !check {
 		return studentDataModel.Student{}, errors.New("Invalid role")
 	}
+	checkTerm := `
+SELECT
+CASE WHEN EXISTS (SELECT 1 FROM terms WHERE ID = ?) THEN 1 ELSE 0 END`
+	err = ds.db.QueryRowContext(ctx, checkTerm, req.TermID).Scan(&check2)
+	if err != nil {
+		return studentDataModel.Student{}, err
+	}
+	if !check {
+		return studentDataModel.Student{}, errors.New("Invalid term")
+	}
 	now := time.Now().In(TimeLoc.MyLocation())
-	insertQuery := fmt.Sprintf("INSERT INTO %s (name , family, phone ,national_code, major,student_code,user_name ,password, role_name , created_at , updated_at , deleted_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", ds.tableSQL)
-	insertResult, err := ds.db.ExecContext(ctx, insertQuery, req.Name, req.Family, req.Phone, req.NationalCode, req.Major, req.StudentCode, code, ha, req.RoleName, now, now, nil)
+	insertQuery := fmt.Sprintf("INSERT INTO %s (name , family, phone ,national_code, major,student_code, term_id , level ,user_name ,password, role_name , created_at , updated_at , deleted_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", ds.tableSQL)
+	insertResult, err := ds.db.ExecContext(ctx, insertQuery, req.Name, req.Family, req.Phone, req.NationalCode, req.Major, req.StudentCode, req.TermID, req.Level, code, ha, req.RoleName, now, now, nil)
 	if err != nil {
 		return studentDataModel.Student{}, err
 	}
@@ -128,7 +138,7 @@ func (ds *StudentDBDS) ReadStudent(ctx context.Context, req studentSchema.ListRe
 
 	// ستون‌ها را صریحاً نام ببرید تا از مشکلات احتمالی ترتیب ستون‌ها جلوگیری شود.
 	// فرض می‌کنیم ترتیب ستون‌ها در دیتابیس با ترتیب مدل مطابقت دارد.
-	selectQuery := fmt.Sprintf("SELECT id, name, family,phone,national_code,major,student_code,user_name,password,role_name, created_at, updated_at, deleted_at FROM %s LIMIT ? OFFSET ?", ds.tableSQL)
+	selectQuery := fmt.Sprintf("SELECT id, name, family,phone,national_code,major,student_code,term_id , level,user_name,password,role_name, created_at, updated_at, deleted_at FROM %s LIMIT ? OFFSET ?", ds.tableSQL)
 	selectResult, err := ds.db.QueryContext(ctx, selectQuery, limit, offset)
 	if err != nil {
 		return []studentDataModel.Student{}, 0, err
@@ -332,9 +342,9 @@ func (ds *StudentDBDS) RefreshToken(ctx context.Context, req string) (string, st
 func (ds *StudentDBDS) readTaskByID(ctx context.Context, userID int64) (studentDataModel.Student, error) {
 	var students studentDataModel.Student
 
-	readQuery := fmt.Sprintf("SELECT id , name , family,phone,national_code,major,student_code,user_name , password,role_name , created_at , updated_at , deleted_at FROM %s WHERE id = ?", ds.tableSQL)
+	readQuery := fmt.Sprintf("SELECT id , name , family,phone,national_code,major,student_code,term_id,level,user_name , password,role_name , created_at , updated_at , deleted_at FROM %s WHERE id = ?", ds.tableSQL)
 
-	if err := ds.db.QueryRowContext(ctx, readQuery, userID).Scan(&students.ID, &students.Name, &students.Family, &students.Phone, &students.NationalCode, &students.Major, &students.StudentCode, &students.UserName, &students.Password, &students.RoleName, &students.CreatedAt, &students.UpdatedAt, &students.DeletedAt); err != nil {
+	if err := ds.db.QueryRowContext(ctx, readQuery, userID).Scan(&students.ID, &students.Name, &students.Family, &students.Phone, &students.NationalCode, &students.Major, &students.StudentCode, &students.TermID, &students.Level, &students.UserName, &students.Password, &students.RoleName, &students.CreatedAt, &students.UpdatedAt, &students.DeletedAt); err != nil {
 		return studentDataModel.Student{}, err
 	}
 

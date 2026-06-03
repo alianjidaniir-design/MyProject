@@ -4,7 +4,7 @@ import (
 	"MyProject/apiSchema/registrationSchema"
 	"MyProject/models/Registrations/dataModels"
 	"MyProject/models/Registrations/dataSources"
-	dataModels2 "MyProject/models/offering/dataModels"
+	"MyProject/models/student/dataModel"
 	"MyProject/pkg/pagination"
 	TimeLoc "MyProject/pkg/timeLoc"
 	"MyProject/statics/constants"
@@ -50,31 +50,48 @@ CASE WHEN EXISTS (SELECT 1 FROM student WHERE id = ? AND deleted_at IS NULL) THE
 	if !checkStudent {
 		return nil, errors.New("this student doesn't exist")
 	}
+
+	total, err := ds.checkingTotalUnits(ctx, studentID)
+	if err != nil {
+		return nil, err
+	}
+
+	maxim, err := ds.maxNumberUnits(ctx, studentID)
+	if err != nil {
+		return nil, err
+	}
+
+	var addedUnits int64 = 0
+
 	for _, sel := range req.Selection {
-		total, err := ds.checkingTotalUnits(ctx, sel.OfferingID, studentID)
+		courseUnits, err := ds.GetLastCourseUnits(ctx, sel.OfferingID)
 		if err != nil {
 			register = append(register, dataModels.ListSelectOfferingResponse{
 				StudentID:    studentID,
 				OfferingRow:  sel.OfferingID,
 				CourseNumber: sel.CourseNumber,
 				Status:       "",
-				Err:          err.Error(),
+				Err:          fmt.Sprintf("offering not found: %v", err),
 			})
 			continue
 		}
-		if total > constants.MaxNumberUnits {
-			return nil, errors.New("maximum number units exceeded")
-		}
+
 		err = ds.validateOfferingMatch(ctx, sel.OfferingID, sel.CourseNumber)
 		if err != nil {
 			register = append(register, dataModels.ListSelectOfferingResponse{StudentID: studentID, OfferingRow: sel.OfferingID, CourseNumber: sel.CourseNumber, Status: "", Err: err.Error()})
 			continue
 		}
-		sin, err := ds.registerSingleCourse(ctx, studentID, sel.OfferingID, sel.CourseNumber)
+		if total+addedUnits+courseUnits > maxim {
+			register = append(register, dataModels.ListSelectOfferingResponse{StudentID: studentID, OfferingRow: sel.OfferingID, CourseNumber: sel.CourseNumber, Status: "", Err: errors.New("selects is more than maxim units").Error()})
+			continue
+		}
+		sin, err := ds.registerSingleCourse(ctx, studentID, sel.OfferingID, sel.CourseNumber, sel.IsReserve)
 		if err != nil {
 			register = append(register, dataModels.ListSelectOfferingResponse{StudentID: studentID, OfferingRow: sel.OfferingID, CourseNumber: sel.CourseNumber, Status: sin.Status, Err: err.Error()})
 			continue
 		}
+
+		addedUnits += courseUnits
 
 		register = append(register, dataModels.ListSelectOfferingResponse{StudentID: studentID, OfferingRow: sel.OfferingID, CourseNumber: sel.CourseNumber, Status: sin.Status})
 	}
@@ -362,7 +379,7 @@ CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND course_number = ? AN
 	return nil
 }
 
-func (ds *RegistrationDBDS) registerSingleCourse(ctx context.Context, ID int64, offering int64, courseNumber int64) (res dataModels.Registration, err error) {
+func (ds *RegistrationDBDS) registerSingleCourse(ctx context.Context, ID int64, offering int64, courseNumber int64, reserve bool) (res dataModels.Registration, err error) {
 	var add int64
 	now := time.Now().In(TimeLoc.MyLocation())
 	tx, err := ds.db.BeginTx(ctx, nil)
@@ -398,6 +415,9 @@ CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND capacity > enrolled_
 		return dataModels.Registration{}, err
 	}
 	if !checkCapacity {
+		if reserve != true {
+			return dataModels.Registration{}, errors.New("The class is full. You can reserve it.")
+		}
 		lockQuery := `SELECT row FROM offerings WHERE row = ? FOR UPDATE`
 		_, err = tx.ExecContext(ctx, lockQuery, offering)
 		if err != nil {
@@ -446,28 +466,54 @@ CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND capacity > enrolled_
 	return ds.readQuery(ctx, add)
 }
 
-func (ds *RegistrationDBDS) checkingTotalUnits(ctx context.Context, offeringRow int64, studentID int64) (tot int64, err error) {
+func (ds *RegistrationDBDS) checkingTotalUnits(ctx context.Context, studentID int64) (tot int64, err error) {
 	var count int64
-	var rt dataModels2.Offering
-	term := `SELECT term_id FROM offerings WHERE row = ? `
-	err = ds.db.QueryRowContext(ctx, term, offeringRow).Scan(&rt.TermID)
-	if err != nil {
-		return 0, err
-	}
 	query := `
         SELECT COALESCE(SUM(c.unit), 0)
         FROM registration r
         JOIN offerings o ON r.offering_row = o.row
         JOIN courses c ON o.course_number = c.course_number
         WHERE r.student_id = ? 
-          AND r.status = 'enrolled'OR'reserveation'
+          AND (r.status = 'enrolled' OR r.status = 'reserveation')
           AND r.deleted_at IS NULL
-          AND o.term_id = ?`
-	err = ds.db.QueryRowContext(ctx, query, studentID, rt.TermID).Scan(&count)
+          `
+	err = ds.db.QueryRowContext(ctx, query, studentID).Scan(&count)
 	if err != nil {
 		return 0, err
 	}
 	fmt.Println(count)
 
 	return count, nil
+}
+
+func (ds *RegistrationDBDS) GetLastCourseUnits(ctx context.Context, offeringID int64) (int64, error) {
+	var units int64
+	query := `
+        SELECT COALESCE(c.unit, 0)
+        FROM offerings o
+        JOIN courses c ON o.course_number = c.course_number
+        WHERE o.row = ?
+    `
+	err := ds.db.QueryRowContext(ctx, query, offeringID).Scan(&units)
+	return units, err
+}
+
+func (ds RegistrationDBDS) maxNumberUnits(ctx context.Context, StudentID int64) (int64, error) {
+	var student dataModel.Student
+	checkStudent := fmt.Sprintf("SELECT level FROM student WHERE ID = ?")
+	err := ds.db.QueryRowContext(ctx, checkStudent, StudentID).Scan(&student.Level)
+	if err != nil {
+		return 0, err
+	}
+	switch student.Level {
+	case "bachelor":
+		return 24, nil
+	case "master":
+		return 16, nil
+	case "phd":
+		return 12, nil
+	default:
+		return 0, errors.New("invalid student level")
+	}
+
 }

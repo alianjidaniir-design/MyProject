@@ -12,6 +12,8 @@ type Student struct {
 	NationalCode string     `gorm:"column:national_code" json:"national_code"`
 	Major        string     `gorm:"column:major" json:"major"`
 	StudentCode  string     `gorm:"column:student_code" json:"student_code"`
+	TermID       int64      `gorm:"column:term_id" json:"term_id"`
+	Level        string     `gorm:"column:level" json:"level"`
 	UserName     string     `gorm:"column:user_name" json:"user_name"`
 	Password     string     `gorm:"column:password" json:"password"`
 	RoleName     string     `gorm:"column:role_name" json:"role_name"`

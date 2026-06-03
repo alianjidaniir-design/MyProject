@@ -7,6 +7,8 @@ type SignUpStudent struct {
 	NationalCode string  `json:"national_code" validate:"required,numeric,len=10"`
 	Major        string  `json:"major" validate:"required"`
 	StudentCode  string  `json:"student_code" validate:"required,numeric,len=9"`
+	TermID       int64   `json:"term_id" validate:"required"`
+	Level        string  `json:"level" validate:"required"`
 	UserName     *string `json:"user_name" validate:"omitempty,len=9,numeric"`
 	Password     string  `json:"password" validate:"required,len=10"`
 	RoleName     string  `json:"role_name"`

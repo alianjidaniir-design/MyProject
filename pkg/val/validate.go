@@ -46,6 +46,10 @@ func SwitchValidateErr(err validator.FieldError) string {
 		return err.Field() + ": this field must be a valid number "
 	case "dive":
 		return err.Field() + ": this field must be a valid dive character"
+	case "gte":
+		return err.Field() + ": this field must be greater than " + err.Param()
+	case "lte":
+		return err.Field() + ": this field must be less than " + err.Param()
 	default:
 		return err.Field() + " validation failed"
 
