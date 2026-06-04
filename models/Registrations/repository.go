@@ -94,14 +94,16 @@ func (repo *Repository) Update(ctx context.Context, req commonSchema.BaseRequest
 	}
 	return registrationSchema.DetailStudentResponse{Information: update}, "", status.StatusOK, nil
 }
-func (repo *Repository) Delete(ctx context.Context, req commonSchema.BaseRequest[registrationSchema.GetRegisteredStudentsRequest]) (res registrationSchema.DeleteStudentResponse, errStr string, code int, err error) {
+func (repo *Repository) Delete(ctx context.Context, req commonSchema.BaseRequest[registrationSchema.GetRegisteredStudentsRequest], c *fiber.Ctx) (res registrationSchema.DeleteStudentResponse, errStr string, code int, err error) {
 	if repo.initRepo != nil {
 		return registrationSchema.DeleteStudentResponse{}, "01", status.UnAvailableServiceError, repo.initRepo
 	}
 	if repo.DBDS == nil {
 		return registrationSchema.DeleteStudentResponse{}, "02", status.StatusBadRequest, errors.New("DB DS not initialized")
 	}
-	deleted, err := repo.db().DeleteRegisterStudent(ctx, req.Body)
+	role := authz.GetRoleName(c)
+	studentID := authz.GetUserID(c)
+	deleted, err := repo.db().DeleteRegisterStudent(ctx, req.Body, role, studentID)
 	if err != nil {
 		return registrationSchema.DeleteStudentResponse{}, "03", status.StatusInternalServerError, err
 	}

@@ -35,10 +35,11 @@ func (ds *RegistrationDBDS) RegistrationsStudent(ctx context.Context, req regist
 	var register []dataModels.ListSelectOfferingResponse
 	if role == "student" {
 		studentID = ID
-	}
-	if role != "student" {
+	} else {
 		studentID = req.StudentID
+
 	}
+
 	var checkStudent bool
 	studentQuery := `
 SELECT
@@ -85,7 +86,7 @@ CASE WHEN EXISTS (SELECT 1 FROM student WHERE id = ? AND deleted_at IS NULL) THE
 			register = append(register, dataModels.ListSelectOfferingResponse{StudentID: studentID, OfferingRow: sel.OfferingID, CourseNumber: sel.CourseNumber, Status: "", Err: errors.New("selects is more than maxim units").Error()})
 			continue
 		}
-		sin, err := ds.registerSingleCourse(ctx, studentID, sel.OfferingID, sel.CourseNumber, sel.IsReserve)
+		sin, err := ds.registerSingleCourse(ctx, studentID, sel.OfferingID, sel.CourseNumber, role, sel.IsReserve)
 		if err != nil {
 			register = append(register, dataModels.ListSelectOfferingResponse{StudentID: studentID, OfferingRow: sel.OfferingID, CourseNumber: sel.CourseNumber, Status: sin.Status, Err: err.Error()})
 			continue
@@ -93,7 +94,7 @@ CASE WHEN EXISTS (SELECT 1 FROM student WHERE id = ? AND deleted_at IS NULL) THE
 
 		addedUnits += courseUnits
 
-		register = append(register, dataModels.ListSelectOfferingResponse{StudentID: studentID, OfferingRow: sel.OfferingID, CourseNumber: sel.CourseNumber, Status: sin.Status})
+		register = append(register, dataModels.ListSelectOfferingResponse{ID: sin.ID, StudentID: studentID, OfferingRow: sel.OfferingID, CourseNumber: sel.CourseNumber, Status: sin.Status})
 	}
 	return register, nil
 }
@@ -125,23 +126,30 @@ func (ds *RegistrationDBDS) UpdateRegisterStudent(ctx context.Context, req regis
 	return ds.readQuery(ctx, req.ID)
 }
 
-func (ds *RegistrationDBDS) DeleteRegisterStudent(ctx context.Context, req registrationSchema.GetRegisteredStudentsRequest) (res dataModels.Registration, err error) {
+func (ds *RegistrationDBDS) DeleteRegisterStudent(ctx context.Context, req registrationSchema.GetRegisteredStudentsRequest, role string, studentID int64) (res dataModels.Registration, err error) {
 	err = ds.check(ctx, req.ID)
 	if err != nil {
 		return dataModels.Registration{}, err
 	}
-	now := time.Now().In(TimeLoc.MyLocation())
-	deleteQuery := fmt.Sprintf("UPDATE %s SET deleted_at = ? WHERE ID = ? AND deleted_at IS NULL ", ds.tableName)
-	result, err := ds.db.PrepareContext(ctx, deleteQuery)
+	if role == "student" {
+		err = ds.isCorrect(ctx, req.ID, studentID)
+		if err != nil {
+			return dataModels.Registration{}, err
+		}
+		reg, err := ds.readQuery(ctx, req.ID)
+		if err != nil {
+			return dataModels.Registration{}, err
+		}
+		if reg.Registrar != "student" {
+			return dataModels.Registration{}, errors.New("this is registered by admin . you can not deleted it")
+		}
+	}
+	deleteQuery := fmt.Sprintf("DELETE FROM %s WHERE ID = ?", ds.tableName)
+	_, err = ds.db.ExecContext(ctx, deleteQuery, req.ID)
 	if err != nil {
 		return dataModels.Registration{}, err
 	}
-	defer result.Close()
-	_, err = result.ExecContext(ctx, now, req.ID)
-	if err != nil {
-		return dataModels.Registration{}, err
-	}
-	return ds.readQuery(ctx, req.ID)
+	return dataModels.Registration{}, nil
 
 }
 
@@ -159,7 +167,7 @@ func (ds *RegistrationDBDS) ListAllRegisterStudent(ctx context.Context, req regi
 	if err != nil {
 		return nil, 0, errors.New("error getting the total count")
 	}
-	selectQuery := fmt.Sprintf("SELECT ID, student_id,course_number, offering_row, status, enrolled_at, canceled_at, created_at, updated_at , deleted_at FROM %s LIMIT ? OFFSET ?", ds.tableName)
+	selectQuery := fmt.Sprintf("SELECT ID, student_id,course_number, offering_row, status, enrolled_at, canceled_at, created_at, updated_at FROM %s LIMIT ? OFFSET ?", ds.tableName)
 	rows, err := ds.db.QueryContext(ctx, selectQuery, limit, offset)
 	if err != nil {
 
@@ -168,7 +176,7 @@ func (ds *RegistrationDBDS) ListAllRegisterStudent(ctx context.Context, req regi
 	defer rows.Close()
 	for rows.Next() {
 		var register dataModels.Registration
-		err = rows.Scan(&register.ID, &register.StudentID, &register.CourseNumber, &register.OfferingRow, &register.Status, &register.EnrolledAt, &register.CanceledAt, &register.CreatedAt, &register.UpdatedAt, &register.DeletedAt)
+		err = rows.Scan(&register.ID, &register.StudentID, &register.CourseNumber, &register.OfferingRow, &register.Status, &register.EnrolledAt, &register.CanceledAt, &register.CreatedAt, &register.UpdatedAt)
 		if err != nil {
 			return nil, 0, errors.New("error scanning the row")
 		}
@@ -331,13 +339,45 @@ func (ds *RegistrationDBDS) ListStudentsOffering(ctx context.Context, req regist
 	return registers, totalRows, nil
 }
 
+func (ds *RegistrationDBDS) ListClassesStudent(ctx context.Context, req registrationSchema.Pages) (res []dataModels.TermClassSchedules, total int, page int, err error) {
+	var TermClassSchedules []dataModels.TermClassSchedules
+	var classes []dataModels.DetailClassScheduleR
+	page, size, err := pagination.CheckPage(*req.Page, constants.PageSize)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	limit := size
+	offset := (page - 1) * limit
+	var totalRows int
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s ", ds.tableName)
+	err = ds.db.QueryRowContext(ctx, countQuery).Scan(&totalRows)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	if req.Page == nil {
+		page = 1
+	} else if req.IsPerPage == true && req.IsNextPage == true {
+		return nil, 0, 0, errors.New("invalid page request")
+	} else if req.Page != nil && req.IsPerPage == true {
+		if page > 1 {
+			page = page - 1
+		}
+
+	} else if req.Page != nil && req.IsNextPage == true {
+		if page < totalRows {
+			page = page + 1
+		}
+	}
+
+}
+
 func (ds *RegistrationDBDS) readQuery(ctx context.Context, ID int64) (dataModels.Registration, error) {
 	var register dataModels.Registration
 	readQuery := fmt.Sprintf(`
-        SELECT ID, student_id,course_number, offering_row, status, enrolled_at, canceled_at, created_at, updated_at , deleted_at
+        SELECT ID, student_id,course_number, offering_row, status,registrar, enrolled_at, canceled_at, created_at, updated_at
         FROM %s
         WHERE ID = ? `, ds.tableName)
-	err := ds.db.QueryRowContext(ctx, readQuery, ID).Scan(&register.ID, &register.StudentID, &register.CourseNumber, &register.OfferingRow, &register.Status, &register.EnrolledAt, &register.CanceledAt, &register.CreatedAt, &register.UpdatedAt, &register.DeletedAt)
+	err := ds.db.QueryRowContext(ctx, readQuery, ID).Scan(&register.ID, &register.StudentID, &register.CourseNumber, &register.OfferingRow, &register.Status, &register.Registrar, &register.EnrolledAt, &register.CanceledAt, &register.CreatedAt, &register.UpdatedAt)
 	if err != nil {
 		return dataModels.Registration{}, fmt.Errorf(err.Error())
 	}
@@ -379,7 +419,7 @@ CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND course_number = ? AN
 	return nil
 }
 
-func (ds *RegistrationDBDS) registerSingleCourse(ctx context.Context, ID int64, offering int64, courseNumber int64, reserve bool) (res dataModels.Registration, err error) {
+func (ds *RegistrationDBDS) registerSingleCourse(ctx context.Context, ID int64, offering int64, courseNumber int64, role string, reserve bool) (res dataModels.Registration, err error) {
 	var add int64
 	now := time.Now().In(TimeLoc.MyLocation())
 	tx, err := ds.db.BeginTx(ctx, nil)
@@ -396,16 +436,16 @@ func (ds *RegistrationDBDS) registerSingleCourse(ctx context.Context, ID int64, 
 	var alreadyRegistered bool
 	checkDuplicateQuery := `
 SELECT EXISTS (SELECT 1 FROM registration 
-WHERE student_id = ? AND offering_row = ? AND deleted_at IS NULL)
+WHERE student_id = ? AND offering_row = ? )
  `
 	err = tx.QueryRowContext(ctx, checkDuplicateQuery, ID, offering).Scan(&alreadyRegistered)
 	if err != nil {
 		return dataModels.Registration{}, err
 	}
 	if alreadyRegistered {
-		return dataModels.Registration{}, errors.New("student already registered for this course")
+		return dataModels.Registration{}, errors.New("student already registered or reservation for this course")
 	}
-	insertQuery := fmt.Sprintf("INSERT INTO %s (student_id , course_number, offering_row,status, enrolled_at, created_at, updated_at , deleted_at) VALUES (?,?,?, ?, ?, ?, ? , ?)", ds.tableName)
+	insertQuery := fmt.Sprintf("INSERT INTO %s (student_id , course_number, offering_row,status,registrar, enrolled_at, created_at, updated_at ) VALUES (?,?,?, ?, ?, ?, ? , ?)", ds.tableName)
 	var checkCapacity bool
 	studentQuery := `
 SELECT
@@ -429,7 +469,7 @@ CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND capacity > enrolled_
 		if err != nil {
 			return dataModels.Registration{}, err
 		}
-		result, err := tx.ExecContext(ctx, insertQuery, ID, courseNumber, offering, reserved, now, now, now, nil)
+		result, err := tx.ExecContext(ctx, insertQuery, ID, courseNumber, offering, reserved, role, now, now, now)
 		if err != nil {
 			return dataModels.Registration{}, errors.New("you can't reserve the reservation")
 		}
@@ -450,7 +490,7 @@ CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND capacity > enrolled_
 		if err != nil {
 			return dataModels.Registration{}, err
 		}
-		sdd, err := tx.ExecContext(ctx, insertQuery, ID, courseNumber, offering, enrolled, now, now, now, nil)
+		sdd, err := tx.ExecContext(ctx, insertQuery, ID, courseNumber, offering, enrolled, role, now, now, now)
 		if err != nil {
 			return dataModels.Registration{}, fmt.Errorf("you can't enroll the student", err)
 		}
@@ -475,14 +515,11 @@ func (ds *RegistrationDBDS) checkingTotalUnits(ctx context.Context, studentID in
         JOIN courses c ON o.course_number = c.course_number
         WHERE r.student_id = ? 
           AND (r.status = 'enrolled' OR r.status = 'reserveation')
-          AND r.deleted_at IS NULL
           `
 	err = ds.db.QueryRowContext(ctx, query, studentID).Scan(&count)
 	if err != nil {
 		return 0, err
 	}
-	fmt.Println(count)
-
 	return count, nil
 }
 
@@ -515,5 +552,22 @@ func (ds RegistrationDBDS) maxNumberUnits(ctx context.Context, StudentID int64) 
 	default:
 		return 0, errors.New("invalid student level")
 	}
+
+}
+
+func (ds *RegistrationDBDS) isCorrect(ctx context.Context, ID int64, studentID int64) error {
+	var checkRegister bool
+	selectQuery := `
+SELECT
+CASE WHEN EXISTS (SELECT 1 FROM registration WHERE ID = ? AND student_id = ?) THEN 1 ELSE 0 END
+`
+	err := ds.db.QueryRowContext(ctx, selectQuery, ID, studentID).Scan(&checkRegister)
+	if err != nil {
+		return err
+	}
+	if !checkRegister {
+		return errors.New("there is not registration")
+	}
+	return nil
 
 }

@@ -10,6 +10,12 @@ type DetailStudentResponse struct {
 	Information dataModels.Registration
 }
 
+type ClassSchedule struct {
+	MyClasses []dataModels.TermClassSchedules
+	Page      int `json:"page"`
+	Total     int
+}
+
 type DeleteStudentResponse struct {
 	Information dataModels.Registration
 	Massage     string

@@ -18,7 +18,7 @@ func Delete(ctx *fiber.Ctx) error {
 	if err != nil {
 		return mainController.Error(ctx, controllerbaseErrCode.RegistrationErrCode, "01", errStr, code, err)
 	}
-	res, errStr, code, err := repositories.RegistrationRepo.Delete(spanCtx, req)
+	res, errStr, code, err := repositories.RegistrationRepo.Delete(spanCtx, req, ctx)
 	if err != nil {
 		return mainController.Error(ctx, controllerbaseErrCode.RegistrationErrCode, "02", errStr, code, err)
 	}

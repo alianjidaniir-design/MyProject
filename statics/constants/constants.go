@@ -2,7 +2,10 @@ package constants
 
 import "time"
 
-const MaxNumberUnits = 9
+const (
+	MaxNumberUnits = 9
+	PageSize       = 50
+)
 const (
 	AccessTokenExpiry  = 20 * time.Minute
 	RefreshTokenExpiry = 7 * 24 * time.Hour
