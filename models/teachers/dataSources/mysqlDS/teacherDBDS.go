@@ -89,7 +89,6 @@ CASE WHEN EXISTS (SELECT 1 FROM roles WHERE name = ?) THEN 1 ELSE 0 END`
 		return dataModels.Teacher{}, err
 	}
 	return ds.readQuery(ctx, insertID)
-
 }
 
 func (ds *TeacherDBDS) ListTeachers(ctx context.Context, req teacherSchema.PaginationSchema) (res []dataModels.Teacher, total int64, err error) {

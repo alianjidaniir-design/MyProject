@@ -28,7 +28,8 @@ type GetRequest struct {
 }
 
 type UpdateUserRequest struct {
-	ID int64 `json:"ID"`
+	ID       int64  `json:"ID"`
+	UserName string `json:"user_name" validate:"required,len=9,numeric"`
 }
 type DeleteRequest struct {
 	ID int64 `json:"ID"`

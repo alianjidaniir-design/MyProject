@@ -4,17 +4,16 @@ import (
 	"MyProject/models/student/dataModel"
 )
 
-type UserResponse struct {
-	User dataModel.Student `json:"student"`
+type DetailStudent struct {
+	Student dataModel.Student `json:"student"`
 }
 
-type ResponseUser struct {
-	User dataModel.Student `json:"student"`
+type InfoStudent struct {
+	Info dataModel.InfoStudent `json:"info"`
 }
-
-type ListUser struct {
-	Users []dataModel.Student `json:"users"`
-	Total int64
+type ListStudents struct {
+	Students []dataModel.Student `json:"students"`
+	Total    int64
 }
 
 type GetResponse struct {

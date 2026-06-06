@@ -3,6 +3,7 @@ package student
 import (
 	"MyProject/apiSchema/commonSchema"
 	"MyProject/apiSchema/studentSchema"
+	"MyProject/midddleware/authz"
 	userDataSourses "MyProject/models/student/dataSources"
 	"MyProject/models/student/dataSources/mySqlDS"
 	"MyProject/models/student/dataSources/redis"
@@ -70,33 +71,33 @@ func GetRepoIns() *Repository {
 	return repoIns
 }
 
-func (repo *Repository) Create(ctx context.Context, req commonSchema.BaseRequest[studentSchema.SignUpStudent]) (res studentSchema.UserResponse, errStr string, code int, err error) {
+func (repo *Repository) Create(ctx context.Context, req commonSchema.BaseRequest[studentSchema.SignUpStudent]) (res studentSchema.DetailStudent, errStr string, code int, err error) {
 	if repo.initErr != nil {
-		return studentSchema.UserResponse{}, "13", status.StatusUnauthorized, repo.initErr
+		return studentSchema.DetailStudent{}, "13", status.StatusUnauthorized, repo.initErr
 	}
 	if repo.dbDS == nil {
-		return studentSchema.UserResponse{}, "14", status.UnAvailableServiceError, errors.New("student dataSource not configured")
+		return studentSchema.DetailStudent{}, "14", status.UnAvailableServiceError, errors.New("student dataSource not configured")
 	}
 
 	createdUser, err := repo.db().CreateStudent(ctx, req.Body)
 	if err != nil {
-		return studentSchema.UserResponse{}, "04", status.UnAvailableServiceError, err
+		return studentSchema.DetailStudent{}, "04", status.UnAvailableServiceError, err
 	}
-	return studentSchema.UserResponse{User: createdUser}, "", status.StatusOK, nil
+	return studentSchema.DetailStudent{Student: createdUser}, "", status.StatusOK, nil
 }
 
-func (repo *Repository) List(ctx context.Context, req commonSchema.BaseRequest[studentSchema.ListRequest]) (res studentSchema.ListUser, errStr string, code int, err error) {
+func (repo *Repository) List(ctx context.Context, req commonSchema.BaseRequest[studentSchema.ListRequest]) (res studentSchema.ListStudents, errStr string, code int, err error) {
 	if repo.initErr != nil {
-		return studentSchema.ListUser{}, "10", status.UnAvailableServiceError, repo.initErr
+		return studentSchema.ListStudents{}, "10", status.UnAvailableServiceError, repo.initErr
 	}
 	if repo.db() == nil {
-		return studentSchema.ListUser{}, "11", status.StatusInternalServerError, errors.New("bad")
+		return studentSchema.ListStudents{}, "11", status.StatusInternalServerError, errors.New("bad")
 	}
 	lists, total, err := repo.db().ReadStudent(ctx, req.Body)
 	if err != nil {
-		return studentSchema.ListUser{}, "04", status.UnAvailableServiceError, err
+		return studentSchema.ListStudents{}, "04", status.UnAvailableServiceError, err
 	}
-	return studentSchema.ListUser{Users: lists, Total: total}, "", status.StatusOK, nil
+	return studentSchema.ListStudents{Students: lists, Total: total}, "", status.StatusOK, nil
 }
 
 func (repo *Repository) Update(ctx context.Context, req commonSchema.BaseRequest[studentSchema.UpdateUserRequest]) (res studentSchema.UpdateResponse, errStr string, code int, err error) {
@@ -269,6 +270,22 @@ func (repo *Repository) Logout(ctx context.Context, req commonSchema.BaseRequest
 
 }
 
+func (repo *Repository) MyInformation(ctx context.Context, c *fiber.Ctx) (res studentSchema.InfoStudent, errStr string, code int, err error) {
+	if repo.initErr != nil {
+		return studentSchema.InfoStudent{}, "01", status.StatusUnauthorized, repo.initErr
+	}
+	if repo.db() == nil {
+		return studentSchema.InfoStudent{}, "02", status.StatusInternalServerError, errors.New("bad")
+	}
+	studentID := authz.GetUserID(c)
+	detail, err := repo.db().MyInformation(ctx, studentID)
+	if err != nil {
+		return studentSchema.InfoStudent{}, "03", status.UnAvailableServiceError, err
+	}
+	return studentSchema.InfoStudent{Info: detail}, "", status.StatusOK, nil
+
+}
+
 func (repo *Repository) db() userDataSourses.StudentDB {
 	return repo.dbDS
 }
@@ -276,7 +293,6 @@ func (repo *Repository) db() userDataSourses.StudentDB {
 func (repo *Repository) cache() userDataSourses.RedisDS {
 	if repo.redisDS == nil {
 		log.Println("WARNING: redisDS is nil in cache()")
-		// می‌توانید یک mock یا nil返回 دهید
 	}
 	return repo.redisDS
 }

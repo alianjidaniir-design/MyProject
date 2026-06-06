@@ -202,7 +202,7 @@ func (ds *RegistrationDBDS) CancelRegisterStudent(ctx context.Context, req regis
 	var can = constants.StatusCanceled
 	checkQuery := `
 SELECT
-CASE WHEN EXISTS (SELECT 1 FROM registration WHERE id = ? AND status != ? AND deleted_at IS NULL) THEN 1 ELSE 0 END
+CASE WHEN EXISTS (SELECT 1 FROM registration WHERE id = ? AND status != ?) THEN 1 ELSE 0 END
 `
 	err = tx.QueryRowContext(ctx, checkQuery, req.ID, can).Scan(&checkStatus)
 	if err != nil {
@@ -212,21 +212,21 @@ CASE WHEN EXISTS (SELECT 1 FROM registration WHERE id = ? AND status != ? AND de
 		return dataModels.Registration{}, errors.New(" status is canceled or registration deleted")
 	}
 
-	selectStatus := fmt.Sprintf("SELECT status FROM registration WHERE id = ? AND deleted_at IS NULL")
+	selectStatus := fmt.Sprintf("SELECT status FROM registration WHERE id = ?")
 	err = tx.QueryRowContext(ctx, selectStatus, req.ID).Scan(&res.Status)
 	var canceling = constants.StatusCanceled
-	updateQuery := fmt.Sprintf("UPDATE %s SET canceled_at = ? , status = ? WHERE ID = ? AND status = ?", ds.tableName)
+	updateQuery := fmt.Sprintf("UPDATE %s SET canceled_at = ? , updated_at = ? , status = ? WHERE ID = ? AND status = ?", ds.tableName)
 	result, err := tx.PrepareContext(ctx, updateQuery)
 	if err != nil {
 		return dataModels.Registration{}, err
 	}
 	defer result.Close()
-	_, err = result.ExecContext(ctx, now, canceling, req.ID, res.Status)
+	_, err = result.ExecContext(ctx, now, now, canceling, req.ID, res.Status)
 	if err != nil {
 		return dataModels.Registration{}, err
 	}
 	selectOfferingRow := fmt.Sprintf("SELECT offering_row FROM %s WHERE id = ? ", ds.tableName)
-	var offeringRow int
+	var offeringRow int64
 	err = tx.QueryRowContext(ctx, selectOfferingRow, req.ID).Scan(&offeringRow)
 	if err != nil {
 		return dataModels.Registration{}, fmt.Errorf("cannot find offering row for registration %d: %w", req.ID, err)

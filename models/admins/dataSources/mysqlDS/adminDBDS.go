@@ -246,7 +246,9 @@ func (ds *AdminDBDS) checkAdmin(ctx context.Context, userName string) (adminData
 	checkQuery := "SELECT * FROM admins WHERE user_name = ?"
 	err := ds.db.QueryRowContext(ctx, checkQuery, userName).Scan(&admin.ID, &admin.Username, &admin.Password, &admin.Name, &admin.Family, &admin.Email, &admin.RoleName, &admin.CreatedAt)
 	if err != nil {
-		return admin, err
+		if errors.Is(err, sql.ErrNoRows) {
+			return admin, errors.New("invalid UserName")
+		}
 	}
 	return admin, nil
 }

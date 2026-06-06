@@ -21,3 +21,13 @@ type Student struct {
 	UpdatedAt    time.Time  `gorm:"column:updated_at" json:"updated_at"`
 	DeletedAt    *time.Time `gorm:"column:deleted_at" json:"deleted_at"`
 }
+
+type InfoStudent struct {
+	Name         string `json:"name"`
+	Family       string `json:"family"`
+	Phone        string `json:"phone"`
+	NationalCode string `json:"national_code"`
+	Major        string `json:"major"`
+	StudentCode  string `json:"student_code"`
+	Level        string `json:"level"`
+}

@@ -16,4 +16,5 @@ type StudentDB interface {
 	StudentEntry(ctx context.Context, req studentSchema.LoginStudent) (string, string, string, error)
 	RefreshToken(ctx context.Context, req string) (string, string, error)
 	RevokedRefreshToken(ctx context.Context, req studentSchema.LogoutRequest, tok string) error
+	MyInformation(ctx context.Context, ID int64) (studentDataModel.InfoStudent, error)
 }

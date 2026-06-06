@@ -11,10 +11,10 @@ import (
 
 type StudentRepository interface {
 	// Create متد create
-	Create(ctx context.Context, req commonSchema.BaseRequest[studentSchema.SignUpStudent]) (res studentSchema.UserResponse, errStr string, code int, err error)
+	Create(ctx context.Context, req commonSchema.BaseRequest[studentSchema.SignUpStudent]) (res studentSchema.DetailStudent, errStr string, code int, err error)
 	// List method list
 
-	List(ctx context.Context, req commonSchema.BaseRequest[studentSchema.ListRequest]) (res studentSchema.ListUser, errStr string, code int, err error)
+	List(ctx context.Context, req commonSchema.BaseRequest[studentSchema.ListRequest]) (res studentSchema.ListStudents, errStr string, code int, err error)
 
 	// Get method
 	Get(ctx context.Context, req commonSchema.BaseRequest[studentSchema.GetRequest]) (res studentSchema.GetResponse, errStr string, code int, err error)
@@ -34,6 +34,8 @@ type StudentRepository interface {
 	RefreshToken(ctx context.Context, c *fiber.Ctx) (errStr string, code int, err error)
 
 	Logout(ctx context.Context, req commonSchema.BaseRequest[studentSchema.LogoutRequest], c *fiber.Ctx) (res studentSchema.StudentEntry, errStr string, code int, err error)
+
+	MyInformation(ctx context.Context, c *fiber.Ctx) (res studentSchema.InfoStudent, errStr string, code int, err error)
 }
 
 var StudentRepo StudentRepository = student.GetRepoIns()

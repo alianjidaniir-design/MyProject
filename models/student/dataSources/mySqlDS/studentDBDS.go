@@ -77,6 +77,20 @@ func (ds *StudentDBDS) GetStudent(ctx context.Context, req studentSchema.GetRequ
 	return ds.readTaskByID(ctx, req.ID)
 }
 
+func (ds *StudentDBDS) MyInformation(ctx context.Context, ID int64) (studentDataModel.InfoStudent, error) {
+	err := ds.chackStudent(ctx, ID)
+	if err != nil {
+		return studentDataModel.InfoStudent{}, err
+	}
+	var info studentDataModel.InfoStudent
+	selectQuery := fmt.Sprintf("SELECT name , family , phone , national_code , major , student_code , level FROM %s WHERE ID = ?", ds.tableName)
+	err = ds.db.QueryRowContext(ctx, selectQuery, ID).Scan(&info.Name, &info.Family, &info.Phone, &info.NationalCode, &info.Major, &info.StudentCode, &info.Level)
+	if err != nil {
+		return studentDataModel.InfoStudent{}, err
+	}
+	return info, nil
+}
+
 func (ds *StudentDBDS) CreateStudent(ctx context.Context, req studentSchema.SignUpStudent) (studentDataModel.Student, error) {
 	err := Val.CheckValidation(req)
 	if err != nil {
@@ -163,45 +177,13 @@ func (ds *StudentDBDS) ReadStudent(ctx context.Context, req studentSchema.ListRe
 	return users, total, nil
 }
 
-func (ds *StudentDBDS) RenameStudent(ctx context.Context, req studentSchema.UpdateUserRequest) (studentDataModel.Student, error) {
-	var students studentDataModel.Student
-	stmt := fmt.Sprintf("UPDATE %s SET  name = ?, family = ?, updated_at = ? WHERE id = ? ", ds.tableName)
-	var updatedAt time.Time
-	sss, err := ds.db.PrepareContext(ctx, stmt)
-	if err != nil {
-		return studentDataModel.Student{}, err
-	}
-	defer sss.Close()
-
-	result, err := sss.ExecContext(ctx,
-		students.Name,
-		students.Family,
-		updatedAt,
-		req.ID,
-	)
-	if err != nil {
-		return studentDataModel.Student{}, err
-	}
-	// (optional) require for number of updated column
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return studentDataModel.Student{}, errors.New("error in number update")
-	}
-	if rows == 0 {
-		return studentDataModel.Student{}, fmt.Errorf("rows == 0")
-	}
-	updatedAt = updatedAt.In(TimeLoc.MyLocation())
-	return students, nil
-
-}
-
 func (ds *StudentDBDS) UpdateStudent(ctx context.Context, req studentSchema.UpdateUserRequest) (studentDataModel.Student, error) {
 	now := time.Now().In(TimeLoc.MyLocation())
 	err := ds.chackStudent(ctx, req.ID)
 	if err != nil {
 		return studentDataModel.Student{}, errors.New("Found Not student")
 	}
-	stmt := fmt.Sprintf("UPDATE %s SET updated_at = ? WHERE id = ? ", ds.tableName)
+	stmt := fmt.Sprintf("UPDATE %s SET updated_at = ? AND user_name = ? WHERE id = ? ", ds.tableName)
 	sss, err := ds.db.PrepareContext(ctx, stmt)
 	if err != nil {
 		return studentDataModel.Student{}, err
@@ -210,12 +192,12 @@ func (ds *StudentDBDS) UpdateStudent(ctx context.Context, req studentSchema.Upda
 
 	result, err := sss.ExecContext(ctx,
 		now,
+		req.UserName,
 		req.ID,
 	)
 	if err != nil {
 		return studentDataModel.Student{}, err
 	}
-	// (optional) require for number of updated column
 	rows, err := result.RowsAffected()
 	if err != nil {
 		return studentDataModel.Student{}, errors.New("error in number update")
@@ -374,7 +356,9 @@ func (ds *StudentDBDS) checkingStudent(s string) (data studentDataModel.Student,
 	selectQuery := fmt.Sprintf("SELECT ID , name , student_code , password , role_name FROM student WHERE student_code = ?")
 	err = ds.db.QueryRow(selectQuery, s).Scan(&students.ID, &students.Name, &students.StudentCode, &students.Password, &students.RoleName)
 	if err != nil {
-		return studentDataModel.Student{}, err
+		if errors.Is(err, sql.ErrNoRows) {
+			return students, errors.New("invalid UserName")
+		}
 	}
 	return students, nil
 }
