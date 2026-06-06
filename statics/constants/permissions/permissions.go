@@ -86,4 +86,7 @@ const (
 	CreateTuition         string = "CreateTuition"
 	UpdateTuition         string = "UpdateTuition"
 	DeleteTuition         string = "DeleteTuition"
+	MyViewStudent         string = "MyViewStudent"
+	MyViewTeacher         string = "MyViewTeacher"
+	MyViewAdmin           string = "MyViewAdmin"
 )

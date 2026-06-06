@@ -16,3 +16,12 @@ type Teacher struct {
 	UpdatedAt      time.Time  `json:"updated_at"`
 	DeletedAt      *time.Time `json:"deleted_at"`
 }
+
+type InfoTeacher struct {
+	Name           string `json:"name"`
+	LastName       string `json:"last_name"`
+	NationalCode   string `json:"national_code"`
+	Email          string `json:"email"`
+	Phone          string `json:"phone"`
+	WorkExperience string `json:"work_experience"`
+}

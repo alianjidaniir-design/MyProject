@@ -3,6 +3,7 @@ package teachers
 import (
 	"MyProject/apiSchema/commonSchema"
 	"MyProject/apiSchema/teacherSchema"
+	"MyProject/midddleware/authz"
 	"MyProject/models/teachers/dataSources"
 	mysqlDataSource "MyProject/models/teachers/dataSources/mysqlDS"
 	"MyProject/models/teachers/dataSources/redis"
@@ -263,6 +264,21 @@ func (repo *Repository) Logout(ctx context.Context, req commonSchema.BaseRequest
 	})
 	return teacherSchema.EntryStudentSchema{Massage: "logout"}, "", status.StatusOK, nil
 
+}
+
+func (repo *Repository) InfoTeacher(ctx context.Context, c *fiber.Ctx) (res teacherSchema.InfoTeacherSchema, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return teacherSchema.InfoTeacherSchema{}, "01", status.StatusUnauthorized, repo.initRepo
+	}
+	if repo.db() == nil {
+		return teacherSchema.InfoTeacherSchema{}, "02", status.StatusInternalServerError, errors.New("wrong db connection")
+	}
+	teacherID := authz.GetUserID(c)
+	detail, err := repo.db().MyInfo(ctx, teacherID)
+	if err != nil {
+		return teacherSchema.InfoTeacherSchema{}, "03", status.StatusUnauthorized, err
+	}
+	return teacherSchema.InfoTeacherSchema{Teacher: detail}, "", status.StatusOK, nil
 }
 
 func (repo *Repository) db() dataSources.TeacherDS {

@@ -91,6 +91,20 @@ CASE WHEN EXISTS (SELECT 1 FROM roles WHERE name = ?) THEN 1 ELSE 0 END`
 	return ds.readQuery(ctx, insertID)
 }
 
+func (ds *TeacherDBDS) MyInfo(ctx context.Context, ID int64) (dataModels.InfoTeacher, error) {
+	err := ds.chackTeacher(ctx, ID)
+	if err != nil {
+		return dataModels.InfoTeacher{}, err
+	}
+	var info dataModels.InfoTeacher
+	selectQuery := fmt.Sprintf("SELECT name , last_name ,  national_code , email , phone ,  work_experience FROM %s WHERE ID = ?", ds.tableName)
+	err = ds.db.QueryRowContext(ctx, selectQuery, ID).Scan(&info.Name, &info.LastName, &info.NationalCode, &info.Email, &info.Phone, &info.WorkExperience)
+	if err != nil {
+		return dataModels.InfoTeacher{}, err
+	}
+	return info, nil
+}
+
 func (ds *TeacherDBDS) ListTeachers(ctx context.Context, req teacherSchema.PaginationSchema) (res []dataModels.Teacher, total int64, err error) {
 	var teachers []dataModels.Teacher
 	page, pageSize, err := pagination.CheckPage(req.Page, req.PageSize)

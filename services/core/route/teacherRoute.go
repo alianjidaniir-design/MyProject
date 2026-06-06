@@ -3,6 +3,7 @@ package route
 import (
 	. "MyProject/controllers/teacher"
 	"MyProject/midddleware/authz"
+	"MyProject/statics/constants/permissions"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -17,18 +18,21 @@ var teacherRoute = map[string]string{
 	"TeacherLogin":      "teacher/login",
 	"TeacherRefresh":    "teacher/refresh",
 	"TeacherLogout":     "teacher/logout",
+	"TeacherMyInfo":     "teacher/myinfo",
 }
 
 func SetupTeacherRoute(app *fiber.App) map[string]string {
-	app.Post(teacherRoute["TeacherCreate"], Create)
-	app.Post(teacherRoute["TeacherList"], List)
-	app.Post(teacherRoute["TeacherDetail"], Get)
-	app.Post(teacherRoute["TeacherDelete"], Delete)
-	app.Post(teacherRoute["TeacherSoftDelete"], SoftDelete)
-	app.Post(teacherRoute["TeacherUpdate"], Update)
+	api := app.Group("/api", authz.AuthMiddleware())
+	api.Post(teacherRoute["TeacherCreate"], authz.RequirePermission(permissions.CreateTeacher), Create)
+	api.Post(teacherRoute["TeacherList"], authz.RequirePermission(permissions.ListTeachers), List)
+	api.Post(teacherRoute["TeacherDetail"], authz.RequirePermission(permissions.ViewDetailTeacher), Get)
+	api.Post(teacherRoute["TeacherDelete"], authz.AuthMiddleware(), Delete)
+	api.Post(teacherRoute["TeacherSoftDelete"], authz.AuthMiddleware(), SoftDelete)
+	api.Post(teacherRoute["TeacherUpdate"], authz.AuthMiddleware(), Update)
 	app.Post(teacherRoute["TeacherLogin"], Login)
 	app.Post(teacherRoute["TeacherRefresh"], Refresh)
-	app.Post(teacherRoute["TeacherLogout"], authz.AuthMiddleware(), Logout)
+	api.Post(teacherRoute["TeacherLogout"], Logout)
+	api.Post(teacherRoute["TeacherMyInfo"], authz.RequirePermission(permissions.ViewDetailTeacher), MyInfo)
 
 	return teacherRoute
 }

@@ -6,6 +6,10 @@ type TeacherSchema struct {
 	Teacher dataModels.Teacher `json:"teacher"`
 }
 
+type InfoTeacherSchema struct {
+	Teacher dataModels.InfoTeacher `json:"teacher"`
+}
+
 type ListSchema struct {
 	Teachers []dataModels.Teacher `json:"teachers"`
 	Total    int64                `json:"total"`

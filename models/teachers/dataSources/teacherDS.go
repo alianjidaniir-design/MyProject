@@ -16,4 +16,5 @@ type TeacherDS interface {
 	LoginTeachers(ctx context.Context, req teacherSchema.LoginTeacherRequest) (access string, refresh string, massage string, err error)
 	Refresh(ctx context.Context, req string) (access string, refresh string, err error)
 	Logout(ctx context.Context, req teacherSchema.LogoutSchema, refresh string) error
+	MyInfo(ctx context.Context, ID int64) (dataModels.InfoTeacher, error)
 }

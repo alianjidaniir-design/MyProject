@@ -32,6 +32,6 @@ func SetupUserRoute(app *fiber.App) map[string]string {
 	app.Post(studentRoute["studentLogin"], Login)
 	app.Post(studentRoute["studentRefresh"], Refresh)
 	api.Post(studentRoute["studentLogout"], Logout)
-	api.Post(studentRoute["studentMyInfo"], MyInfo)
+	api.Post(studentRoute["studentMyInfo"], authz.RequirePermission(permissions.MyViewStudent), MyInfo)
 	return studentRoute
 }

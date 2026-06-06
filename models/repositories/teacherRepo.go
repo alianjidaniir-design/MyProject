@@ -20,6 +20,7 @@ type TeacherRepository interface {
 	Login(ctx context.Context, req commonSchema.BaseRequest[teacherSchema.LoginTeacherRequest], c *fiber.Ctx) (res teacherSchema.EntryStudentSchema, errStr string, code int, err error)
 	RefreshToken(ctx context.Context, c *fiber.Ctx) (errStr string, code int, err error)
 	Logout(ctx context.Context, req commonSchema.BaseRequest[teacherSchema.LogoutSchema], c *fiber.Ctx) (res teacherSchema.EntryStudentSchema, errStr string, code int, err error)
+	InfoTeacher(ctx context.Context, c *fiber.Ctx) (res teacherSchema.InfoTeacherSchema, errStr string, code int, err error)
 }
 
 var TeacherRepo TeacherRepository = teachers.GetRepo()
