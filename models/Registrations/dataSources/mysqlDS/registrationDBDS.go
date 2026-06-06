@@ -339,35 +339,88 @@ func (ds *RegistrationDBDS) ListStudentsOffering(ctx context.Context, req regist
 	return registers, totalRows, nil
 }
 
-func (ds *RegistrationDBDS) ListClassesStudent(ctx context.Context, req registrationSchema.Pages) (res []dataModels.TermClassSchedules, total int, page int, err error) {
-	var TermClassSchedules []dataModels.TermClassSchedules
-	var classes []dataModels.DetailClassScheduleR
-	page, size, err := pagination.CheckPage(*req.Page, constants.PageSize)
+func (ds *RegistrationDBDS) ListClassesStudent(ctx context.Context, req registrationSchema.Pages, studentID int64) (res []dataModels.TermClassSchedules, total int, page int, err error) {
+	var termClassSchedules []dataModels.TermClassSchedules
+	var classes []dataModels.DetailClassScheduler
+	var termID int64
+	getTermIDQuery := `
+        SELECT id 
+        FROM terms 
+        WHERE term = ? AND year = ?
+    `
+	err = ds.db.QueryRowContext(ctx, getTermIDQuery, req.Term, req.Year).Scan(&termID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, 0, 0, fmt.Errorf("term %d for year %d does not exist. Available terms: check terms table", req.Term, req.Year)
+		}
+		return nil, 0, 0, err
+	}
+	page, size, err := pagination.CheckPage(req.Page, constants.PageSize)
 	if err != nil {
 		return nil, 0, 0, err
 	}
 	limit := size
 	offset := (page - 1) * limit
 	var totalRows int
-	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s ", ds.tableName)
-	err = ds.db.QueryRowContext(ctx, countQuery).Scan(&totalRows)
+	countQuery := `
+        SELECT COUNT(*) 
+        FROM registration r
+        JOIN offerings o ON r.offering_row = o.row
+        WHERE r.student_id = ? 
+          AND o.term_id = ?
+    `
+	err = ds.db.QueryRowContext(ctx, countQuery, studentID, termID).Scan(&totalRows)
 	if err != nil {
 		return nil, 0, 0, err
 	}
-	if req.Page == nil {
-		page = 1
-	} else if req.IsPerPage == true && req.IsNextPage == true {
-		return nil, 0, 0, errors.New("invalid page request")
-	} else if req.Page != nil && req.IsPerPage == true {
-		if page > 1 {
-			page = page - 1
-		}
-
-	} else if req.Page != nil && req.IsNextPage == true {
-		if page < totalRows {
-			page = page + 1
-		}
+	var tot int
+	selectQuery := `
+SELECT
+o.row AS offering_row,
+o.group_number AS offering_group_number,
+c.course_number AS course_number,
+c.title AS title,
+c.unit AS unit,
+t.name AS teacher_name,
+t.last_name AS teacher_last_name,
+o.class_start_time AS class_start_time,
+o.class_end_time AS class_end_time
+FROM registration r
+JOIN offerings o ON r.offering_row = o.row
+JOIN courses c ON o.course_number = c.course_number
+JOIN teachers t ON o.teacher_id = t.ID
+JOIN student u ON r.student_id = u.ID
+WHERE r.student_id = ? AND o.term_id = ?
+ORDER BY o.class_start_time LIMIT ? OFFSET ?;
+`
+	rows, err := ds.db.QueryContext(ctx, selectQuery, studentID, termID, limit, offset)
+	if err != nil {
+		return nil, 0, 0, err
 	}
+	defer rows.Close()
+	for rows.Next() {
+		var class dataModels.DetailClassScheduler
+		err = rows.Scan(&class.OfferingRow, &class.OfferingGroupNumber, &class.CourseNumber, &class.Title, &class.Unit, &class.TeacherName, &class.TeacherLastName, &class.ClassStartTime, &class.ClassEndTime)
+		if err != nil {
+			return nil, 0, 0, err
+		}
+		sumUnits := class.Unit
+		tot += sumUnits
+		classes = append(classes, class)
+	}
+	if rows.Err() != nil {
+		return nil, 0, 0, err
+	}
+
+	var termClassSchedulers dataModels.TermClassSchedules
+
+	termClassSchedulers.Term = req.Term
+	termClassSchedulers.Year = req.Year
+	termClassSchedulers.Classes = classes
+	termClassSchedulers.TotalUnits = tot
+	termClassSchedules = append(termClassSchedules, termClassSchedulers)
+
+	return termClassSchedules, totalRows, page, nil
 
 }
 

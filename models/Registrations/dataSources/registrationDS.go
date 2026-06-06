@@ -15,5 +15,5 @@ type RegistrationDS interface {
 	CancelRegisterStudent(ctx context.Context, req registrationSchema.GetRegisteredStudentsRequest) (res dataModels.Registration, err error)
 	ListStudentsOffering(ctx context.Context, req registrationSchema.ListStudentsRequest) (res []dataModels.Offering, total int, err error)
 	ListOfferingsStudent(ctx context.Context, req registrationSchema.ListOfferingRequest) (res []dataModels.Student, total int, err error)
-	ListClassesStudent(ctx context.Context, req registrationSchema.Pages) (res []dataModels.TermClassSchedules, total int, page int, err error)
+	ListClassesStudent(ctx context.Context, req registrationSchema.Pages, studentID int64) (res []dataModels.TermClassSchedules, total int, page int, err error)
 }

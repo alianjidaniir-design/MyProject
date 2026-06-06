@@ -66,6 +66,7 @@ const (
 	CreateRegister        string = "CreateRegister"
 	ViewRegister          string = "ViewRegister"
 	ListRegisters         string = "ListRegisters"
+	ListClasses           string = "ListClasses"
 	UpdateRegister        string = "UpdateRegister"
 	DeleteRegister        string = "DeleteRegister"
 	CancelRegister        string = "CancelRegister"

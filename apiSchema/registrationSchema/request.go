@@ -12,11 +12,9 @@ type CourseSelection struct {
 }
 
 type Pages struct {
-	Term       int  `json:"term" validate:"required"`
-	Year       int  `json:"year" validate:"required"`
-	Page       *int `json:"page" validate:"omitempty"`
-	IsPerPage  bool `json:"is_per_page" validate:"omitempty"`
-	IsNextPage bool `json:"is_next_page" validate:"omitempty"`
+	Term int `json:"term" validate:"required"`
+	Year int `json:"year" validate:"required"`
+	Page int `json:"page" validate:"omitempty"`
 }
 
 type GetRegisteredStudentsRequest struct {

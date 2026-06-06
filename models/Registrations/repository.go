@@ -165,6 +165,22 @@ func (repo *Repository) ListOfferings(ctx context.Context, req commonSchema.Base
 	return registrationSchema.ListOfferingResponse{List: offering, Total: totalAll}, "", status.StatusOK, nil
 }
 
+func (repo *Repository) ListClasses(ctx context.Context, req commonSchema.BaseRequest[registrationSchema.Pages], c *fiber.Ctx) (res registrationSchema.ClassSchedule, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return registrationSchema.ClassSchedule{}, "01", status.StatusUnauthorized, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return registrationSchema.ClassSchedule{}, "02", status.StatusBadRequest, errors.New("DB DS not initialized")
+	}
+	studentID := authz.GetUserID(c)
+	class, tot, page, err := repo.db().ListClassesStudent(ctx, req.Body, studentID)
+	if err != nil {
+		return registrationSchema.ClassSchedule{}, "03", status.StatusInternalServerError, err
+	}
+	return registrationSchema.ClassSchedule{MyClasses: class, Total: tot, Page: page}, "", status.StatusOK, nil
+
+}
+
 func (repo *Repository) db() dataSources.RegistrationDS {
 	return repo.DBDS
 }

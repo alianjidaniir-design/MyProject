@@ -34,22 +34,21 @@ type Offering struct {
 	Status      string `json:"status"`
 }
 
-type DetailClassScheduleR struct {
-	OfferingRow     int64     `json:"offering_row"`
-	OfferingNumber  int       `json:"offering_number"`
-	CourseNumber    int       `json:"course_number"`
-	Title           string    `json:"title"`
-	Unit            int       `json:"unit"`
-	TeacherID       int64     `json:"teacher_id"`
-	TeacherName     string    `json:"teacher_name"`
-	TeacherLastName string    `json:"teacher_last_name"`
-	ClassStartTime  time.Time `json:"class_start_time"`
-	ClassEndTime    time.Time `json:"class_end_time"`
+type DetailClassScheduler struct {
+	OfferingRow         int64     `json:"offering_row"`
+	OfferingGroupNumber int       `json:"offering_group_number"`
+	CourseNumber        int       `json:"course_number"`
+	Title               string    `json:"title"`
+	Unit                int       `json:"unit"`
+	TeacherName         string    `json:"teacher_name"`
+	TeacherLastName     string    `json:"teacher_last_name"`
+	ClassStartTime      time.Time `json:"class_start_time"`
+	ClassEndTime        time.Time `json:"class_end_time"`
 }
 
 type TermClassSchedules struct {
 	Term       int `json:"term"`
 	Year       int `json:"year"`
-	classes    []DetailClassScheduleR
+	Classes    []DetailClassScheduler
 	TotalUnits int `json:"total_units"`
 }
