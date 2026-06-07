@@ -181,6 +181,21 @@ func (repo *Repository) ListClassesStudent(ctx context.Context, req commonSchema
 
 }
 
+func (repo *Repository) ListClassesTeacher(ctx context.Context, req commonSchema.BaseRequest[registrationSchema.Pages], c *fiber.Ctx) (res registrationSchema.ClassesTeacher, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return registrationSchema.ClassesTeacher{}, "01", status.StatusUnauthorized, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return registrationSchema.ClassesTeacher{}, "02", status.StatusBadRequest, errors.New("DB DS not initialized")
+	}
+	teacherID := authz.GetUserID(c)
+	detail, tot, page, err := repo.db().ListClassesTeacher(ctx, req.Body, teacherID)
+	if err != nil {
+		return registrationSchema.ClassesTeacher{}, "03", status.StatusInternalServerError, err
+	}
+	return registrationSchema.ClassesTeacher{MyClasses: detail, Total: tot, Page: page}, "", status.StatusOK, nil
+}
+
 func (repo *Repository) db() dataSources.RegistrationDS {
 	return repo.DBDS
 }

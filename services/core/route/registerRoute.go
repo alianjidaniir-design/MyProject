@@ -9,15 +9,16 @@ import (
 )
 
 var registerRoute = map[string]string{
-	"registrationCreate":        "registration/create",
-	"registrationGet":           "registration/get",
-	"registrationUpdate":        "registration/update",
-	"registrationDelete":        "registration/delete",
-	"registrationList":          "registration/list",
-	"registrationCancel":        "registration/cancel",
-	"registrationListStudent":   "registration/student",
-	"registrationListOffering":  "registration/offering",
-	"registrationListMyClasses": "registration/myclasses",
+	"registrationCreate":             "registration/create",
+	"registrationGet":                "registration/get",
+	"registrationUpdate":             "registration/update",
+	"registrationDelete":             "registration/delete",
+	"registrationList":               "registration/list",
+	"registrationCancel":             "registration/cancel",
+	"registrationListStudent":        "registration/student",
+	"registrationListOffering":       "registration/offering",
+	"registrationListStudentClasses": "registration/student/classes",
+	"registrationListTeacherClasses": "registration/teacher/classes",
 }
 
 func SetupRegistrationRoute(app *fiber.App) map[string]string {
@@ -30,6 +31,7 @@ func SetupRegistrationRoute(app *fiber.App) map[string]string {
 	api.Post(registerRoute["registrationCancel"], authz.RequirePermission(permissions.CancelRegister), Cancel)
 	api.Post(registerRoute["registrationListStudent"], authz.RequirePermission(permissions.ListStudentRegisters), ListStudent)
 	api.Post(registerRoute["registrationListOffering"], authz.RequirePermission(permissions.ListOfferingRegisters), ListOffering)
-	api.Post(registerRoute["registrationListMyClasses"], authz.RequirePermission(permissions.ListClasses), ClassesStudent)
+	api.Post(registerRoute["registrationListStudentClasses"], authz.RequirePermission(permissions.ListClassesStudent), ClassesStudent)
+	api.Post(registerRoute["registrationListTeacherClasses"], authz.RequirePermission(permissions.ListClassesTeacher), ClassesTeacher)
 	return registerRoute
 }

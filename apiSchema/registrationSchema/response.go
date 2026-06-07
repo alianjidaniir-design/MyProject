@@ -16,6 +16,11 @@ type ClassSchedule struct {
 	Total     int
 }
 
+type ClassesTeacher struct {
+	MyClasses []dataModels.TermClasses
+	Page      int `json:"page"`
+	Total     int
+}
 type DeleteStudentResponse struct {
 	Information dataModels.Registration
 	Massage     string

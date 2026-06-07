@@ -14,7 +14,7 @@ type CourseSelection struct {
 type Pages struct {
 	Term int `json:"term" validate:"required"`
 	Year int `json:"year" validate:"required"`
-	Page int `json:"page" validate:"omitempty"`
+	Page int `json:"page" validate:"required"`
 }
 
 type GetRegisteredStudentsRequest struct {
