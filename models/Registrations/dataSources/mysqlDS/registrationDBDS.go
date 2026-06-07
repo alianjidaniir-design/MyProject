@@ -319,7 +319,6 @@ func (ds *RegistrationDBDS) ListStudentsOffering(ctx context.Context, req regist
 	selectQuery := fmt.Sprintf("SELECT offering_row , status FROM %s WHERE student_id = ? ORDER BY offering_row LIMIT ? OFFSET ? ", ds.tableName)
 	rows, err := ds.db.QueryContext(ctx, selectQuery, req.StudentID, limit, offset)
 	if err != nil {
-
 		return nil, 0, err
 	}
 	defer rows.Close()

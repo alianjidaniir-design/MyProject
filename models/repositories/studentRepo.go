@@ -35,7 +35,7 @@ type StudentRepository interface {
 
 	Logout(ctx context.Context, req commonSchema.BaseRequest[studentSchema.LogoutRequest], c *fiber.Ctx) (res studentSchema.StudentEntry, errStr string, code int, err error)
 
-	MyInformation(ctx context.Context, c *fiber.Ctx) (res studentSchema.InfoStudent, errStr string, code int, err error)
+	StudentInformation(ctx context.Context, c *fiber.Ctx) (res studentSchema.InfoStudent, errStr string, code int, err error)
 }
 
 var StudentRepo StudentRepository = student.GetRepoIns()

@@ -30,6 +30,6 @@ func SetupRegistrationRoute(app *fiber.App) map[string]string {
 	api.Post(registerRoute["registrationCancel"], authz.RequirePermission(permissions.CancelRegister), Cancel)
 	api.Post(registerRoute["registrationListStudent"], authz.RequirePermission(permissions.ListStudentRegisters), ListStudent)
 	api.Post(registerRoute["registrationListOffering"], authz.RequirePermission(permissions.ListOfferingRegisters), ListOffering)
-	api.Post(registerRoute["registrationListMyClasses"], authz.RequirePermission(permissions.ListClasses), Classes)
+	api.Post(registerRoute["registrationListMyClasses"], authz.RequirePermission(permissions.ListClasses), ClassesStudent)
 	return registerRoute
 }

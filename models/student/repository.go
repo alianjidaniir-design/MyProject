@@ -270,7 +270,7 @@ func (repo *Repository) Logout(ctx context.Context, req commonSchema.BaseRequest
 
 }
 
-func (repo *Repository) MyInformation(ctx context.Context, c *fiber.Ctx) (res studentSchema.InfoStudent, errStr string, code int, err error) {
+func (repo *Repository) StudentInformation(ctx context.Context, c *fiber.Ctx) (res studentSchema.InfoStudent, errStr string, code int, err error) {
 	if repo.initErr != nil {
 		return studentSchema.InfoStudent{}, "01", status.StatusUnauthorized, repo.initErr
 	}
@@ -278,7 +278,7 @@ func (repo *Repository) MyInformation(ctx context.Context, c *fiber.Ctx) (res st
 		return studentSchema.InfoStudent{}, "02", status.StatusInternalServerError, errors.New("bad")
 	}
 	studentID := authz.GetUserID(c)
-	detail, err := repo.db().MyInformation(ctx, studentID)
+	detail, err := repo.db().StudentInformation(ctx, studentID)
 	if err != nil {
 		return studentSchema.InfoStudent{}, "03", status.UnAvailableServiceError, err
 	}

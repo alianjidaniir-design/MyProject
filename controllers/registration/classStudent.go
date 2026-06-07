@@ -10,7 +10,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func Classes(ctx *fiber.Ctx) error {
+func ClassesStudent(ctx *fiber.Ctx) error {
 	spanCtx := mainController.InitAPI(ctx, "18")
 	defer mainController.FinishSpan(ctx)
 	req := commonSchema.BaseRequest[registrationSchema.Pages]{}

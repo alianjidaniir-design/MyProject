@@ -165,7 +165,7 @@ func (repo *Repository) ListOfferings(ctx context.Context, req commonSchema.Base
 	return registrationSchema.ListOfferingResponse{List: offering, Total: totalAll}, "", status.StatusOK, nil
 }
 
-func (repo *Repository) ListClasses(ctx context.Context, req commonSchema.BaseRequest[registrationSchema.Pages], c *fiber.Ctx) (res registrationSchema.ClassSchedule, errStr string, code int, err error) {
+func (repo *Repository) ListClassesStudent(ctx context.Context, req commonSchema.BaseRequest[registrationSchema.Pages], c *fiber.Ctx) (res registrationSchema.ClassSchedule, errStr string, code int, err error) {
 	if repo.initRepo != nil {
 		return registrationSchema.ClassSchedule{}, "01", status.StatusUnauthorized, repo.initRepo
 	}

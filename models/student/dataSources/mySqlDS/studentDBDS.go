@@ -77,7 +77,7 @@ func (ds *StudentDBDS) GetStudent(ctx context.Context, req studentSchema.GetRequ
 	return ds.readTaskByID(ctx, req.ID)
 }
 
-func (ds *StudentDBDS) MyInformation(ctx context.Context, ID int64) (studentDataModel.InfoStudent, error) {
+func (ds *StudentDBDS) StudentInformation(ctx context.Context, ID int64) (studentDataModel.InfoStudent, error) {
 	err := ds.chackStudent(ctx, ID)
 	if err != nil {
 		return studentDataModel.InfoStudent{}, err

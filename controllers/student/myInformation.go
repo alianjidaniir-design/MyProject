@@ -15,7 +15,7 @@ func MyInfo(ctx *fiber.Ctx) error {
 	if err != nil {
 		return mainController.Error(ctx, controllerbaseErrCode.UserErrCode, "06", errStr, code, err)
 	}
-	res, errStr, code, err := repositories.StudentRepo.MyInformation(spanCtx, ctx)
+	res, errStr, code, err := repositories.StudentRepo.StudentInformation(spanCtx, ctx)
 	if err != nil {
 		return mainController.Error(ctx, controllerbaseErrCode.UserErrCode, "08", errStr, code, err)
 	}
