@@ -12,8 +12,10 @@ type Offering struct {
 	IsActive       bool      `json:"is_active"`
 	Reservation    int64     `json:"reservation"`
 	TermID         int64     `json:"term_id"`
-	ClassStartTime time.Time `json:"class_start_time"`
-	ClassEndTime   time.Time `json:"class_end_time"`
+	Week           string    `json:"week"`
+	Day            string    `json:"day"`
+	ClassStartTime string    `json:"class_start_time"`
+	ClassEndTime   string    `json:"class_end_time"`
 	ExamStartTime  time.Time `json:"exam_start_time"`
 	ExamEndTime    time.Time `json:"exam_end_time"`
 }

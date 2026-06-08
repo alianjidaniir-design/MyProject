@@ -40,7 +40,7 @@ func (red *redisDS) Logout(ctx context.Context, req string, tim time.Time) error
 	}
 	blKey := "bl:access:" + req // کلید blacklist برای access token
 	ttl := time.Until(tim)
-	
+
 	if ttl > 0 {
 		err := red.client.Set(ctx, blKey, tim.String(), ttl).Err()
 		if err != nil {

@@ -175,7 +175,7 @@ func (repo *Repository) Entry(ctx context.Context, req commonSchema.BaseRequest[
 		Secure:   false,
 		SameSite: "Strict",
 		Path:     "/",
-		Expires:  time.Now().Add(constants.RefreshTokenExpiry),
+		Expires:  time.Now().In(timeLoc.MyLocation()).Add(constants.RefreshTokenExpiry),
 	})
 	c.Cookie(&fiber.Cookie{
 		Name:     "accessToken",
@@ -184,7 +184,7 @@ func (repo *Repository) Entry(ctx context.Context, req commonSchema.BaseRequest[
 		Secure:   false,
 		SameSite: "Strict",
 		Path:     "/",
-		Expires:  time.Now().Add(constants.AccessTokenExpiry),
+		Expires:  time.Now().In(timeLoc.MyLocation()).Add(constants.AccessTokenExpiry),
 	})
 
 	return studentSchema.StudentEntry{Massage: massage}, "", status.StatusOK, nil

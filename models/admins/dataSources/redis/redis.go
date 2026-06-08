@@ -2,7 +2,6 @@ package redis
 
 import (
 	"MyProject/models/student/dataSources"
-	"MyProject/pkg/timeLoc"
 	"context"
 	"errors"
 	"fmt"
@@ -34,7 +33,7 @@ func NewRedisDS(addr string, password string) (dataSources.RedisDS, error) {
 }
 
 func (red *redisDS) Logout(ctx context.Context, req string, tim time.Time) error {
-	if req == "" || time.Now().In(timeLoc.MyLocation()).After(tim) {
+	if req == "" || time.Now().In(time.MyLocation()).After(tim) {
 		log.Println("jti یا exp نامعتبر است، توکن access به لیست سیاه اضافه نشد.")
 		return errors.New("1234")
 	}
@@ -46,7 +45,7 @@ func (red *redisDS) Logout(ctx context.Context, req string, tim time.Time) error
 			log.Printf("خطا در اضافه کردن توکن access به لیست سیاه Redis: %v\n", err)
 			return fmt.Errorf("failed to set access token in blacklist: %w", err)
 		}
-		log.Printf("Access token '%s' blacklisted until %s\n", req, time.Now().In(timeLoc.MyLocation()))
+		log.Printf("Access token '%s' blacklisted until %s\n", req, time.Now().In(time.MyLocation()))
 	} else {
 		log.Printf("Access token already expired\n")
 	}

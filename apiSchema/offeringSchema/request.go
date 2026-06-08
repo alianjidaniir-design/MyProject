@@ -3,16 +3,18 @@ package offeringSchema
 import "time"
 
 type CreateOfferingRequest struct {
-	GroupNumber    int       `json:"group_number"`
-	CourseNumber   int64     `json:"course_number"`
-	TeacherId      int64     `json:"teacher_id"`
-	Capacity       int       `json:"capacity"`
-	IsActive       bool      `json:"is_active"`
-	TermId         int       `json:"term_id"`
-	ClassStartTime time.Time `json:"class_start_time"`
-	ClassEndTime   time.Time `json:"class_end_time"`
-	ExamStartTime  time.Time `json:"exam_start_time"`
-	ExamEndTime    time.Time `json:"exam_end_time"`
+	GroupNumber    int       `json:"group_number" validate:"required"`
+	CourseNumber   int64     `json:"course_number" validate:"required"`
+	TeacherId      int64     `json:"teacher_id" validate:"required"`
+	Capacity       int       `json:"capacity" validate:"required"`
+	IsActive       bool      `json:"is_active" validate:"omitempty"`
+	TermId         int       `json:"term_id" validate:"required"`
+	Week           string    `json:"week" validate:"required"`
+	Day            string    `json:"day" validate:"required"`
+	ClassStartTime string    `json:"class_start_time" validate:"required"`
+	ClassEndTime   string    `json:"class_end_time" validate:"required"`
+	ExamStartTime  time.Time `json:"exam_start_time" validate:"required"`
+	ExamEndTime    time.Time `json:"exam_end_time" validate:"required"`
 }
 
 type ListOfferingsRequest struct {

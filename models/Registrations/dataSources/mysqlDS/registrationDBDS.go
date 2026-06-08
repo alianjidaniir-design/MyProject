@@ -497,6 +497,27 @@ WHERE student_id = ? AND offering_row = ? )
 	if alreadyRegistered {
 		return dataModels.Registration{}, errors.New("student already registered or reservation for this course")
 	}
+
+	var depID int64
+	studentDepartment := fmt.Sprintf("SELECT department_id FROM student WHERE ID = ? ")
+	err = ds.db.QueryRowContext(ctx, studentDepartment, ID).Scan(&depID)
+	if err != nil {
+		return dataModels.Registration{}, err
+	}
+
+	var checkCourse bool
+	checkCourseQuery := `
+ SELECT
+ CASE WHEN EXISTS (SELECT 1 FROM courses WHERE department_id = ? AND course_number = ? )
+	`
+	err = tx.QueryRowContext(ctx, checkCourseQuery, depID, courseNumber).Scan(&checkCourse)
+	if err != nil {
+		return dataModels.Registration{}, err
+	}
+	if !checkCourse {
+		return dataModels.Registration{}, errors.New("there is not course for this major ")
+	}
+
 	insertQuery := fmt.Sprintf("INSERT INTO %s (student_id , course_number, offering_row,status,registrar, enrolled_at, created_at, updated_at ) VALUES (?,?,?, ?, ?, ?, ? , ?)", ds.tableName)
 	var checkCapacity bool
 	studentQuery := `

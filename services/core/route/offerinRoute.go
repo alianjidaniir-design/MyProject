@@ -2,6 +2,8 @@ package route
 
 import (
 	. "MyProject/controllers/offering"
+	"MyProject/midddleware/authz"
+	"MyProject/statics/constants/permissions"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -14,9 +16,10 @@ var offeringRoute = map[string]string{
 }
 
 func SetupOfferingRoute(app *fiber.App) map[string]string {
-	app.Post(offeringRoute["offeringCreate"], Create)
-	app.Post(offeringRoute["offeringList"], List)
-	app.Post(offeringRoute["offeringDetail"], Get)
-	app.Post(offeringRoute["offeringDeActivate"], DeActive)
+	api := app.Group("/api", authz.AuthMiddleware())
+	api.Post(offeringRoute["offeringCreate"], authz.RequirePermission(permissions.CreateOffering), Create)
+	api.Post(offeringRoute["offeringList"], authz.RequirePermission(permissions.ListOfferings), List)
+	api.Post(offeringRoute["offeringDetail"], authz.RequirePermission(permissions.ViewOffering), Get)
+	api.Post(offeringRoute["offeringDeActivate"], authz.RequirePermission(permissions.DeActivateOffering), DeActive)
 	return offeringRoute
 }

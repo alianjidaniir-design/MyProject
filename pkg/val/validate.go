@@ -31,7 +31,6 @@ func SwitchValidateErr(err validator.FieldError) string {
 		return err.Field() + ": this field is required"
 	case "omitempty":
 		return err.Field() + " is optional and can be omitted."
-
 	case "max":
 		return err.Field() + " : this field cannot be more than " + err.Param()
 	case "min":

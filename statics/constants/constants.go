@@ -65,3 +65,9 @@ const (
 	InvalidTitle      = "invalidTitle"
 	InvalidCourseCode = "invalidCourseCode"
 )
+
+const (
+	Odd  = "odd"
+	Even = "even"
+	All  = "all"
+)

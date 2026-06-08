@@ -166,7 +166,7 @@ func (repo *Repository) Login(ctx context.Context, req commonSchema.BaseRequest[
 		Secure:   false,
 		SameSite: "Strict",
 		Path:     "/",
-		Expires:  time.Now().Add(constants.RefreshTokenExpiry),
+		Expires:  time.Now().In(timeLoc.MyLocation()).Add(constants.RefreshTokenExpiry),
 	})
 
 	c.Cookie(&fiber.Cookie{
@@ -176,7 +176,7 @@ func (repo *Repository) Login(ctx context.Context, req commonSchema.BaseRequest[
 		Secure:   false,
 		SameSite: "Strict",
 		Path:     "/",
-		Expires:  time.Now().Add(constants.AccessTokenExpiry),
+		Expires:  time.Now().In(timeLoc.MyLocation()).Add(constants.AccessTokenExpiry),
 	})
 
 	return teacherSchema.EntryStudentSchema{Massage: massage}, "", status.StatusOK, nil
@@ -205,7 +205,7 @@ func (repo *Repository) RefreshToken(ctx context.Context, c *fiber.Ctx) (errStr 
 		Secure:   false,
 		SameSite: "Strict",
 		Path:     "/",
-		Expires:  time.Now().Add(constants.RefreshTokenExpiry),
+		Expires:  time.Now().In(timeLoc.MyLocation()).Add(constants.RefreshTokenExpiry),
 	})
 	c.Cookie(&fiber.Cookie{
 		Name:     "accessToken",
@@ -214,7 +214,7 @@ func (repo *Repository) RefreshToken(ctx context.Context, c *fiber.Ctx) (errStr 
 		Secure:   false,
 		SameSite: "Strict",
 		Path:     "/",
-		Expires:  time.Now().Add(constants.AccessTokenExpiry),
+		Expires:  time.Now().In(timeLoc.MyLocation()).Add(constants.AccessTokenExpiry),
 	})
 
 	return "", status.StatusOK, nil
@@ -260,7 +260,7 @@ func (repo *Repository) Logout(ctx context.Context, req commonSchema.BaseRequest
 		Secure:   false,
 		SameSite: "Strict",
 		Path:     "/",
-		Expires:  time.Now().Add(-time.Hour),
+		Expires:  time.Now().In(timeLoc.MyLocation()).Add(-time.Hour),
 	})
 	return teacherSchema.EntryStudentSchema{Massage: "logout"}, "", status.StatusOK, nil
 
