@@ -3,6 +3,7 @@ package mySqlDS
 import (
 	"MyProject/apiSchema/offeringSchema"
 	"MyProject/models/offering/dataModels"
+	"MyProject/pkg/filter"
 	"MyProject/pkg/pagination"
 	"MyProject/pkg/timeLoc"
 	"MyProject/pkg/val"
@@ -169,6 +170,13 @@ func (ds *OfferingDBDS) ListOffering(ctx context.Context, req offeringSchema.Lis
 	offset := (page - 1) * pageSize
 	limit := pageSize
 	var totalRows int
+	fil := []filter.Filter{
+		{Con: "coll", Value: req.AuthorID},
+		{Con: "translator_id", Value: req.TranslatorID},
+		{Con: "publisher_id", Value: req.PublisherID},
+		{Con: "subject_id", Value: req.SubjectID},
+	}
+	args, cond := filter.Filtering()
 	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s", ds.tableName)
 	err = ds.db.QueryRowContext(ctx, countQuery).Scan(&totalRows)
 	if err != nil {

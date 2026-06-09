@@ -1,6 +1,8 @@
 package dataModels
 
-import "time"
+import (
+	"time"
+)
 
 type Offering struct {
 	Row            int64     `json:"row"`
@@ -18,4 +20,24 @@ type Offering struct {
 	ClassEndTime   string    `json:"class_end_time"`
 	ExamStartTime  time.Time `json:"exam_start_time"`
 	ExamEndTime    time.Time `json:"exam_end_time"`
+}
+
+type ListOfferings struct {
+	Row              int64  `json:"row"`
+	GroupNumber      int    `json:"group_number"`
+	CourseNumber     int64  `json:"course_number"`
+	Title            string `json:"title"`
+	TeacherName      string `json:"teacher_name"`
+	TeacherLastName  string `json:"teacher_last_name"`
+	Unit             int    `json:"unit"`
+	Collage          string `json:"collage"`
+	EducationalGroup string `json:"educational_group"`
+	Term             string `json:"term"`
+	Year             string `json:"year"`
+	Capacity         int    `json:"capacity"`
+	EnrolledCount    int64  `json:"enrolled_count"`
+	IsActive         bool   `json:"is_active"`
+	Reservation      int64  `json:"reservation"`
+	Week             string `json:"week"`
+	Day              string `json:"day"`
 }

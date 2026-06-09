@@ -137,7 +137,6 @@ func (ds *BookDBDS) ListBooks(ctx context.Context, req bookSchema.PaginationBook
 	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE %s", ds.tableName, cond)
 	if len(args) > 0 {
 		err = ds.db.QueryRowContext(ctx, countQuery, args...).Scan(&tot)
-		fmt.Println(ds.db.QueryRowContext(ctx, countQuery, args...).Scan(&tot), tot)
 	} else {
 		err = ds.db.QueryRowContext(ctx, countQuery).Scan(&tot)
 	}

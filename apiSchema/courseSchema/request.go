@@ -3,6 +3,7 @@ package courseSchema
 type RequestCourse struct {
 	CourseNumber int64  `json:"course_number" validate:"required"`
 	Title        string `json:"title" validate:"required,max=64"`
+	CourseType   string `json:"course_type" validate:"required"`
 	Unit         int    `json:"unit" validate:"required,gte=1,lte=9"`
 	DepartmentID int64  `json:"department_id" validate:"required"`
 	Prerequisite string `json:"prerequisite" validate:"omitempty,max=128"`

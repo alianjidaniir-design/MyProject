@@ -35,15 +35,15 @@ type Offering struct {
 }
 
 type DetailClassScheduler struct {
-	OfferingRow         int64     `json:"offering_row"`
-	OfferingGroupNumber int       `json:"offering_group_number"`
-	CourseNumber        int       `json:"course_number"`
-	Title               string    `json:"title"`
-	Unit                int       `json:"unit"`
-	TeacherName         string    `json:"teacher_name"`
-	TeacherLastName     string    `json:"teacher_last_name"`
-	ClassStartTime      time.Time `json:"class_start_time"`
-	ClassEndTime        time.Time `json:"class_end_time"`
+	OfferingRow         int64  `json:"offering_row"`
+	OfferingGroupNumber int    `json:"offering_group_number"`
+	CourseNumber        int    `json:"course_number"`
+	Title               string `json:"title"`
+	Unit                int    `json:"unit"`
+	TeacherName         string `json:"teacher_name"`
+	TeacherLastName     string `json:"teacher_last_name"`
+	ClassStartTime      string `json:"class_start_time"`
+	ClassEndTime        string `json:"class_end_time"`
 }
 
 type TermClassSchedules struct {
@@ -54,14 +54,14 @@ type TermClassSchedules struct {
 }
 
 type DetailClasses struct {
-	OfferingGroupNumber int       `json:"offering_group_number"`
-	CourseNumber        int       `json:"course_number"`
-	Title               string    `json:"title"`
-	Capacity            int       `json:"capacity"`
-	EnrolledCount       int       `json:"enrolled_count"`
-	ClassStartTime      time.Time `json:"class_start_time"`
-	ClassEndTime        time.Time `json:"class_end_time"`
-	DepartmentID        int64     `json:"department_id"`
+	OfferingGroupNumber int    `json:"offering_group_number"`
+	CourseNumber        int    `json:"course_number"`
+	Title               string `json:"title"`
+	Capacity            int    `json:"capacity"`
+	EnrolledCount       int    `json:"enrolled_count"`
+	ClassStartTime      string `json:"class_start_time"`
+	ClassEndTime        string `json:"class_end_time"`
+	DepartmentID        int64  `json:"department_id"`
 }
 
 type TermClasses struct {

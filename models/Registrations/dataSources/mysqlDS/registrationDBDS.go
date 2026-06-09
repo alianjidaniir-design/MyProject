@@ -508,14 +508,14 @@ WHERE student_id = ? AND offering_row = ? )
 	var checkCourse bool
 	checkCourseQuery := `
  SELECT
- CASE WHEN EXISTS (SELECT 1 FROM courses WHERE department_id = ? AND course_number = ? )
+ CASE WHEN EXISTS(SELECT 1 FROM courses WHERE ( department_id = ? OR course_type = ? ) AND course_number = ?) THEN 1 ELSE 0 END
 	`
-	err = tx.QueryRowContext(ctx, checkCourseQuery, depID, courseNumber).Scan(&checkCourse)
+	err = tx.QueryRowContext(ctx, checkCourseQuery, depID, constants.General, courseNumber).Scan(&checkCourse)
 	if err != nil {
 		return dataModels.Registration{}, err
 	}
 	if !checkCourse {
-		return dataModels.Registration{}, errors.New("there is not course for this major ")
+		return dataModels.Registration{}, errors.New("this course is for else department")
 	}
 
 	insertQuery := fmt.Sprintf("INSERT INTO %s (student_id , course_number, offering_row,status,registrar, enrolled_at, created_at, updated_at ) VALUES (?,?,?, ?, ?, ?, ? , ?)", ds.tableName)

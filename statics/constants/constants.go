@@ -71,3 +71,7 @@ const (
 	Even = "even"
 	All  = "all"
 )
+
+const (
+	General = "general"
+)

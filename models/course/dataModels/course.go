@@ -6,6 +6,7 @@ type Course struct {
 	ID           int64      `json:"id"`
 	CourseNumber string     `json:"course_number"`
 	Title        string     `json:"title"`
+	CourseType   string     `json:"course_type"`
 	Unit         int        `json:"unit"`
 	DepartmentID string     `json:"department_ID"`
 	Prerequisite string     `json:"prerequisite"`

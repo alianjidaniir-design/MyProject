@@ -46,8 +46,8 @@ CASE WHEN EXISTS (SELECT 1 FROM departments WHERE ID = ?) THEN 1 ELSE 0 END
 		return courseDataModle.Course{}, errors.New("Department not found")
 	}
 
-	insertQuery := fmt.Sprintf("INSERT INTO %s (course_number, title, unit ,department_id , prerequisite , necessary , created_at , updated_at ) VALUES (?, ?, ?, ?, ?, ?, ? , ?)", ds.tableSQL)
-	lastID, err := ds.db.ExecContext(ctx, insertQuery, req.CourseNumber, req.Title, req.Unit, req.DepartmentID, req.Prerequisite, req.Necessary, now, now)
+	insertQuery := fmt.Sprintf("INSERT INTO %s (course_number, title,course_type, unit ,department_id , prerequisite , necessary , created_at , updated_at ) VALUES (?, ?, ?, ?, ?, ?, ? , ?)", ds.tableSQL)
+	lastID, err := ds.db.ExecContext(ctx, insertQuery, req.CourseNumber, req.Title, req.CourseType, req.Unit, req.DepartmentID, req.Prerequisite, req.Necessary, now, now)
 
 	if err != nil {
 		return courseDataModle.Course{}, fmt.Errorf("there are a problem in top query", err)
@@ -68,7 +68,7 @@ func (ds *CourseDBDS) UpdateCourse(ctx context.Context, req courseSchema.UpdateC
 	if err != nil {
 		return courseDataModle.Course{}, errors.New("there is not course")
 	}
-	updateQuery := fmt.Sprintf("UPDATE %s SET updated_at = ? WHERE ID = ?", ds.tableSQL)
+	updateQuery := fmt.Sprintf("UPDATE %s SET updated_at = ? , course_number = ? , course_type = ? WHERE ID = ?", ds.tableSQL)
 	update, err := ds.db.PrepareContext(ctx, updateQuery)
 	if err != nil {
 		return course, err
