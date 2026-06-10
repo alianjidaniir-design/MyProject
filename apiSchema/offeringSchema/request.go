@@ -18,8 +18,12 @@ type CreateOfferingRequest struct {
 }
 
 type ListOfferingsRequest struct {
-	PageNumber int `json:"page_number"`
-	PageSize   int `json:"page_size"`
+	Term             int    `json:"term" validate:"required"`
+	Year             int    `json:"year" validate:"required"`
+	College          string `json:"college" validate:"omitempty"`
+	EducationalGroup string `json:"educational_group" validate:"omitempty"`
+	Week             string `json:"week" validate:"omitempty"`
+	Day              string `json:"day" validate:"omitempty"`
 }
 
 type GetRowOfferingRequest struct {

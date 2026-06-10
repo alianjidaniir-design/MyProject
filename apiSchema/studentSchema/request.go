@@ -40,5 +40,5 @@ type SoftDeleteRequest struct {
 }
 
 type LogoutRequest struct {
-	IsLogout bool `json:"is_logout"`
+	IsLogout bool `json:"is_logout" validate:"required"`
 }

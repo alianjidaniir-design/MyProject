@@ -4,7 +4,6 @@ import (
 	"MyProject/apiSchema/offeringSchema"
 	"MyProject/models/offering/dataModels"
 	"MyProject/pkg/filter"
-	"MyProject/pkg/pagination"
 	"MyProject/pkg/timeLoc"
 	"MyProject/pkg/val"
 	"MyProject/statics/constants"
@@ -161,36 +160,43 @@ CASE WHEN EXISTS (SELECT 1 FROM terms WHERE id = ?) THEN 1 ELSE 0 END`
 
 }
 
-func (ds *OfferingDBDS) ListOffering(ctx context.Context, req offeringSchema.ListOfferingsRequest) (res []dataModels.Offering, total int, err error) {
-	var offerings []dataModels.Offering
-	page, pageSize, err := pagination.CheckPage(req.PageNumber, req.PageSize)
-	if err != nil {
-		return nil, 0, errors.New(err.Error())
-	}
-	offset := (page - 1) * pageSize
-	limit := pageSize
+func (ds *OfferingDBDS) ListOffering(ctx context.Context, req offeringSchema.ListOfferingsRequest) (res []dataModels.ListOfferings, total int, err error) {
+	var offerings []dataModels.ListOfferings
 	var totalRows int
+	err = val.CheckValidation(req)
+	if err != nil {
+		return nil, 0, err
+	}
 	fil := []filter.Filter{
-		{Con: "coll", Value: req.AuthorID},
-		{Con: "translator_id", Value: req.TranslatorID},
-		{Con: "publisher_id", Value: req.PublisherID},
-		{Con: "subject_id", Value: req.SubjectID},
+
+		{Con: "college", Value: req.College},
+		{Con: "educational_group", Value: req.EducationalGroup},
+		{Con: "week", Value: req.Week},
+		{Con: "day", Value: req.Day},
 	}
-	args, cond := filter.Filtering()
-	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM %s", ds.tableName)
-	err = ds.db.QueryRowContext(ctx, countQuery).Scan(&totalRows)
-	if err != nil {
-		return nil, 0, fmt.Errorf("Error in rows count", err.Error())
+	cond, args := filter.Filtering(fil...)
+	whereClause := "term = ? AND year = ?"
+	queryArgs := []interface{}{req.Term, req.Year}
+
+	if cond != "" && cond != "1=1" {
+		whereClause += " AND " + cond
+		queryArgs = append(queryArgs, args...)
 	}
-	selectQuery := fmt.Sprintf("SELECT row , group_number , course_number , teacher_id , capacity , enrolled_count , isActive , reserveation , term_id , week , day , class_start_time , class_end_time , exam_start_time , exam_finish_time FROM %s LIMIT ? OFFSET ?", ds.tableName)
-	rows, err := ds.db.QueryContext(ctx, selectQuery, limit, offset)
+
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM offering_list WHERE %s", whereClause)
+	err = ds.db.QueryRowContext(ctx, countQuery, queryArgs...).Scan(&totalRows)
 	if err != nil {
-		return nil, 0, fmt.Errorf("Error pagination", err.Error())
+		return nil, 0, fmt.Errorf("error in rows count: %w", err)
+	}
+	selectQuery := fmt.Sprintf("SELECT * FROM offering_list WHERE %s ORDER BY year DESC, term DESC ", whereClause)
+	rows, err := ds.db.QueryContext(ctx, selectQuery, queryArgs...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to fetch rows: %w", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var offering dataModels.Offering
-		err = rows.Scan(&offering.Row, &offering.GroupNumber, &offering.CourseNumber, &offering.TeacherID, &offering.Capacity, &offering.EnrolledCount, &offering.IsActive, &offering.Reservation, &offering.TermID, &offering.Week, &offering.Day, &offering.ClassStartTime, &offering.ClassEndTime, &offering.ExamStartTime, &offering.ExamEndTime)
+		var offering dataModels.ListOfferings
+		err = rows.Scan(&offering.Row, &offering.GroupNumber, &offering.CourseNumber, &offering.Title, &offering.Unit, &offering.TeacherName, &offering.TeacherLastName, &offering.College, &offering.EducationalGroup, &offering.Capacity, &offering.EnrolledCount, &offering.IsActive, &offering.Reservation, &offering.Week, &offering.Day, &offering.ClassStartTime, &offering.ClassEndTime, &offering.ExamStartTime, &offering.ExamEndTime, &offering.Term, &offering.Year)
 		if err != nil {
 			return nil, 0, fmt.Errorf("Error scanning row", err.Error())
 		}

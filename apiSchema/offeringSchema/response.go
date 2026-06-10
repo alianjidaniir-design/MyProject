@@ -7,7 +7,7 @@ type CreateOfferingResponse struct {
 }
 
 type ListOfferingResponse struct {
-	Offerings  []dataModels.Offering
+	Offerings  []dataModels.ListOfferings
 	TotalCount int
 }
 

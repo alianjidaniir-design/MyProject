@@ -33,9 +33,7 @@ func Filtering(filter ...Filter) (string, []interface{}) {
 		return "1=1", []interface{}{}
 
 	}
-	fmt.Println(conditions)
-	fmt.Println(strings.Join(conditions, " AND "), args)
-
+	
 	return strings.Join(conditions, " AND "), args
 
 }
@@ -52,8 +50,6 @@ func isZeroValue(v interface{}) bool {
 		return val == 0.0
 	case string:
 		return val == ""
-	case bool:
-		return false // bool می‌تواند false هم باشد
 	case *string:
 		return val == nil || *val == ""
 	default:

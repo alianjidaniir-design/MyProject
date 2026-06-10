@@ -365,6 +365,10 @@ func (ds *StudentDBDS) checkingStudent(s string) (data studentDataModel.Student,
 
 func (ds *StudentDBDS) RevokedRefreshToken(ctx context.Context, req studentSchema.LogoutRequest, tok string) error {
 	var rt tokenDataModel.RefreshToken
+	err := Val.CheckValidation(req)
+	if err != nil {
+		return err
+	}
 	tx, err := ds.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -389,7 +393,6 @@ func (ds *StudentDBDS) RevokedRefreshToken(ctx context.Context, req studentSchem
 	err = tx.QueryRowContext(ctx, checkToken, tok).Scan(&rt.UserID, &rt.RoleName, &rt.Token, &rt.ExpiresAt, &rt.RevokedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) == true {
-			fmt.Println(tok)
 			return errors.New("Refresh token is invalid")
 		}
 		return err

@@ -8,8 +8,8 @@ type Course struct {
 	Title        string     `json:"title"`
 	CourseType   string     `json:"course_type"`
 	Unit         int        `json:"unit"`
-	DepartmentID string     `json:"department_ID"`
-	Prerequisite string     `json:"prerequisite"`
+	DepartmentID *string    `json:"department_ID"`
+	Prerequisite *string    `json:"prerequisite"`
 	Necessary    string     `json:"necessary"`
 	CreatedAt    time.Time  `json:"created_at"`
 	UpdatedAt    time.Time  `json:"updated_at"`
