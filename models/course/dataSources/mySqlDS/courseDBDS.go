@@ -96,7 +96,7 @@ SELECT
 		return courseDataModle.Course{}, errors.New("course with this option already exists")
 	}
 	now := time.Now().In(TimeLoc.MyLocation())
-	updateQuery := "UPDATE courses SET updated_at = ?"
+	updateQuery := " UPDATE courses SET updated_at = ?"
 	args := []interface{}{now}
 
 	if req.NewCourseNum != 0 {
@@ -135,12 +135,8 @@ SELECT
 		return course, err
 	}
 	defer update.Close()
-	result, err := update.ExecContext(ctx, args...)
+	_, err = update.ExecContext(ctx, args...)
 	if err != nil {
-		return course, err
-	}
-	row, err := result.RowsAffected()
-	if err != nil && row == 0 {
 		return course, err
 	}
 

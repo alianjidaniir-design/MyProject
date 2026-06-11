@@ -92,6 +92,11 @@ CASE WHEN EXISTS (SELECT 1 FROM terms WHERE id = ?) THEN 1 ELSE 0 END`
 	var check int
 	timeStart := req.ClassStartTime
 	timeEnd := req.ClassEndTime
+	err = timeLoc.CheckDuration(timeStart, timeEnd)
+	if err != nil {
+		return dataModels.Offering{}, err
+	}
+
 	start, err := timeLoc.FormatTime(timeStart)
 	if err != nil {
 		return dataModels.Offering{}, err

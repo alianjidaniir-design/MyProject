@@ -29,3 +29,12 @@ type ListOfferingsRequest struct {
 type GetRowOfferingRequest struct {
 	Row int64 `json:"row"`
 }
+
+type EditOffering struct {
+	Capacity       int   `json:"capacity" validate:"required"`
+	IsActive       bool  `json:"is_active" validate:"omitempty"`
+	ClassStartTime int64 `json:"class_start_time" validate:"required"`
+	ClassEndTime   int64 `json:"class_end_time" validate:"required"`
+	ExamStartTime  int64 `json:"exam_start_time" validate:"required"`
+	ExamEndTime    int64 `json:"exam_end_time" validate:"required"`
+}

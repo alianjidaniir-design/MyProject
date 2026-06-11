@@ -518,7 +518,7 @@ WHERE student_id = ? AND offering_row = ? )
 		return dataModels.Registration{}, errors.New("this course is for else department")
 	}
 
-	insertQuery := fmt.Sprintf("INSERT INTO %s (student_id , course_number, offering_row,status,registrar, enrolled_at, created_at, updated_at ) VALUES (?,?,?, ?, ?, ?, ? , ?)", ds.tableName)
+	insertQuery := fmt.Sprintf("INSERT INTO %s (student_id , course_number, offering_row,status,queuePosition,registrar, enrolled_at, created_at, updated_at ) VALUES (?,?,?, ?, ?, ?, ? , ?)", ds.tableName)
 	var checkCapacity bool
 	studentQuery := `
 SELECT
@@ -542,7 +542,18 @@ CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND capacity > enrolled_
 		if err != nil {
 			return dataModels.Registration{}, err
 		}
-		result, err := tx.ExecContext(ctx, insertQuery, ID, courseNumber, offering, reserved, role, now, now, now)
+		var lastQu int
+		var reserveNumber int
+		lastQueue := "SELECT queuePosition FROM registration ORDER BY queuePosition DESC LIMIT 1"
+		err = tx.QueryRowContext(ctx, lastQueue, offering).Scan(&lastQu)
+		if err != nil {
+			return dataModels.Registration{}, err
+		}
+		if lastQu == -1 {
+			lastQu = 0
+		}
+		reserveNumber = lastQu + 1
+		result, err := tx.ExecContext(ctx, insertQuery, ID, courseNumber, offering, reserved, reserveNumber, role, now, now, now)
 		if err != nil {
 			return dataModels.Registration{}, errors.New("you can't reserve the reservation")
 		}
@@ -552,6 +563,9 @@ CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND capacity > enrolled_
 		}
 
 	} else {
+		if reserve == true {
+			return dataModels.Registration{}, errors.New("the course is not full . if want select this course")
+		}
 		var enrolled = constants.StatusEnrolled
 		lockQuery := `SELECT row FROM offerings WHERE row = ? FOR UPDATE`
 		_, err = tx.ExecContext(ctx, lockQuery, offering)

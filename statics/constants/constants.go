@@ -75,3 +75,7 @@ const (
 const (
 	General = "general"
 )
+
+const (
+	DurationTime = 2.00
+)
