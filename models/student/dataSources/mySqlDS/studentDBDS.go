@@ -83,8 +83,8 @@ func (ds *StudentDBDS) StudentInformation(ctx context.Context, ID int64) (studen
 		return studentDataModel.InfoStudent{}, err
 	}
 	var info studentDataModel.InfoStudent
-	selectQuery := fmt.Sprintf("SELECT name , family , phone , national_code , major , student_code , level FROM %s WHERE ID = ?", ds.tableName)
-	err = ds.db.QueryRowContext(ctx, selectQuery, ID).Scan(&info.Name, &info.Family, &info.Phone, &info.NationalCode, &info.Major, &info.StudentCode, &info.Level)
+	selectQuery := fmt.Sprintf("SELECT name , family , phone , national_code , major , student_code , level , department_id FROM %s WHERE ID = ?", ds.tableName)
+	err = ds.db.QueryRowContext(ctx, selectQuery, ID).Scan(&info.Name, &info.Family, &info.Phone, &info.NationalCode, &info.Major, &info.StudentCode, &info.Level, &info.DepartmentID)
 	if err != nil {
 		return studentDataModel.InfoStudent{}, err
 	}
@@ -120,9 +120,20 @@ CASE WHEN EXISTS (SELECT 1 FROM terms WHERE ID = ?) THEN 1 ELSE 0 END`
 	if !check {
 		return studentDataModel.Student{}, errors.New("Invalid term")
 	}
+	var check3 bool
+	checkDepartment := `
+SELECT EXISTS (SELECT 1 FROM departments WHERE id = ?)`
+	err = ds.db.QueryRowContext(ctx, checkDepartment, req.DepartmentID).Scan(&check3)
+	if err != nil {
+		return studentDataModel.Student{}, err
+	}
+	if !check3 {
+		return studentDataModel.Student{}, errors.New("Invalid department")
+	}
+
 	now := time.Now().In(TimeLoc.MyLocation())
-	insertQuery := fmt.Sprintf("INSERT INTO %s (name , family, phone ,national_code, major,student_code, term_id , level ,user_name ,password, role_name , created_at , updated_at , deleted_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", ds.tableSQL)
-	insertResult, err := ds.db.ExecContext(ctx, insertQuery, req.Name, req.Family, req.Phone, req.NationalCode, req.Major, req.StudentCode, req.TermID, req.Level, code, ha, req.RoleName, now, now, nil)
+	insertQuery := fmt.Sprintf("INSERT INTO %s (name , family, phone ,national_code, major,student_code, term_id , level ,user_name ,password, role_name , department_id , created_at , updated_at , deleted_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", ds.tableSQL)
+	insertResult, err := ds.db.ExecContext(ctx, insertQuery, req.Name, req.Family, req.Phone, req.NationalCode, req.Major, req.StudentCode, req.TermID, req.Level, code, ha, req.RoleName, req.DepartmentID, now, now, nil)
 	if err != nil {
 		return studentDataModel.Student{}, err
 	}
@@ -152,7 +163,7 @@ func (ds *StudentDBDS) ReadStudent(ctx context.Context, req studentSchema.ListRe
 
 	// ستون‌ها را صریحاً نام ببرید تا از مشکلات احتمالی ترتیب ستون‌ها جلوگیری شود.
 	// فرض می‌کنیم ترتیب ستون‌ها در دیتابیس با ترتیب مدل مطابقت دارد.
-	selectQuery := fmt.Sprintf("SELECT id, name, family,phone,national_code,major,student_code,term_id , level,user_name,password,role_name, created_at, updated_at, deleted_at FROM %s LIMIT ? OFFSET ?", ds.tableSQL)
+	selectQuery := fmt.Sprintf("SELECT id, name, family,phone,national_code,major,student_code,term_id , level,user_name,password,role_name,department_id, created_at, updated_at, deleted_at FROM %s LIMIT ? OFFSET ?", ds.tableSQL)
 	selectResult, err := ds.db.QueryContext(ctx, selectQuery, limit, offset)
 	if err != nil {
 		return []studentDataModel.Student{}, 0, err
@@ -164,12 +175,12 @@ func (ds *StudentDBDS) ReadStudent(ctx context.Context, req studentSchema.ListRe
 		// تعریف متغیرهای موقت از نوع sql.NullTime برای دریافت مقادیر NULL پذیر
 
 		// اسکن مقادیر از دیتابیس به متغیرهای موقت NullTime
-		if err = selectResult.Scan(&student.ID, &student.Name, &student.Family, &student.Phone, &student.NationalCode, &student.Major, &student.StudentCode, &student.UserName, &student.Password, &student.RoleName, &student.CreatedAt, &student.UpdatedAt, &student.DeletedAt); err != nil {
+		if err = selectResult.Scan(&student.ID, &student.Name, &student.Family, &student.Phone, &student.NationalCode, &student.Major, &student.StudentCode, &student.TermID, &student.Level, &student.UserName, &student.Password, &student.RoleName, &student.DepartmentID, &student.CreatedAt, &student.UpdatedAt, &student.DeletedAt); err != nil {
 			// اگر اینجا خطا رخ داد، ممکن است به دلیل عدم تطابق نوع یا نام ستون باشد
 			return nil, 0, fmt.Errorf("خطا در اسکن ردیف: %w", err)
 		}
 
-		users = append(users, student) // اضافه کردن به slice 'users'
+		users = append(users, student)
 	}
 	if err = selectResult.Err(); err != nil {
 		return nil, 0, fmt.Errorf("خطا در پیمایش نتایج کوئری: %w", err)
@@ -183,7 +194,7 @@ func (ds *StudentDBDS) UpdateStudent(ctx context.Context, req studentSchema.Upda
 	if err != nil {
 		return studentDataModel.Student{}, errors.New("Found Not student")
 	}
-	stmt := fmt.Sprintf("UPDATE %s SET updated_at = ? AND user_name = ? WHERE id = ? ", ds.tableName)
+	stmt := fmt.Sprintf("UPDATE %s SET updated_at = ? , user_name = ? WHERE id = ? ", ds.tableName)
 	sss, err := ds.db.PrepareContext(ctx, stmt)
 	if err != nil {
 		return studentDataModel.Student{}, err
@@ -324,9 +335,9 @@ func (ds *StudentDBDS) RefreshToken(ctx context.Context, req string) (string, st
 func (ds *StudentDBDS) readTaskByID(ctx context.Context, userID int64) (studentDataModel.Student, error) {
 	var students studentDataModel.Student
 
-	readQuery := fmt.Sprintf("SELECT id , name , family,phone,national_code,major,student_code,term_id,level,user_name , password,role_name , created_at , updated_at , deleted_at FROM %s WHERE id = ?", ds.tableSQL)
+	readQuery := fmt.Sprintf("SELECT id , name , family,phone,national_code,major,student_code,term_id,level,user_name , password,role_name,department_id , created_at , updated_at , deleted_at FROM %s WHERE id = ?", ds.tableSQL)
 
-	if err := ds.db.QueryRowContext(ctx, readQuery, userID).Scan(&students.ID, &students.Name, &students.Family, &students.Phone, &students.NationalCode, &students.Major, &students.StudentCode, &students.TermID, &students.Level, &students.UserName, &students.Password, &students.RoleName, &students.CreatedAt, &students.UpdatedAt, &students.DeletedAt); err != nil {
+	if err := ds.db.QueryRowContext(ctx, readQuery, userID).Scan(&students.ID, &students.Name, &students.Family, &students.Phone, &students.NationalCode, &students.Major, &students.StudentCode, &students.TermID, &students.Level, &students.UserName, &students.Password, &students.RoleName, &students.DepartmentID, &students.CreatedAt, &students.UpdatedAt, &students.DeletedAt); err != nil {
 		return studentDataModel.Student{}, err
 	}
 

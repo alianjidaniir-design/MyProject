@@ -40,7 +40,7 @@ func (ds *ProfileDBDS) CreateScoreStudent(ctx context.Context, req profileSchema
 SELECT
 CASE WHEN EXISTS (SELECT 1 FROM registration WHERE ID = ? AND deleted_at IS NULL AND status = ? ) THEN 1 ELSE 0 END
 `
-	var enroll = constants.StatusEnrolled
+	var enroll = constants.Enrolled
 	err = tx.QueryRowContext(ctx, checkRegisterQuery, req.RegistrationID, enroll).Scan(&checking)
 	if err != nil {
 		return dataModels.Profile{}, err

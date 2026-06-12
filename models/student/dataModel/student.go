@@ -17,6 +17,7 @@ type Student struct {
 	UserName     string     `gorm:"column:user_name" json:"user_name"`
 	Password     string     `gorm:"column:password" json:"password"`
 	RoleName     string     `gorm:"column:role_name" json:"role_name"`
+	DepartmentID int64      `gorm:"column:department_id" json:"department_id"`
 	CreatedAt    time.Time  `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt    time.Time  `gorm:"column:updated_at" json:"updated_at"`
 	DeletedAt    *time.Time `gorm:"column:deleted_at" json:"deleted_at"`
@@ -30,4 +31,5 @@ type InfoStudent struct {
 	Major        string `json:"major"`
 	StudentCode  string `json:"student_code"`
 	Level        string `json:"level"`
+	DepartmentID int64  `json:"department_id"`
 }

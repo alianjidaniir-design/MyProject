@@ -17,10 +17,9 @@ const (
 )
 
 const (
-	StatusUnEnrolled   = "unenrolled"
-	StatusEnrolled     = "enrolled"
-	StatusCanceled     = "canceled"
-	StatusReserveation = "reserveation"
+	Enrolled    = "enrolled"
+	Canceled    = "canceled"
+	Reservation = "reserveation"
 )
 
 const (
@@ -43,11 +42,6 @@ const (
 	Melat   = "melat"
 	Meli    = "meli"
 	Saderat = "saderat"
-)
-
-const (
-	JSON    = "json"
-	MSGPACK = "msgpack"
 )
 
 const (

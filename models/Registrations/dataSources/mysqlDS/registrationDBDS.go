@@ -199,7 +199,7 @@ func (ds *RegistrationDBDS) CancelRegisterStudent(ctx context.Context, req regis
 		}
 	}()
 	var checkStatus bool
-	var can = constants.StatusCanceled
+	var can = constants.Canceled
 	checkQuery := `
 SELECT
 CASE WHEN EXISTS (SELECT 1 FROM registration WHERE id = ? AND status != ?) THEN 1 ELSE 0 END
@@ -214,7 +214,7 @@ CASE WHEN EXISTS (SELECT 1 FROM registration WHERE id = ? AND status != ?) THEN 
 
 	selectStatus := fmt.Sprintf("SELECT status FROM registration WHERE id = ?")
 	err = tx.QueryRowContext(ctx, selectStatus, req.ID).Scan(&res.Status)
-	var canceling = constants.StatusCanceled
+	var canceling = constants.Canceled
 	updateQuery := fmt.Sprintf("UPDATE %s SET canceled_at = ? , updated_at = ? , status = ? WHERE ID = ? AND status = ?", ds.tableName)
 	result, err := tx.PrepareContext(ctx, updateQuery)
 	if err != nil {
@@ -232,7 +232,7 @@ CASE WHEN EXISTS (SELECT 1 FROM registration WHERE id = ? AND status != ?) THEN 
 		return dataModels.Registration{}, fmt.Errorf("cannot find offering row for registration %d: %w", req.ID, err)
 	}
 
-	if res.Status == constants.StatusReserveation {
+	if res.Status == constants.Reservation {
 
 		decrementEnrolledQuery := fmt.Sprintf("UPDATE offerings SET reserveation = reserveation - 1  WHERE row = ? AND reserveation > 0")
 		result, err = tx.PrepareContext(ctx, decrementEnrolledQuery)
@@ -245,7 +245,7 @@ CASE WHEN EXISTS (SELECT 1 FROM registration WHERE id = ? AND status != ?) THEN 
 			return dataModels.Registration{}, err
 		}
 	}
-	if res.Status == constants.StatusEnrolled {
+	if res.Status == constants.Enrolled {
 
 		decrementEnrolledQuery := fmt.Sprintf("UPDATE offerings SET enrolled_count = enrolled_count - 1 WHERE row = ? AND enrolled_count > 0")
 		result, err = tx.PrepareContext(ctx, decrementEnrolledQuery)
@@ -488,9 +488,9 @@ func (ds *RegistrationDBDS) registerSingleCourse(ctx context.Context, ID int64, 
 	var alreadyRegistered bool
 	checkDuplicateQuery := `
 SELECT EXISTS (SELECT 1 FROM registration 
-WHERE student_id = ? AND offering_row = ? )
+WHERE student_id = ? AND course_number = ? AND status != ?)
  `
-	err = tx.QueryRowContext(ctx, checkDuplicateQuery, ID, offering).Scan(&alreadyRegistered)
+	err = tx.QueryRowContext(ctx, checkDuplicateQuery, ID, courseNumber, constants.Canceled).Scan(&alreadyRegistered)
 	if err != nil {
 		return dataModels.Registration{}, err
 	}
@@ -518,7 +518,7 @@ WHERE student_id = ? AND offering_row = ? )
 		return dataModels.Registration{}, errors.New("this course is for else department")
 	}
 
-	insertQuery := fmt.Sprintf("INSERT INTO %s (student_id , course_number, offering_row,status,queuePosition,registrar, enrolled_at, created_at, updated_at ) VALUES (?,?,?, ?, ?, ?, ? , ?)", ds.tableName)
+	insertQuery := fmt.Sprintf("INSERT INTO %s (student_id , course_number, offering_row,status,queuePosition,registrar, enrolled_at, created_at, updated_at ) VALUES (?,?,?, ?, ?, ?, ? , ? , ?)", ds.tableName)
 	var checkCapacity bool
 	studentQuery := `
 SELECT
@@ -536,7 +536,7 @@ CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND capacity > enrolled_
 		if err != nil {
 			return dataModels.Registration{}, err
 		}
-		var reserved = constants.StatusReserveation
+		var reserved = constants.Reservation
 		reserve := fmt.Sprintf("UPDATE offerings SET reserveation = reserveation + 1  WHERE row = ?")
 		_, err = tx.ExecContext(ctx, reserve, offering)
 		if err != nil {
@@ -544,18 +544,16 @@ CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND capacity > enrolled_
 		}
 		var lastQu int
 		var reserveNumber int
-		lastQueue := "SELECT queuePosition FROM registration ORDER BY queuePosition DESC LIMIT 1"
-		err = tx.QueryRowContext(ctx, lastQueue, offering).Scan(&lastQu)
-		if err != nil {
+		lastQueue := "SELECT queuePosition FROM registration WHERE status = ? AND offering_row = ? ORDER BY queuePosition DESC LIMIT 1"
+		err = tx.QueryRowContext(ctx, lastQueue, constants.Reservation, offering).Scan(&lastQu)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return dataModels.Registration{}, err
 		}
-		if lastQu == -1 {
-			lastQu = 0
-		}
+		
 		reserveNumber = lastQu + 1
 		result, err := tx.ExecContext(ctx, insertQuery, ID, courseNumber, offering, reserved, reserveNumber, role, now, now, now)
 		if err != nil {
-			return dataModels.Registration{}, errors.New("you can't reserve the reservation")
+			return dataModels.Registration{}, err
 		}
 		add, err = result.LastInsertId()
 		if err != nil {
@@ -566,7 +564,7 @@ CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND capacity > enrolled_
 		if reserve == true {
 			return dataModels.Registration{}, errors.New("the course is not full . if want select this course")
 		}
-		var enrolled = constants.StatusEnrolled
+		var enrolled = constants.Enrolled
 		lockQuery := `SELECT row FROM offerings WHERE row = ? FOR UPDATE`
 		_, err = tx.ExecContext(ctx, lockQuery, offering)
 		if err != nil {
@@ -577,7 +575,7 @@ CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND capacity > enrolled_
 		if err != nil {
 			return dataModels.Registration{}, err
 		}
-		sdd, err := tx.ExecContext(ctx, insertQuery, ID, courseNumber, offering, enrolled, role, now, now, now)
+		sdd, err := tx.ExecContext(ctx, insertQuery, ID, courseNumber, offering, enrolled, 0, role, now, now, now)
 		if err != nil {
 			return dataModels.Registration{}, fmt.Errorf("you can't enroll the student", err)
 		}

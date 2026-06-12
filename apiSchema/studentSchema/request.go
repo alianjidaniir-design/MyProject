@@ -12,6 +12,7 @@ type SignUpStudent struct {
 	UserName     *string `json:"user_name" validate:"omitempty,len=9,numeric"`
 	Password     string  `json:"password" validate:"required,len=10"`
 	RoleName     string  `json:"role_name"`
+	DepartmentID int64   `json:"department_id" validate:"required"`
 }
 type LoginStudent struct {
 	UserName string `json:"user_name" validate:"required,len=9,numeric"`
