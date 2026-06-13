@@ -203,17 +203,6 @@ func (ds *RegistrationDBDS) CancelRegisterStudent(ctx context.Context, req regis
 	}
 	var checkStatus bool
 	var can = constants.Canceled
-	if role == "student" {
-		var reg string
-		checkRegister := "SELECT registrar FROM registration WHERE ID = ?"
-		err = tx.QueryRowContext(ctx, checkRegister, studentID).Scan(&reg)
-		if err != nil {
-			return dataModels.Registration{}, err
-		}
-		if reg != "student" {
-			return dataModels.Registration{}, errors.New("this is registered by admin . you can not cancel it")
-		}
-	}
 	checkQuery := `
 SELECT
 CASE WHEN EXISTS (SELECT 1 FROM registration WHERE id = ? AND status != ? AND deleted_at IS NULL) THEN 1 ELSE 0 END
@@ -223,7 +212,17 @@ CASE WHEN EXISTS (SELECT 1 FROM registration WHERE id = ? AND status != ? AND de
 		return dataModels.Registration{}, err
 	}
 	if !checkStatus {
-		return dataModels.Registration{}, errors.New(" status is canceled or registration deleted")
+		return dataModels.Registration{}, errors.New("status is canceled or registration deleted")
+	}
+
+	if role == "student" {
+		var reg string
+		checkRegister := "SELECT registrar FROM registration WHERE ID = ?"
+		err = tx.QueryRowContext(ctx, checkRegister, studentID).Scan(&reg)
+		if err != nil || reg != "student" {
+			return dataModels.Registration{}, errors.New("this is registered by admin . you can not cancel it")
+		}
+
 	}
 
 	var status string
@@ -236,7 +235,11 @@ CASE WHEN EXISTS (SELECT 1 FROM registration WHERE id = ? AND status != ? AND de
 		return dataModels.Registration{}, fmt.Errorf("cannot find offering row for registration %d: %w", req.ID, err)
 	}
 	if status == constants.Reservation {
-
+		lockQuery := `SELECT row FROM offerings WHERE row = ? FOR UPDATE`
+		_, err = tx.ExecContext(ctx, lockQuery, offeringRow)
+		if err != nil {
+			return dataModels.Registration{}, err
+		}
 		decrementEnrolledQuery := fmt.Sprintf("UPDATE offerings SET reserveation = reserveation - 1  WHERE row = ? AND reserveation > 0")
 		result, err := tx.PrepareContext(ctx, decrementEnrolledQuery)
 		if err != nil {
@@ -260,7 +263,11 @@ CASE WHEN EXISTS (SELECT 1 FROM registration WHERE id = ? AND status != ? AND de
 
 	}
 	if status == constants.Enrolled {
-
+		lockQuery := `SELECT row FROM offerings WHERE row = ? FOR UPDATE`
+		_, err = tx.ExecContext(ctx, lockQuery, offeringRow)
+		if err != nil {
+			return dataModels.Registration{}, err
+		}
 		decrementEnrolledQuery := fmt.Sprintf("UPDATE offerings SET enrolled_count = enrolled_count - 1 WHERE row = ? AND enrolled_count > 0")
 		result, err := tx.PrepareContext(ctx, decrementEnrolledQuery)
 		if err != nil {
@@ -273,13 +280,13 @@ CASE WHEN EXISTS (SELECT 1 FROM registration WHERE id = ? AND status != ? AND de
 		}
 	}
 	var canceling = constants.Canceled
-	updateQuery := fmt.Sprintf("UPDATE %s SET canceled_at = ? , updated_at = ? , status = ? WHERE ID = ? AND status = ?", ds.tableName)
+	updateQuery := fmt.Sprintf("UPDATE %s SET queuePosition = ? , canceled_at = ? , updated_at = ? , status = ? WHERE ID = ? AND status = ?", ds.tableName)
 	result, err := tx.PrepareContext(ctx, updateQuery)
 	if err != nil {
 		return dataModels.Registration{}, err
 	}
 	defer result.Close()
-	_, err = result.ExecContext(ctx, now, now, canceling, req.ID, status)
+	_, err = result.ExecContext(ctx, 0, now, now, canceling, req.ID, status)
 	if err != nil {
 		return dataModels.Registration{}, err
 	}

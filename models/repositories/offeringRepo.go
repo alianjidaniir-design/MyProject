@@ -12,6 +12,7 @@ type OfferingRepository interface {
 	List(ctx context.Context, req commonSchema.BaseRequest[offeringSchema.ListOfferingsRequest]) (res offeringSchema.ListOfferingResponse, errStr string, code int, err error)
 	Get(ctx context.Context, req commonSchema.BaseRequest[offeringSchema.GetRowOfferingRequest]) (res offeringSchema.DetailOfferingResponse, errStr string, code int, err error)
 	DeActive(ctx context.Context, req commonSchema.BaseRequest[offeringSchema.GetRowOfferingRequest]) (res offeringSchema.DeactivateOfferingResponse, errStr string, code int, err error)
+	Edit(ctx context.Context, req commonSchema.BaseRequest[offeringSchema.EditOffering]) (res offeringSchema.ViewAfterEditCourse, errStr string, code int, err error)
 }
 
 var OfferingRepo OfferingRepository = offering.GetRepository()

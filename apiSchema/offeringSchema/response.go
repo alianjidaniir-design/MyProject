@@ -19,3 +19,8 @@ type DeactivateOfferingResponse struct {
 	Specification dataModels.Offering
 	Massage       string `json:"massage"`
 }
+
+type ViewAfterEditCourse struct {
+	Massage       string `json:"massage"`
+	Specification dataModels.Offering
+}

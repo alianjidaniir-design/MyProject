@@ -11,4 +11,5 @@ type OfferingDS interface {
 	ListOffering(ctx context.Context, req offeringSchema.ListOfferingsRequest) (res []dataModels.ListOfferings, total int, err error)
 	GetOffering(ctx context.Context, req offeringSchema.GetRowOfferingRequest) (res dataModels.Offering, err error)
 	DeActiveOffering(ctx context.Context, req offeringSchema.GetRowOfferingRequest) (res dataModels.Offering, err error)
+	EditOffering(ctx context.Context, req offeringSchema.EditOffering) (res dataModels.Offering, err error)
 }

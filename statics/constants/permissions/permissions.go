@@ -47,6 +47,7 @@ const (
 	ListDepartments       string = "ListDepartments"
 	CreateMemberShip      string = "CreateMemberShip"
 	CreateOffering        string = "CreateOffering"
+	EditOffering          string = "EditOffering"
 	ListOfferings         string = "ListOfferings"
 	ViewOffering          string = "ViewOffering"
 	DeActivateOffering    string = "DeActivateOffering"

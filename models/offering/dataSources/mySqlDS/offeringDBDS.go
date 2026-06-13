@@ -11,6 +11,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 )
 
 type OfferingDBDS struct {
@@ -249,6 +250,89 @@ CASE WHEN EXISTS (SELECT 1 FROM offerings WHERE row = ? AND isActive = true ) TH
 		return dataModels.Offering{}, err
 	}
 	return ds.readOfferingByID(ctx, req.Row)
+}
+
+func (ds *OfferingDBDS) EditOffering(ctx context.Context, req offeringSchema.EditOffering) (res dataModels.Offering, err error) {
+	err = val.CheckValidation(req)
+	if err != nil {
+		return res, err
+	}
+	tx, err := ds.db.BeginTx(ctx, nil)
+	if err != nil {
+		return res, err
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			panic(r)
+		} else if err != nil {
+			tx.Rollback()
+		}
+	}()
+	err = ds.checkID(ctx, req.Row)
+	if err != nil {
+		return dataModels.Offering{}, err
+	}
+	var enroll, reserve, capacity int
+	selecting := "SELECT enrolled_count , reserveation , capacity FROM offerings WHERE row = ?"
+	err = tx.QueryRowContext(ctx, selecting, req.Row).Scan(&enroll, &reserve, &capacity)
+	if err != nil {
+		return dataModels.Offering{}, err
+	}
+	now := time.Now().In(timeLoc.MyLocation())
+	updateQuery := " UPDATE courses SET updated_at = ?"
+	args := []interface{}{now}
+
+	if req.Capacity != 0 {
+		deff := req.Capacity - capacity
+		if req.Capacity < enroll {
+			return dataModels.Offering{}, errors.New("capacity out of range")
+		} else if deff < reserve && deff > 0 {
+
+		}
+
+		{
+		}
+		updateQuery += ", course_number = ?"
+		args = append(args, req.NewCourseNum)
+	}
+	if req.Title != "" {
+		updateQuery += ", title = ?"
+		args = append(args, req.Title)
+	}
+	if req.CourseType != "" {
+		updateQuery += ", course_type = ?"
+		args = append(args, req.CourseType)
+	}
+	if req.Unit != 0 {
+		updateQuery += ", unit = ?"
+		args = append(args, req.Unit)
+	}
+	if req.DepartmentID != 0 {
+		updateQuery += ", department_id = ?"
+		args = append(args, req.DepartmentID)
+	}
+	if req.Prerequisite != "" {
+		updateQuery += ", prerequisite = ?"
+		args = append(args, req.Prerequisite)
+	}
+	if req.Necessary != "" {
+		updateQuery += ", necessary = ?"
+		args = append(args, req.Necessary)
+	}
+
+	updateQuery += " WHERE course_number = ?"
+	args = append(args, req.CourseNumber)
+	update, err := ds.db.PrepareContext(ctx, updateQuery)
+	if err != nil {
+		return course, err
+	}
+	defer update.Close()
+	_, err = update.ExecContext(ctx, args...)
+	if err != nil {
+		return course, err
+	}
+
 }
 
 func (ds *OfferingDBDS) readOfferingByID(ctx context.Context, row int64) (res dataModels.Offering, err error) {
