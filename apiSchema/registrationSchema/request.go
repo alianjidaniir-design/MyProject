@@ -18,7 +18,8 @@ type Pages struct {
 }
 
 type GetRegisteredStudentsRequest struct {
-	ID int64 `json:"id"`
+	IsCancel bool  `json:"is_cancel" validate:"required"`
+	ID       int64 `json:"id"`
 }
 
 type SelectPageRegisteredStudentsRequest struct {
