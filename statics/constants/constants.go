@@ -71,5 +71,6 @@ const (
 )
 
 const (
-	DurationTime = 2.00
+	DurationTime     = 2.00
+	DurationExamTime = 3
 )

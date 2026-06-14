@@ -17,6 +17,14 @@ func FormatTime(input string) (string, error) {
 	return t.Format("15:04:05"), nil
 }
 
+func FormatDataTime(input string) (*time.Time, error) {
+	in, err := time.Parse(time.DateTime, input)
+	if err != nil {
+		return &time.Time{}, err
+	}
+	return &in, nil
+}
+
 func CheckDuration(in string, out string) error {
 	time1, err := time.Parse("15:04", in)
 	if err != nil {
@@ -29,6 +37,17 @@ func CheckDuration(in string, out string) error {
 	dur := time2.Sub(time1).Hours()
 	if dur != constants.DurationTime {
 		return fmt.Errorf("The duration of each class should be %.2f hour", constants.DurationTime)
+	}
+	return nil
+}
+
+func CheckTimeExam(in *time.Time, out *time.Time) error {
+	if in.After(*out) {
+		return fmt.Errorf("time finish should be next time start")
+	}
+	dur := out.Sub(*in).Hours()
+	if dur > constants.DurationTime {
+		return fmt.Errorf("Exam Time is very Long")
 	}
 	return nil
 }

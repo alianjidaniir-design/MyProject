@@ -9,5 +9,10 @@
         <method importPath="MyProject/models/Registrations/dataSources/mysqlDS" receiver="*RegistrationDBDS" name="registerSingleCourse" />
       </methods>
     </inspection_tool>
+    <inspection_tool class="GoResourceLeak" enabled="true" level="WARNING" enabled_by_default="true">
+      <methods>
+        <method importPath="database/sql" receiver="*Stmt" name="QueryContext" />
+      </methods>
+    </inspection_tool>
   </profile>
 </component>

@@ -101,6 +101,20 @@ func (repo *Repository) DeActive(ctx context.Context, req commonSchema.BaseReque
 	return offeringSchema.DeactivateOfferingResponse{Specification: deActive}, "", status.StatusOK, nil
 
 }
+func (repo *Repository) Edit(ctx context.Context, req commonSchema.BaseRequest[offeringSchema.EditOffering]) (res offeringSchema.ViewAfterEditCourse, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return offeringSchema.ViewAfterEditCourse{}, "01", status.StatusUnauthorized, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return offeringSchema.ViewAfterEditCourse{}, "02", status.StatusBadRequest, err
+	}
+	edit, err := repo.db().EditOffering(ctx, req.Body)
+	if err != nil {
+		return offeringSchema.ViewAfterEditCourse{}, "03", status.StatusInternalServerError, err
+	}
+	return offeringSchema.ViewAfterEditCourse{Massage: "View offering After Edition", Specification: edit}, "", status.StatusOK, nil
+
+}
 
 func (repo *Repository) db() dataSources.OfferingDS {
 	return repo.DBDS

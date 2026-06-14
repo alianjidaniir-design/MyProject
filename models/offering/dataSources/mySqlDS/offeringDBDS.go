@@ -153,8 +153,9 @@ CASE WHEN EXISTS (SELECT 1 FROM terms WHERE id = ?) THEN 1 ELSE 0 END`
 	}
 
 	newID := lastID + 1
-	insertQuery := fmt.Sprintf("INSERT INTO %s (row , group_number , course_number , teacher_id , capacity , isActive ,term_id,week, day , class_start_time , class_end_time, exam_start_time, exam_finish_time ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", ds.tableName)
-	_, err = tx.ExecContext(ctx, insertQuery, newID, req.GroupNumber, req.CourseNumber, req.TeacherId, req.Capacity, req.IsActive, req.TermId, req.Week, req.Day, start, end, req.ExamStartTime, req.ExamEndTime)
+	now := time.Now().In(timeLoc.MyLocation())
+	insertQuery := fmt.Sprintf("INSERT INTO %s (row , group_number , course_number , teacher_id , capacity , isActive ,term_id,week, day , class_start_time , class_end_time, exam_start_time, exam_finish_time , updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", ds.tableName)
+	_, err = tx.ExecContext(ctx, insertQuery, newID, req.GroupNumber, req.CourseNumber, req.TeacherId, req.Capacity, req.IsActive, req.TermId, req.Week, req.Day, start, end, req.ExamStartTime, req.ExamEndTime, now)
 	if err != nil {
 		return dataModels.Offering{}, err
 	}
@@ -257,6 +258,8 @@ func (ds *OfferingDBDS) EditOffering(ctx context.Context, req offeringSchema.Edi
 	if err != nil {
 		return res, err
 	}
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
 	tx, err := ds.db.BeginTx(ctx, nil)
 	if err != nil {
 		return res, err
@@ -274,71 +277,111 @@ func (ds *OfferingDBDS) EditOffering(ctx context.Context, req offeringSchema.Edi
 		return dataModels.Offering{}, err
 	}
 	var enroll, reserve, capacity int
-	selecting := "SELECT enrolled_count , reserveation , capacity FROM offerings WHERE row = ?"
-	err = tx.QueryRowContext(ctx, selecting, req.Row).Scan(&enroll, &reserve, &capacity)
+	lockQuery := `SELECT enrolled_count , reserveation , capacity FROM offerings WHERE row = ? FOR UPDATE`
+	err = tx.QueryRowContext(ctx, lockQuery, req.Row).Scan(&enroll, &reserve, &capacity)
 	if err != nil {
 		return dataModels.Offering{}, err
 	}
-	now := time.Now().In(timeLoc.MyLocation())
-	updateQuery := " UPDATE courses SET updated_at = ?"
-	args := []interface{}{now}
 
+	now := time.Now().In(timeLoc.MyLocation())
+	updateQuery := "UPDATE offerings SET updated_at = ? "
+	args := []interface{}{now}
 	if req.Capacity != 0 {
 		deff := req.Capacity - capacity
 		if req.Capacity < enroll {
 			return dataModels.Offering{}, errors.New("capacity out of range")
-		} else if deff < reserve && deff > 0 {
+		} else if reserve > 0 && deff > 0 {
+			updateRegister := `
+				WITH uto  AS (
+					SELECT id 
+					FROM reservation
+					WHERE offering_row = ? AND status = ? AND queuePosition > 0
+					ORDER BY queuePosition ASC 
+					LIMIT ?
+					FOR UPDATE 
+				)
+				UPDATE reservation 
+				SET updated_at = ?, queuePosition = queuePosition - 1
+				WHERE id IN (SELECT id FROM to_update)
+			`
+			// درست: ExecContext بجای QueryContext
+			result, err := tx.ExecContext(ctx, updateRegister, req.Row, constants.Reservation, deff, now)
+			if err != nil {
+				return dataModels.Offering{}, err
+			}
 
+			rowsAffected, _ := result.RowsAffected()
+			if rowsAffected > 0 {
+				updateStatus := `
+					UPDATE reservation
+					SET status = ?
+					WHERE offering_row = ? AND queuePosition = 0 AND status = ?
+				`
+				_, err = tx.ExecContext(ctx, updateStatus, constants.Enrolled, req.Row, constants.Reservation)
+				if err != nil {
+					return dataModels.Offering{}, err
+				}
+			}
+
+			updateOffering := "UPDATE offerings SET enrolled_count = enrolled_count + ?, reservation = reservation - ? WHERE row = ?"
+			_, err = tx.ExecContext(ctx, updateOffering, deff, deff, req.Row)
+			if err != nil {
+				return dataModels.Offering{}, err
+			}
+		}
+		updateQuery += " , capacity = ?"
+		args = append(args, req.Capacity)
+	}
+
+	if req.IsActive != nil {
+		if *req.IsActive == false && enroll > 0 {
+			return dataModels.Offering{}, errors.New("enrolled student in course . can not deActive it")
+		}
+		updateQuery += ", is_active = ?"
+		args = append(args, req.IsActive)
+	}
+
+	if req.ExamStartTime != "" && req.ExamFinishTime != "" {
+		start, err := timeLoc.FormatDataTime(req.ExamStartTime)
+		finish, err := timeLoc.FormatDataTime(req.ExamFinishTime)
+		if err != nil {
+			return dataModels.Offering{}, err
+		}
+		err = timeLoc.CheckTimeExam(start, finish)
+		if err != nil {
+			return dataModels.Offering{}, err
 		}
 
-		{
-		}
-		updateQuery += ", course_number = ?"
-		args = append(args, req.NewCourseNum)
-	}
-	if req.Title != "" {
-		updateQuery += ", title = ?"
-		args = append(args, req.Title)
-	}
-	if req.CourseType != "" {
-		updateQuery += ", course_type = ?"
-		args = append(args, req.CourseType)
-	}
-	if req.Unit != 0 {
-		updateQuery += ", unit = ?"
-		args = append(args, req.Unit)
-	}
-	if req.DepartmentID != 0 {
-		updateQuery += ", department_id = ?"
-		args = append(args, req.DepartmentID)
-	}
-	if req.Prerequisite != "" {
-		updateQuery += ", prerequisite = ?"
-		args = append(args, req.Prerequisite)
-	}
-	if req.Necessary != "" {
-		updateQuery += ", necessary = ?"
-		args = append(args, req.Necessary)
+		updateQuery += ", exam_start_time = ? , exam_finish_time = ?"
+		args = append(args, req.ExamStartTime, req.ExamFinishTime)
 	}
 
-	updateQuery += " WHERE course_number = ?"
-	args = append(args, req.CourseNumber)
-	update, err := ds.db.PrepareContext(ctx, updateQuery)
+	updateQuery += " WHERE row = ?"
+	args = append(args, req.Row)
+
+	update, err := tx.PrepareContext(ctx, updateQuery)
 	if err != nil {
-		return course, err
+
+		return dataModels.Offering{}, err
 	}
 	defer update.Close()
 	_, err = update.ExecContext(ctx, args...)
 	if err != nil {
-		return course, err
+
+		return dataModels.Offering{}, err
 	}
+	err = tx.Commit()
+	if err != nil {
+		return dataModels.Offering{}, err
+	}
+	return ds.readOfferingByID(ctx, req.Row)
 
 }
 
 func (ds *OfferingDBDS) readOfferingByID(ctx context.Context, row int64) (res dataModels.Offering, err error) {
 	var offering dataModels.Offering
-	readQuery := fmt.Sprintf("SELECT row , group_number , course_number , teacher_id , capacity , enrolled_count , isActive , reserveation , term_id , week , day , class_start_time , class_end_time , exam_start_time , exam_finish_time FROM %s WHERE row = ? ", ds.tableName)
-	err = ds.db.QueryRowContext(ctx, readQuery, row).Scan(&offering.Row, &offering.GroupNumber, &offering.CourseNumber, &offering.TeacherID, &offering.Capacity, &offering.EnrolledCount, &offering.IsActive, &offering.Reservation, &offering.TermID, &offering.Week, &offering.Day, &offering.ClassStartTime, &offering.ClassEndTime, &offering.ExamStartTime, &offering.ExamEndTime)
+	readQuery := fmt.Sprintf("SELECT row , group_number , course_number , teacher_id , capacity , enrolled_count , isActive , reserveation , term_id , week , day , class_start_time , class_end_time , exam_start_time , exam_finish_time , updated_at FROM %s WHERE row = ? ", ds.tableName)
+	err = ds.db.QueryRowContext(ctx, readQuery, row).Scan(&offering.Row, &offering.GroupNumber, &offering.CourseNumber, &offering.TeacherID, &offering.Capacity, &offering.EnrolledCount, &offering.IsActive, &offering.Reservation, &offering.TermID, &offering.Week, &offering.Day, &offering.ClassStartTime, &offering.ClassEndTime, &offering.ExamStartTime, &offering.ExamFinishTime, &offering.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return dataModels.Offering{}, errors.New(sql.ErrNoRows.Error())

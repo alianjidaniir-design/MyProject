@@ -13,6 +13,7 @@ var offeringRoute = map[string]string{
 	"offeringList":       "offering/list",
 	"offeringDetail":     "offering/detail",
 	"offeringDeActivate": "offering/deactivate",
+	"offeringEdit":       "offering/edit",
 }
 
 func SetupOfferingRoute(app *fiber.App) map[string]string {
@@ -21,5 +22,7 @@ func SetupOfferingRoute(app *fiber.App) map[string]string {
 	api.Post(offeringRoute["offeringList"], authz.RequirePermission(permissions.ListOfferings), List)
 	api.Post(offeringRoute["offeringDetail"], authz.RequirePermission(permissions.ViewOffering), Get)
 	api.Post(offeringRoute["offeringDeActivate"], authz.RequirePermission(permissions.DeActivateOffering), DeActive)
+	api.Post(offeringRoute["offeringEdit"], authz.RequirePermission(permissions.EditOffering), Edit)
+
 	return offeringRoute
 }
