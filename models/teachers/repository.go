@@ -106,21 +106,6 @@ func (repo *Repository) Get(ctx context.Context, req commonSchema.BaseRequest[te
 
 }
 
-func (repo *Repository) HardDelete(ctx context.Context, req commonSchema.BaseRequest[teacherSchema.SelectTeacherSchema]) (res teacherSchema.HardDeleteTeacherSchema, errStr string, code int, err error) {
-	if repo.initRepo != nil {
-		return teacherSchema.HardDeleteTeacherSchema{}, "01", status.StatusUnauthorized, errors.New("wrong db connection")
-	}
-	if repo.DBDS == nil {
-		return teacherSchema.HardDeleteTeacherSchema{}, "02", status.StatusBadRequest, errors.New("wrong db connection")
-	}
-	deleted, err := repo.db().HardDeleteTeachers(ctx, req.Body)
-	if err != nil {
-		return teacherSchema.HardDeleteTeacherSchema{}, "03", status.StatusUnauthorized, err
-	}
-	return teacherSchema.HardDeleteTeacherSchema{Massage: deleted}, "", status.StatusOK, nil
-
-}
-
 func (repo *Repository) SoftDelete(ctx context.Context, req commonSchema.BaseRequest[teacherSchema.SelectTeacherSchema]) (res teacherSchema.SoftDeleteTeacherSchema, errStr string, code int, err error) {
 	if repo.initRepo != nil {
 		return teacherSchema.SoftDeleteTeacherSchema{}, "01", status.UnAvailableServiceError, repo.initRepo

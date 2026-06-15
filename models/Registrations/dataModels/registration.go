@@ -59,8 +59,12 @@ type DetailClasses struct {
 	Title               string `json:"title"`
 	Capacity            int    `json:"capacity"`
 	EnrolledCount       int    `json:"enrolled_count"`
+	Week                string `json:"week"`
+	Day                 string `json:"day"`
 	ClassStartTime      string `json:"class_start_time"`
 	ClassEndTime        string `json:"class_end_time"`
+	ExamStartTime       string `json:"exam_start_time"`
+	ExamEndTime         string `json:"exam_end_time"`
 	DepartmentID        int64  `json:"department_id"`
 }
 

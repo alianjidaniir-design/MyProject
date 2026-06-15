@@ -152,20 +152,6 @@ func (ds *TeacherDBDS) GetTeacherById(ctx context.Context, req teacherSchema.Get
 	return ds.readQuery(ctx, req.ID)
 }
 
-func (ds *TeacherDBDS) HardDeleteTeachers(ctx context.Context, req teacherSchema.SelectTeacherSchema) (res string, err error) {
-	err = ds.chackTeacher(ctx, req.ID)
-	if err != nil {
-		return "", err
-	}
-	deleteQuery := fmt.Sprintf("DELETE FROM %s WHERE id = ? ", ds.tableName)
-	_, err = ds.db.ExecContext(ctx, deleteQuery, req.ID)
-	if err != nil {
-		return res, err
-	}
-	response := "deleted done successfully"
-	return response, nil
-}
-
 func (ds *TeacherDBDS) SoftDeleteTeachers(ctx context.Context, req teacherSchema.SelectTeacherSchema) (res dataModels.Teacher, err error) {
 	err = ds.chackTeacher(ctx, req.ID)
 	if err != nil {
