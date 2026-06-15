@@ -18,11 +18,13 @@ func FormatTime(input string) (string, error) {
 }
 
 func FormatDataTime(input string) (*time.Time, error) {
-	in, err := time.Parse(time.DateTime, input)
+
+	in, err := time.ParseInLocation(time.DateTime, input, MyLocation())
 	if err != nil {
 		return &time.Time{}, err
 	}
-	return &in, nil
+	timeIn := in.In(MyLocation())
+	return &timeIn, nil
 }
 
 func CheckDuration(in string, out string) error {
@@ -36,7 +38,7 @@ func CheckDuration(in string, out string) error {
 	}
 	dur := time2.Sub(time1).Hours()
 	if dur != constants.DurationTime {
-		return fmt.Errorf("The duration of each class should be %.2f hour", constants.DurationTime)
+		return fmt.Errorf("the duration of each class should be %.2f hour", constants.DurationTime)
 	}
 	return nil
 }
@@ -47,7 +49,9 @@ func CheckTimeExam(in *time.Time, out *time.Time) error {
 	}
 	dur := out.Sub(*in).Hours()
 	if dur > constants.DurationTime {
-		return fmt.Errorf("Exam Time is very Long")
+		return fmt.Errorf("exam Time is very Long")
+	} else if dur == 0 {
+		return fmt.Errorf("can not finish time like with start time")
 	}
 	return nil
 }

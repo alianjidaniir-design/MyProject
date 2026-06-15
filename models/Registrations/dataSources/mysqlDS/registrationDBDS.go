@@ -167,7 +167,7 @@ func (ds *RegistrationDBDS) ListAllRegisterStudent(ctx context.Context, req regi
 	if err != nil {
 		return nil, 0, errors.New("error getting the total count")
 	}
-	selectQuery := fmt.Sprintf("SELECT ID, student_id,course_number, offering_row, status, enrolled_at, canceled_at, created_at, updated_at FROM %s LIMIT ? OFFSET ?", ds.tableName)
+	selectQuery := fmt.Sprintf("SELECT ID, student_id,course_number, offering_row, status, registered_at, canceled_at, created_at, updated_at FROM %s LIMIT ? OFFSET ?", ds.tableName)
 	rows, err := ds.db.QueryContext(ctx, selectQuery, limit, offset)
 	if err != nil {
 
@@ -176,7 +176,7 @@ func (ds *RegistrationDBDS) ListAllRegisterStudent(ctx context.Context, req regi
 	defer rows.Close()
 	for rows.Next() {
 		var register dataModels.Registration
-		err = rows.Scan(&register.ID, &register.StudentID, &register.CourseNumber, &register.OfferingRow, &register.Status, &register.EnrolledAt, &register.CanceledAt, &register.CreatedAt, &register.UpdatedAt)
+		err = rows.Scan(&register.ID, &register.StudentID, &register.CourseNumber, &register.OfferingRow, &register.Status, &register.RegisteredAt, &register.CanceledAt, &register.CreatedAt, &register.UpdatedAt)
 		if err != nil {
 			return nil, 0, errors.New("error scanning the row")
 		}
@@ -458,10 +458,10 @@ ORDER BY o.class_start_time LIMIT ? OFFSET ?;
 func (ds *RegistrationDBDS) readQuery(ctx context.Context, ID int64) (dataModels.Registration, error) {
 	var register dataModels.Registration
 	readQuery := fmt.Sprintf(`
-        SELECT ID, student_id,course_number, offering_row, status,registrar, enrolled_at, canceled_at, created_at, updated_at
+        SELECT ID, student_id,course_number, offering_row, status,registrar, registered_at, canceled_at, created_at, updated_at
         FROM %s
         WHERE ID = ? `, ds.tableName)
-	err := ds.db.QueryRowContext(ctx, readQuery, ID).Scan(&register.ID, &register.StudentID, &register.CourseNumber, &register.OfferingRow, &register.Status, &register.Registrar, &register.EnrolledAt, &register.CanceledAt, &register.CreatedAt, &register.UpdatedAt)
+	err := ds.db.QueryRowContext(ctx, readQuery, ID).Scan(&register.ID, &register.StudentID, &register.CourseNumber, &register.OfferingRow, &register.Status, &register.Registrar, &register.RegisteredAt, &register.CanceledAt, &register.CreatedAt, &register.UpdatedAt)
 	if err != nil {
 		return dataModels.Registration{}, fmt.Errorf(err.Error())
 	}
@@ -550,7 +550,7 @@ WHERE student_id = ? AND course_number = ? AND status != ?)
 		return dataModels.Registration{}, errors.New("this course is for else department")
 	}
 
-	insertQuery := fmt.Sprintf("INSERT INTO %s (student_id , course_number, offering_row,status,queuePosition,registrar, enrolled_at, created_at, updated_at ) VALUES (?,?,?, ?, ?, ?, ? , ? , ?)", ds.tableName)
+	insertQuery := fmt.Sprintf("INSERT INTO %s (student_id , course_number, offering_row,status,queuePosition,registrar, registered_at, created_at, updated_at ) VALUES (?,?,?, ?, ?, ?, ? , ? , ?)", ds.tableName)
 	var checkCapacity bool
 	studentQuery := `
 SELECT

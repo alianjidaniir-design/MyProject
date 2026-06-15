@@ -277,8 +277,9 @@ func (ds *OfferingDBDS) EditOffering(ctx context.Context, req offeringSchema.Edi
 		return dataModels.Offering{}, err
 	}
 	var enroll, reserve, capacity int
-	lockQuery := `SELECT enrolled_count , reserveation , capacity FROM offerings WHERE row = ? FOR UPDATE`
-	err = tx.QueryRowContext(ctx, lockQuery, req.Row).Scan(&enroll, &reserve, &capacity)
+	var startExam, finishExam *time.Time
+	lockQuery := `SELECT enrolled_count , reserveation , capacity , exam_start_time , exam_finish_time FROM offerings WHERE row = ? FOR UPDATE`
+	err = tx.QueryRowContext(ctx, lockQuery, req.Row).Scan(&enroll, &reserve, &capacity, &startExam, &finishExam)
 	if err != nil {
 		return dataModels.Offering{}, err
 	}
@@ -292,20 +293,18 @@ func (ds *OfferingDBDS) EditOffering(ctx context.Context, req offeringSchema.Edi
 			return dataModels.Offering{}, errors.New("capacity out of range")
 		} else if reserve > 0 && deff > 0 {
 			updateRegister := `
-				WITH uto  AS (
-					SELECT id 
-					FROM reservation
-					WHERE offering_row = ? AND status = ? AND queuePosition > 0
-					ORDER BY queuePosition ASC 
-					LIMIT ?
-					FOR UPDATE 
-				)
-				UPDATE reservation 
-				SET updated_at = ?, queuePosition = queuePosition - 1
-				WHERE id IN (SELECT id FROM to_update)
-			`
-			// درست: ExecContext بجای QueryContext
-			result, err := tx.ExecContext(ctx, updateRegister, req.Row, constants.Reservation, deff, now)
+UPDATE registration
+SET 
+    updated_at = ? ,
+    queuePosition = CASE 
+    WHEN queuePosition >= ? THEN queuePosition - ?
+    ELSE 0
+    END
+WHERE offering_row = ?
+  AND status = ?
+  AND queuePosition > 0;
+`
+			result, err := tx.ExecContext(ctx, updateRegister, now, deff, deff, req.Row, constants.Reservation)
 			if err != nil {
 				return dataModels.Offering{}, err
 			}
@@ -313,7 +312,7 @@ func (ds *OfferingDBDS) EditOffering(ctx context.Context, req offeringSchema.Edi
 			rowsAffected, _ := result.RowsAffected()
 			if rowsAffected > 0 {
 				updateStatus := `
-					UPDATE reservation
+					UPDATE registration
 					SET status = ?
 					WHERE offering_row = ? AND queuePosition = 0 AND status = ?
 				`
@@ -323,10 +322,17 @@ func (ds *OfferingDBDS) EditOffering(ctx context.Context, req offeringSchema.Edi
 				}
 			}
 
-			updateOffering := "UPDATE offerings SET enrolled_count = enrolled_count + ?, reservation = reservation - ? WHERE row = ?"
-			_, err = tx.ExecContext(ctx, updateOffering, deff, deff, req.Row)
-			if err != nil {
-				return dataModels.Offering{}, err
+			updateOffering := "UPDATE offerings SET enrolled_count = enrolled_count + ?, reserveation = reserveation - ? WHERE row = ?"
+			if deff <= reserve {
+				_, err = tx.ExecContext(ctx, updateOffering, deff, deff, req.Row)
+				if err != nil {
+					return dataModels.Offering{}, err
+				}
+			} else {
+				_, err = tx.ExecContext(ctx, updateOffering, reserve, reserve, req.Row)
+				if err != nil {
+					return dataModels.Offering{}, err
+				}
 			}
 		}
 		updateQuery += " , capacity = ?"
@@ -337,23 +343,40 @@ func (ds *OfferingDBDS) EditOffering(ctx context.Context, req offeringSchema.Edi
 		if *req.IsActive == false && enroll > 0 {
 			return dataModels.Offering{}, errors.New("enrolled student in course . can not deActive it")
 		}
-		updateQuery += ", is_active = ?"
+		updateQuery += ", isActive = ?"
 		args = append(args, req.IsActive)
 	}
 
-	if req.ExamStartTime != "" && req.ExamFinishTime != "" {
+	if req.ExamStartTime != "" {
+
 		start, err := timeLoc.FormatDataTime(req.ExamStartTime)
+		if err != nil {
+			return dataModels.Offering{}, err
+		}
+		if finishExam != nil {
+			err = timeLoc.CheckTimeExam(start, finishExam)
+			if err != nil {
+				return dataModels.Offering{}, err
+			}
+		}
+
+		updateQuery += ", exam_start_time = ? "
+		args = append(args, start)
+	}
+	if req.ExamFinishTime != "" {
 		finish, err := timeLoc.FormatDataTime(req.ExamFinishTime)
 		if err != nil {
 			return dataModels.Offering{}, err
 		}
-		err = timeLoc.CheckTimeExam(start, finish)
-		if err != nil {
-			return dataModels.Offering{}, err
+		if startExam != nil {
+			err = timeLoc.CheckTimeExam(startExam, finish)
+			if err != nil {
+				return dataModels.Offering{}, err
+			}
 		}
 
-		updateQuery += ", exam_start_time = ? , exam_finish_time = ?"
-		args = append(args, req.ExamStartTime, req.ExamFinishTime)
+		updateQuery += ", exam_finish_time = ? "
+		args = append(args, finish)
 	}
 
 	updateQuery += " WHERE row = ?"
@@ -361,7 +384,6 @@ func (ds *OfferingDBDS) EditOffering(ctx context.Context, req offeringSchema.Edi
 
 	update, err := tx.PrepareContext(ctx, updateQuery)
 	if err != nil {
-
 		return dataModels.Offering{}, err
 	}
 	defer update.Close()

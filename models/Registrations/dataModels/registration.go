@@ -9,7 +9,7 @@ type Registration struct {
 	OfferingRow  int64      `json:"offering_row"`
 	Status       string     `json:"status"`
 	Registrar    string     `json:"registrar"`
-	EnrolledAt   time.Time  `json:"enrolled_at"`
+	RegisteredAt time.Time  `json:"registered_at"`
 	CanceledAt   *time.Time `json:"canceled_at "`
 	CreatedAt    time.Time  `json:"created_at"`
 	UpdatedAt    time.Time  `json:"updated_at"`

@@ -95,7 +95,6 @@ func AuthMiddleware() fiber.Handler {
 	}
 }
 
-// ای پی ای محافظت شده
 func GetUserID(c *fiber.Ctx) int64 {
 	if k, ok := c.Locals("user_id").(int64); ok {
 		return k
@@ -103,7 +102,6 @@ func GetUserID(c *fiber.Ctx) int64 {
 	return 0
 }
 
-// ای پی ای رول پرمیشن
 func GetRoleName(c *fiber.Ctx) string {
 	if k, ok := c.Locals("role_name").(string); ok {
 		return k
