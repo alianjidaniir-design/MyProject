@@ -24,3 +24,9 @@ type ViewAfterEditCourse struct {
 	Massage       string `json:"massage"`
 	Specification dataModels.Offering
 }
+
+type ClassesTeacher struct {
+	MyClasses []dataModels.TermClasses
+	Page      int `json:"page"`
+	Total     int
+}

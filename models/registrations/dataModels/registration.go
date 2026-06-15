@@ -52,24 +52,3 @@ type TermClassSchedules struct {
 	Classes    []DetailClassScheduler
 	TotalUnits int `json:"total_units"`
 }
-
-type DetailClasses struct {
-	OfferingGroupNumber int    `json:"offering_group_number"`
-	CourseNumber        int    `json:"course_number"`
-	Title               string `json:"title"`
-	Capacity            int    `json:"capacity"`
-	EnrolledCount       int    `json:"enrolled_count"`
-	Week                string `json:"week"`
-	Day                 string `json:"day"`
-	ClassStartTime      string `json:"class_start_time"`
-	ClassEndTime        string `json:"class_end_time"`
-	ExamStartTime       string `json:"exam_start_time"`
-	ExamEndTime         string `json:"exam_end_time"`
-	DepartmentID        int64  `json:"department_id"`
-}
-
-type TermClasses struct {
-	Term    int `json:"term"`
-	Year    int `json:"year"`
-	Classes []DetailClasses
-}

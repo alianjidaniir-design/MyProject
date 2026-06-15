@@ -18,7 +18,6 @@ var registerRoute = map[string]string{
 	"registrationListStudent":        "registration/student",
 	"registrationListOffering":       "registration/offering",
 	"registrationListStudentClasses": "registration/student/classes",
-	"registrationListTeacherClasses": "registration/teacher/classes",
 }
 
 func SetupRegistrationRoute(app *fiber.App) map[string]string {
@@ -32,6 +31,5 @@ func SetupRegistrationRoute(app *fiber.App) map[string]string {
 	api.Post(registerRoute["registrationListStudent"], authz.RequirePermission(permissions.ListStudentRegisters), ListStudent)
 	api.Post(registerRoute["registrationListOffering"], authz.RequirePermission(permissions.ListOfferingRegisters), ListOffering)
 	api.Post(registerRoute["registrationListStudentClasses"], authz.RequirePermission(permissions.ListClassesStudent), ClassesStudent)
-	api.Post(registerRoute["registrationListTeacherClasses"], authz.RequirePermission(permissions.ListClassesTeacher), ClassesTeacher)
 	return registerRoute
 }

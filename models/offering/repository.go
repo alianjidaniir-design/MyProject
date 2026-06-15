@@ -3,12 +3,15 @@ package offering
 import (
 	"MyProject/apiSchema/commonSchema"
 	"MyProject/apiSchema/offeringSchema"
+	"MyProject/midddleware/authz"
 	"MyProject/models/offering/dataSources"
 	"MyProject/models/offering/dataSources/mySqlDS"
 	"MyProject/statics/constants/status"
 	"context"
 	"errors"
 	"sync"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 type Repository struct {
@@ -114,6 +117,21 @@ func (repo *Repository) Edit(ctx context.Context, req commonSchema.BaseRequest[o
 	}
 	return offeringSchema.ViewAfterEditCourse{Massage: "View offering After Edition", Specification: edit}, "", status.StatusOK, nil
 
+}
+
+func (repo *Repository) ListClassesTeacher(ctx context.Context, req commonSchema.BaseRequest[offeringSchema.Pages], c *fiber.Ctx) (res offeringSchema.ClassesTeacher, errStr string, code int, err error) {
+	if repo.initRepo != nil {
+		return offeringSchema.ClassesTeacher{}, "01", status.StatusUnauthorized, repo.initRepo
+	}
+	if repo.DBDS == nil {
+		return offeringSchema.ClassesTeacher{}, "02", status.StatusBadRequest, errors.New("DB DS not initialized")
+	}
+	teacherID := authz.GetUserID(c)
+	detail, tot, page, err := repo.db().ListClassesTeacher(ctx, req.Body, teacherID)
+	if err != nil {
+		return offeringSchema.ClassesTeacher{}, "03", status.StatusInternalServerError, err
+	}
+	return offeringSchema.ClassesTeacher{MyClasses: detail, Total: tot, Page: page}, "", status.StatusOK, nil
 }
 
 func (repo *Repository) db() dataSources.OfferingDS {

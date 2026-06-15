@@ -1,8 +1,8 @@
-package registration
+package offering
 
 import (
 	"MyProject/apiSchema/commonSchema"
-	"MyProject/apiSchema/registrationSchema"
+	"MyProject/apiSchema/offeringSchema"
 	"MyProject/controllers/mainController"
 	"MyProject/models/repositories"
 	"MyProject/statics/constants/controllerbaseErrCode"
@@ -13,12 +13,12 @@ import (
 func ClassesTeacher(ctx *fiber.Ctx) error {
 	spanCtx := mainController.InitAPI(ctx, "18")
 	defer mainController.FinishSpan(ctx)
-	req := commonSchema.BaseRequest[registrationSchema.Pages]{}
+	req := commonSchema.BaseRequest[offeringSchema.Pages]{}
 	errStr, code, err := mainController.ParseBody(ctx, &req)
 	if err != nil {
 		return mainController.Error(ctx, controllerbaseErrCode.RegistrationErrCode, "01", errStr, code, err)
 	}
-	res, errStr, code, err := repositories.RegistrationRepo.ListClassesTeacher(spanCtx, req, ctx)
+	res, errStr, code, err := repositories.OfferingRepo.ListClassesTeacher(spanCtx, req, ctx)
 	if err != nil {
 		return mainController.Error(ctx, controllerbaseErrCode.RegistrationErrCode, "02", errStr, code, err)
 	}

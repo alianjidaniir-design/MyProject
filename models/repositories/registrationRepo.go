@@ -19,7 +19,6 @@ type RegisterRepository interface {
 	ListStudents(ctx context.Context, req commonSchema.BaseRequest[registrationSchema.ListStudentsRequest]) (res registrationSchema.ListStudentResponse, errStr string, code int, err error)
 	ListOfferings(ctx context.Context, req commonSchema.BaseRequest[registrationSchema.ListOfferingRequest]) (res registrationSchema.ListOfferingResponse, errStr string, code int, err error)
 	ListClassesStudent(ctx context.Context, req commonSchema.BaseRequest[registrationSchema.Pages], c *fiber.Ctx) (res registrationSchema.ClassSchedule, errStr string, code int, err error)
-	ListClassesTeacher(ctx context.Context, req commonSchema.BaseRequest[registrationSchema.Pages], c *fiber.Ctx) (res registrationSchema.ClassesTeacher, errStr string, code int, err error)
 }
 
-var RegistrationRepo RegisterRepository = Registrations.GetRepo()
+var RegistrationRepo RegisterRepository = registrations.GetRepo()

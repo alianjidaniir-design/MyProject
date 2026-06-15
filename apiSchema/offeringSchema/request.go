@@ -37,3 +37,9 @@ type EditOffering struct {
 	ExamStartTime  string `json:"exam_start_time" validate:"omitempty"`
 	ExamFinishTime string `json:"exam_finish_time" validate:"omitempty"`
 }
+
+type Pages struct {
+	Term int `json:"term" validate:"required"`
+	Year int `json:"year" validate:"required"`
+	Page int `json:"page" validate:"required"`
+}

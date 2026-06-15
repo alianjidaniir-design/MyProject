@@ -5,6 +5,8 @@ import (
 	"MyProject/apiSchema/offeringSchema"
 	"MyProject/models/offering"
 	"context"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 type OfferingRepository interface {
@@ -13,6 +15,7 @@ type OfferingRepository interface {
 	Get(ctx context.Context, req commonSchema.BaseRequest[offeringSchema.GetRowOfferingRequest]) (res offeringSchema.DetailOfferingResponse, errStr string, code int, err error)
 	DeActive(ctx context.Context, req commonSchema.BaseRequest[offeringSchema.GetRowOfferingRequest]) (res offeringSchema.DeactivateOfferingResponse, errStr string, code int, err error)
 	Edit(ctx context.Context, req commonSchema.BaseRequest[offeringSchema.EditOffering]) (res offeringSchema.ViewAfterEditCourse, errStr string, code int, err error)
+	ListClassesTeacher(ctx context.Context, req commonSchema.BaseRequest[offeringSchema.Pages], c *fiber.Ctx) (res offeringSchema.ClassesTeacher, errStr string, code int, err error)
 }
 
 var OfferingRepo OfferingRepository = offering.GetRepository()

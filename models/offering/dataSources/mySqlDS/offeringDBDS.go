@@ -4,6 +4,7 @@ import (
 	"MyProject/apiSchema/offeringSchema"
 	"MyProject/models/offering/dataModels"
 	"MyProject/pkg/filter"
+	"MyProject/pkg/pagination"
 	"MyProject/pkg/timeLoc"
 	"MyProject/pkg/val"
 	"MyProject/statics/constants"
@@ -397,6 +398,90 @@ WHERE offering_row = ?
 		return dataModels.Offering{}, err
 	}
 	return ds.readOfferingByID(ctx, req.Row)
+
+}
+
+func (ds *OfferingDBDS) ListClassesTeacher(ctx context.Context, req offeringSchema.Pages, teacherID int64) (res []dataModels.TermClasses, total int, page int, err error) {
+	var termClass []dataModels.TermClasses
+	var classes []dataModels.DetailClasses
+	var termID int64
+	getTermIDQuery := `
+        SELECT id 
+        FROM terms 
+        WHERE term = ? AND year = ?
+    `
+	err = ds.db.QueryRowContext(ctx, getTermIDQuery, req.Term, req.Year).Scan(&termID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, 0, 0, fmt.Errorf("term %d for year %d does not exist. Available terms: check terms table", req.Term, req.Year)
+		}
+		return nil, 0, 0, err
+	}
+	page, size, err := pagination.CheckPage(req.Page, constants.PageSize)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	limit := size
+	offset := (page - 1) * limit
+	var totalRows int
+	countQuery := `
+        SELECT COUNT(*) 
+        FROM registration r
+        JOIN offerings o ON r.offering_row = o.row
+        WHERE o.teacher_id = ? 
+          AND o.term_id = ?
+    `
+	err = ds.db.QueryRowContext(ctx, countQuery, teacherID, termID).Scan(&totalRows)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	selectQuery := `
+SELECT
+o.group_number AS OfferingGroupNumber,
+c.course_number AS CourseNumber,
+c.title AS title,
+o.capacity AS capacity,
+o.enrolled_count AS EnrolledCount,
+o.week AS week,
+o.day AS workDay, 
+o.class_start_time AS ClassStartTime,
+o.class_end_time AS ClassEndTime,
+o.exam_start_time AS ExamStartTime,
+o.exam_finish_time AS ExamFinishTime,
+c.department_id AS department_id
+FROM registration r
+JOIN offerings o ON r.offering_row = o.row
+JOIN courses c ON o.course_number = c.course_number
+JOIN teachers t ON o.teacher_id = t.ID
+WHERE o.teacher_id = ? AND o.term_id = ? AND o.isActive = 1
+ORDER BY o.class_start_time LIMIT ? OFFSET ?;
+`
+	rows, err := ds.db.QueryContext(ctx, selectQuery, teacherID, termID, limit, offset)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var class dataModels.DetailClasses
+		err = rows.Scan(&class.OfferingGroupNumber, &class.CourseNumber, &class.Title, &class.Capacity, &class.EnrolledCount, &class.Week, &class.WorkDay, &class.ClassStartTime, &class.ClassEndTime, &class.ExamStartTime, &class.ExamFinishTime, &class.DepartmentID)
+		if err != nil {
+			return nil, 0, 0, err
+		}
+
+		classes = append(classes, class)
+	}
+	if rows.Err() != nil {
+		return nil, 0, 0, err
+	}
+
+	var termClassSchedulers dataModels.TermClasses
+
+	termClassSchedulers.Term = req.Term
+	termClassSchedulers.Year = req.Year
+	termClassSchedulers.Classes = classes
+	termClass = append(termClass, termClassSchedulers)
+
+	return termClass, totalRows, page, nil
 
 }
 

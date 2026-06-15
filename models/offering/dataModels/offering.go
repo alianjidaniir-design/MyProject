@@ -46,3 +46,24 @@ type ListOfferings struct {
 	Term             int        `json:"term"`
 	Year             int        `json:"year"`
 }
+
+type DetailClasses struct {
+	OfferingGroupNumber int    `json:"OfferingGroupNumber"`
+	CourseNumber        int    `json:"CourseNumber"`
+	Title               string `json:"title"`
+	Capacity            int    `json:"capacity"`
+	EnrolledCount       int    `json:"EnrolledCount"`
+	Week                string `json:"week"`
+	WorkDay             string `json:"workDay"`
+	ClassStartTime      string `json:"ClassStartTime"`
+	ClassEndTime        string `json:"ClassEndTime"`
+	ExamStartTime       string `json:"ExamStartTime"`
+	ExamFinishTime      string `json:"ExamFinishTime"`
+	DepartmentID        int64  `json:"DepartmentID"`
+}
+
+type TermClasses struct {
+	Term    int `json:"term"`
+	Year    int `json:"year"`
+	Classes []DetailClasses
+}
