@@ -49,6 +49,9 @@ func SwitchValidateErr(err validator.FieldError) string {
 		return err.Field() + ": this field must be greater than " + err.Param()
 	case "lte":
 		return err.Field() + ": this field must be less than " + err.Param()
+	case "oneOf":
+		return err.Field() + ": this field must be one of " + err.Param()
+
 	default:
 		return err.Field() + " validation failed"
 

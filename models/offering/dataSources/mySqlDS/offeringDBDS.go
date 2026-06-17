@@ -449,8 +449,7 @@ o.class_end_time AS ClassEndTime,
 o.exam_start_time AS ExamStartTime,
 o.exam_finish_time AS ExamFinishTime,
 c.department_id AS department_id
-FROM registration r
-JOIN offerings o ON r.offering_row = o.row
+FROM offerings o
 JOIN courses c ON o.course_number = c.course_number
 JOIN teachers t ON o.teacher_id = t.ID
 WHERE o.teacher_id = ? AND o.term_id = ? AND o.isActive = 1
