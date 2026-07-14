@@ -2,6 +2,7 @@ package token
 
 import (
 	tokenDataModel "MyProject/models/token/dataModel"
+	"MyProject/pkg/timeLoc"
 	"MyProject/statics/configs"
 	"MyProject/statics/constants"
 	"time"
@@ -10,19 +11,11 @@ import (
 	"github.com/google/uuid"
 )
 
-func myLocation() *time.Location {
-	loc, err := time.LoadLocation("Asia/ُTehran")
-	if err != nil {
-		return time.FixedZone("Asia/Tehran", 3*3600+30*60)
-	}
-	return loc
-}
-
 func GenerateAccessToken(userID int64, roleName string) (string, error) {
 	var jwtSecret = []byte(configs.AccessTokenSecret)
 	jti := uuid.NewString()
 
-	exp := time.Now().In(myLocation()).Add(constants.AccessTokenExpiry)
+	exp := time.Now().In(timeLoc.MyLocation()).Add(constants.AccessTokenExpiry)
 
 	claim := tokenDataModel.AccessToken{
 		UserID:   userID,
@@ -30,7 +23,7 @@ func GenerateAccessToken(userID int64, roleName string) (string, error) {
 		Scope:    "access",
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(exp),
-			IssuedAt:  jwt.NewNumericDate(time.Now().In(myLocation())),
+			IssuedAt:  jwt.NewNumericDate(time.Now().In(timeLoc.MyLocation())),
 			ID:        jti,
 		},
 	}
@@ -41,7 +34,7 @@ func GenerateAccessToken(userID int64, roleName string) (string, error) {
 }
 
 func GenerateRefreshToken(roleName string, UserID int64) (string, error) {
-	exp := time.Now().In(myLocation()).Add(constants.RefreshTokenExpiry)
+	exp := time.Now().In(timeLoc.MyLocation()).Add(constants.RefreshTokenExpiry)
 	var jwtSecret = []byte(configs.RefreshTokenSecret)
 
 	claim := jwt.MapClaims{
@@ -49,7 +42,7 @@ func GenerateRefreshToken(roleName string, UserID int64) (string, error) {
 		"user_id":   UserID,
 		"scope":     "refresh",
 		"exp":       jwt.NewNumericDate(exp),
-		"iat":       jwt.NewNumericDate(time.Now().In(myLocation())),
+		"iat":       jwt.NewNumericDate(time.Now().In(timeLoc.MyLocation())),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claim)
 	return token.SignedString(jwtSecret)

@@ -31,5 +31,7 @@ type UpdateAdminSchema struct {
 }
 
 type EntryAdminSchema struct {
-	Massage string `json:"massage"`
+	Massage string                 `json:"massage"`
+	Admin   adminDataModels.Admins `json:"admin"`
+	B       string
 }

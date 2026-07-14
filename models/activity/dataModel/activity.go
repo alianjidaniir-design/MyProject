@@ -13,3 +13,7 @@ type Activity struct {
 	CreatedAt    time.Time `json:"createdAt"`
 	UpdatedAt    time.Time `json:"updatedAt"`
 }
+
+func (Activity) TableName() string {
+	return "activities"
+}

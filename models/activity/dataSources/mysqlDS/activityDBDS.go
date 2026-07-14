@@ -43,7 +43,7 @@ func (ds *ActivityDBDS) CreateActivity(ctx context.Context, req activitySchema.C
 SELECT EXISTS (SELECT 1 FROM teachers WHERE ID = ?)
 SELECT EXISTS (SELECT 1 FROM courses WHERE ID = ?)
 `
-	err = ds.db.QueryRow(ExistTeacher, ID).Scan(&checkTeacher)
+	err = ds.db.QueryRow(ExistTeacher, ID).Scan(&checkTeacher, &checkCourse)
 	if err != nil {
 		return dataModel.Activity{}, err
 	}

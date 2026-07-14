@@ -1,15 +1,16 @@
 package main
 
 import (
+	"MyProject/apiSchema/adminSchema"
+	"encoding/json"
 	"fmt"
 )
 
 func main() {
-	s := "gopher"
-	fmt.Printf("Hello and welcome, %s!\n", s)
-
-	for i := 1; i <= 5; i++ {
-		fmt.Println("i =", 100/i)
-		fmt.Println("i*i = ", i*i)
+	marshal, err := json.Marshal(adminSchema.DetailAdminSchema{})
+	if err != nil {
+		return
 	}
+	fmt.Println(string(marshal))
+	
 }

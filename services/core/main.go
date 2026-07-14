@@ -1,7 +1,9 @@
 package main
 
 import (
+	"MyProject/apiSchema/adminSchema"
 	"MyProject/services/core/route"
+	"encoding/json"
 	"log"
 
 	"github.com/gofiber/fiber/v2"
@@ -9,7 +11,9 @@ import (
 
 func main() {
 	app := fiber.New()
-	app.Post("/", func(c *fiber.Ctx) error {
+	app.Get("/salam", func(c *fiber.Ctx) error {
+		a, _ := json.Marshal(adminSchema.DetailAdminSchema{})
+		c.Write(a)
 		return nil
 	})
 	route.SetupRoutes(app)

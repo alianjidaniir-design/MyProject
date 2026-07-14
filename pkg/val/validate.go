@@ -6,8 +6,6 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-var validate *validator.Validate
-
 func CheckValidation(req any) error {
 	validate = validator.New()
 	err := validate.Struct(req)
